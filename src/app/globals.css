@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+/* Tokens mirror design/figma-tokens.md — do not add values that are not in that file. */
+@theme {
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-maroon: #800000;
+  --color-yellow: #efbf04;
+  --color-gray: #7b7979;
+
+  --font-main: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-pup: var(--font-playfair-display-sc), ui-serif, Georgia, serif;
+  --font-qac: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --font-footer: var(--font-inria-serif), ui-serif, Georgia, serif;
+  --font-status: var(--font-roboto-serif), ui-serif, Georgia, serif;
+
+  --text-title: 36px;
+  --text-heading: 20px;
+  --text-subheading: 15px;
+  --text-regular: 12px;
+}
+
+body {
+  background: var(--color-white);
+  color: var(--color-black);
+  font-family: var(--font-main);
+}
