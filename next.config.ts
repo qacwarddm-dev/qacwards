@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Keeps the floating dev badge out of prototype-comparison screenshots.
+  devIndicators: false,
 };
 
 export default nextConfig;

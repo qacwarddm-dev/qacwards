@@ -1,5 +1,7 @@
 # Phase 1 — Shell
 
+**Status: done** — scaffold, navbar and footer built and signed off. Navbar hover behaviour was reworked on client feedback (hover darkens the font only, no pill background); see `.claude/session-state.md` for the measured dropdown spec.
+
 ## Goal
 
 Scaffold the Next.js app and build the shared layout chrome (navbar + footer) that every page reuses, wired to `design/figma-tokens.md`.
@@ -10,7 +12,7 @@ Nothing (first phase).
 
 ## Decisions (best-practice defaults, project owner delegated call)
 
-- Package manager: **pnpm**
+- Package manager: **npm** (this plan originally said pnpm; the build ran on npm — `package-lock.json` is the lockfile in the repo)
 - Layout: `src/app` (App Router), route groups `(public)` and `(portal)` added when phase 3 needs them
 - Styling: Tailwind, tokens from `design/figma-tokens.md` mapped into `tailwind.config.ts` (`colors.maroon`, `colors.yellow`, `colors.gray`, `fontFamily.*`, `fontSize.*`)
 - Fonts loaded via `next/font/google` where available (Inter, Poppins, Roboto Serif); Playfair Display SC and Inria Serif — confirm Google Fonts availability, fall back to `next/font/local` if not
@@ -38,17 +40,17 @@ Static component, no auth-state variation — reused as-is across public and por
 
 ## Tasks
 
-- [x] `pnpm create next-app` (TS, Tailwind, App Router, `src/` dir) — Next 16.2.10, React 19.2.4, Tailwind v4
+- [x] `create-next-app` (TS, Tailwind, App Router, `src/` dir) — Next 16.2.10, React 19.2.4, Tailwind v4
 - [x] Wire `design/figma-tokens.md` into `src/app/globals.css` `@theme` (Tailwind v4 — no `tailwind.config.ts`)
 - [x] Load fonts via `next/font` — `src/lib/fonts.ts`, all 5 from Google Fonts
 - [x] Build `Navbar` component — real PUP seal (no fallback needed), About dropdown, account icon → `/login` stub
 - [x] Build `Footer` component (static content per above)
 - [x] Root layout wraps all pages with Navbar + Footer
 - [x] `public/assets/logos/` populated from `assets/LOGO/`
-- [ ] Screenshot resulting shell (empty page body) against client screenshots for sign-off — **awaiting project owner**
+- [x] Screenshot resulting shell against client screenshots for sign-off — signed off during the phase 2 page loop
 
 ## Acceptance criteria
 
-- Navbar and footer visually match client screenshots (modulo missing logo graphics)
-- All colors/fonts/sizes traceable to `design/figma-tokens.md`, no hardcoded values
-- Layout responsive at mobile/tablet/desktop breakpoints
+- [x] Navbar and footer visually match client screenshots — real logo assets landed, so no fallback was needed. **Open:** the prototype navbar is ~58px tall against our 80px and its wordmark is all-caps; not reconciled, and changing it moves every page.
+- [x] All colors/fonts/sizes traceable to `design/figma-tokens.md`, no hardcoded values
+- [x] Layout responsive at mobile/tablet/desktop breakpoints
