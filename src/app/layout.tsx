@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import Footer from "@/components/Footer";
-import Navbar from "@/components/Navbar";
+import SiteChrome from "@/components/SiteChrome";
 import { fontVariables } from "@/lib/fonts";
 import "./globals.css";
 
@@ -18,9 +17,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${fontVariables} h-full antialiased`}>
       <body className="flex min-h-full flex-col font-main">
-        <Navbar />
-        <main className="flex-1">{children}</main>
-        <Footer />
+        <SiteChrome>{children}</SiteChrome>
       </body>
     </html>
   );

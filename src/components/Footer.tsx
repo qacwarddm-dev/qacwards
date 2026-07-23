@@ -17,32 +17,33 @@ const GOVERNMENT_LINKS = [
 ];
 
 function ColumnHeading({ children }: { children: React.ReactNode }) {
-  return (
-    <h2 className="text-heading font-bold text-yellow">{children}</h2>
-  );
+  return <h2 className="text-heading font-bold text-white">{children}</h2>;
 }
 
 export default function Footer() {
   return (
     <footer className="bg-maroon font-footer text-white">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-2 lg:grid-cols-4 lg:px-8">
-        <div className="flex flex-col gap-3">
+      <div className="mx-auto grid max-w-[1440px] gap-8 px-4 py-12 sm:px-6 md:grid-cols-2 lg:grid-cols-[2.49fr_1.78fr_1fr_1.65fr] lg:px-8">
+        <div className="flex items-start gap-4">
           <Image
             src="/assets/logos/republika-ng-pilipinas.png"
-            alt="Republika ng Pilipinas seal"
-            width={80}
-            height={80}
-            className="h-20 w-20 object-contain"
+            alt="Republic of the Philippines seal"
+            width={175}
+            height={234}
+            unoptimized
+            className="w-[175px] shrink-0"
           />
-          <ColumnHeading>Republika ng Pilipinas</ColumnHeading>
-          <p className="text-regular">
-            All content is public domain unless otherwise stated.
-          </p>
+          <div className="flex flex-col gap-4 pt-5">
+            <ColumnHeading>Republic of the Philippines</ColumnHeading>
+            <p className="text-regular text-white/80">
+              All content is in the public domain unless otherwise stated.
+            </p>
+          </div>
         </div>
 
         <div className="flex flex-col gap-3">
           <ColumnHeading>About GOVPH</ColumnHeading>
-          <p className="text-regular">
+          <p className="text-regular text-white/80">
             Learn more about the Philippine government, its structure, how
             government works and the people behind it.
           </p>
@@ -80,30 +81,34 @@ export default function Footer() {
           </ul>
         </div>
 
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col items-center gap-3 text-center">
           <Image
-            src="/assets/logos/qac.png"
-            alt="Quality Assurance Center seal"
-            width={80}
-            height={80}
-            className="h-20 w-20 object-contain"
+            src="/assets/logos/pup.png"
+            alt="Polytechnic University of the Philippines seal"
+            width={380}
+            height={380}
+            unoptimized
+            className="h-[108px] w-[108px]"
           />
-          <div className="flex items-start gap-2">
-            <Mail className="mt-0.5 h-4 w-4 shrink-0 text-yellow" />
-            <a
-              href="mailto:qac@pup.edu.ph"
-              className="text-regular transition-colors hover:text-yellow"
-            >
-              qac@pup.edu.ph
-            </a>
-          </div>
-          <div className="flex items-start gap-2">
-            <Phone className="mt-0.5 h-4 w-4 shrink-0 text-yellow" />
-            <p className="text-regular">
-              <span className="block font-bold">Contact Us</span>
+
+          <h2 className="text-subheading font-bold text-yellow">EMAIL</h2>
+          <a
+            href="mailto:qac@pup.edu.ph"
+            className="flex items-center gap-2 text-subheading font-bold transition-colors hover:text-yellow"
+          >
+            <Mail className="h-5 w-5 shrink-0" />
+            <span className="underline">qac@pup.edu.ph</span>
+          </a>
+
+          <h2 className="mt-3 text-subheading font-bold text-yellow">
+            CONTACT US
+          </h2>
+          <p className="flex items-center gap-2 text-subheading font-bold">
+            <Phone className="h-5 w-5 shrink-0" />
+            <span className="underline">
               (+632) 335-1787 or 335-1777 local 242
-            </p>
-          </div>
+            </span>
+          </p>
         </div>
       </div>
 

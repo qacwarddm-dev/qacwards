@@ -18,10 +18,63 @@
   --text-heading: 20px;
   --text-subheading: 15px;
   --text-regular: 12px;
+
+  /* Derived, pending client sign-off — see the matching section in
+     design/figma-tokens.md. Measured off assets/FIGMA/qac_personnel; the four
+     sizes above cannot dress the portal on their own. */
+  --color-surface: #f5f5f5;
+  --color-positive: #06aa8d;
+  --color-alert: #f90509;
+  --color-holiday: #2363ee;
+
+  --text-small: 10px;
+  --text-micro: 9px;
+
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-sidebar: 2px 0 8px rgba(0, 0, 0, 0.1);
 }
 
 body {
   background: var(--color-white);
   color: var(--color-black);
   font-family: var(--font-main);
+}
+
+/* Portal frame scale.
+
+   Every measurement in src/components/portal is a literal px value read off a
+   1440x810 Figma frame, so on a wider window the UI holds its absolute size and
+   shrinks proportionally against the frame — a 250px sidebar is 17% of 1440 but
+   only 13% of 1920. Scaling the shell by viewport/frame width restores the
+   frame's proportions at any width without editing a single measured value.
+
+   `tan(atan2(a, b))` is the CSS idiom for a length ratio as a <number>; the
+   @property registration is what makes it compute here on :root, where zoom is
+   still 1, rather than re-evaluating inside the zoomed subtree and feeding back
+   on itself. Floor 1 so a sub-1440 window is never shrunk further than the
+   design; cap 2 (2880px — the export's own resolution) so an ultrawide does not
+   blow the UI up past usable. At 1440 and below the scale is 1, so the
+   pixel-diff verify loop in design/prototype-notes.md is unaffected.
+
+   The 0.9 is the tuning knob, and the one deliberate step away from the frame:
+   a strict frame-width scale read a touch large to the owner, so it is damped
+   10%. Raise it toward 1 for a stricter match, lower it for a roomier UI. */
+@property --portal-scale {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
+:root {
+  --portal-scale: clamp(1, tan(atan2(100vw, 1440px)) * 0.9, 2);
+}
+
+/* The height belongs to this utility, not a `h-screen` beside it: `zoom` does
+   not rescale viewport units, so inside the scaled subtree `100dvh` is still
+   the window in *unscaled* px and lays out `scale` times too tall. Dividing it
+   back out is what keeps the shell exactly one window high, so `main` stays the
+   scroller instead of the document. */
+@utility portal-scale {
+  zoom: var(--portal-scale);
+  height: calc(100dvh / var(--portal-scale));
 }
