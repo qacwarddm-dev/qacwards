@@ -31,10 +31,14 @@ export default function StatCard({ label, value, note, trend }: Stat) {
   );
 }
 
-/** The five-across row both screens use. */
-export function StatRow({ stats }: { stats: Stat[] }) {
+/**
+ * The row of tiles. 14px gutter across five tiles on the QAC Personnel and
+ * Program Representative dashboards; the Internal Accreditor's three tiles are
+ * measured 30 apart, so the gutter is a prop rather than a second component.
+ */
+export function StatRow({ stats, gap = 14 }: { stats: Stat[]; gap?: number }) {
   return (
-    <div className="flex gap-[14px]">
+    <div className="flex" style={{ gap }}>
       {stats.map((s) => (
         <StatCard key={s.label} {...s} />
       ))}

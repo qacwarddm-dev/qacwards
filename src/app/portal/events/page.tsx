@@ -1,4 +1,4 @@
-import { EVENT_MARKS, EVENT_MONTH } from "@/components/portal/data";
+import { EVENT_MARKS, EVENT_MONTH, EVENT_TITLES } from "@/components/portal/data";
 import { CalendarLegend, Card, MonthCalendar } from "@/components/portal/kit";
 
 /** assets/FIGMA/qac_personnel/04-Events.png */
@@ -15,7 +15,7 @@ export default function EventsPage() {
           </div>
         </div>
 
-        <MonthCalendar month={EVENT_MONTH} marks={EVENT_MARKS} />
+        <MonthCalendar month={EVENT_MONTH} marks={EVENT_MARKS} events={EVENT_TITLES} />
       </Card>
     </div>
   );

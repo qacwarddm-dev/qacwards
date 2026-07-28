@@ -1,49 +1,42 @@
-import { Bell } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { CURRENT_USER } from "./portal-nav";
+import BrandLockup from "@/components/BrandLockup";
+import DevUserSwitcher from "./DevUserSwitcher";
+import NotificationBell from "./NotificationBell";
+import { NOTIFICATIONS } from "./data";
+import type { PortalUser } from "./portal-nav";
 
 /**
  * Portal top bar. Measured off assets/FIGMA/qac_personnel/01-Dashboard.png —
  * pixel-identical across all twelve exported frames, so it lives in the shell.
  * Frame is a 2x export of a 1440 design, so every export measurement is halved.
+ *
+ * Height is 80px, not the frame's 59: the client wants this bar and the public
+ * navbar the same size, and 80 is the one the public bar is pinned to (the auth
+ * screens reserve exactly that — `auth-scale`, globals.css). Matching the number
+ * is only half of it. This bar renders *outside* `portal-scale` (see
+ * portal/layout.tsx) so it lives in the same unscaled coordinate space as the
+ * public navbar; left inside the shell it would draw 80 x scale on any window
+ * wider than 1440 and the two would drift apart again.
+ *
+ * `relative` carries the dev switcher only; it is absolutely positioned in the
+ * bar's empty middle so it contributes no layout and the measured geometry of
+ * the confirmed screens is untouched.
  */
-export default function PortalTopBar() {
+export default function PortalTopBar({ user }: { user: PortalUser }) {
   return (
-    <header className="flex h-[59px] shrink-0 items-center bg-maroon pl-[25px] pr-[25px] text-white">
-      <Image
-        src="/assets/logos/qac.png"
-        alt="Quality Assurance Center seal"
-        width={3568}
-        height={2880}
-        className="h-[45px] w-auto object-contain"
-        priority
-      />
-
-      <span className="ml-[15px] mt-[15px] flex flex-col self-start">
-        <span className="font-pup text-small leading-[12.5px]">
-          Polytechnic University of the Philippines
-        </span>
-        <span className="font-qac text-heading font-bold uppercase leading-[20px]">
-          Quality Assurance Center
-        </span>
+    <header className="relative flex h-[80px] shrink-0 items-center bg-maroon pl-[25px] pr-[25px] text-white">
+      {/* Same `.brand-lockup` wrapper as the public navbar. Now that this bar is
+          outside the shell, the lockup no longer picks up --portal-scale by
+          inheritance, and the class is what puts both bars back on one factor. */}
+      <span className="brand-lockup flex min-w-0 items-center">
+        <BrandLockup tone="white" />
       </span>
 
+      <DevUserSwitcher user={user} />
+
       <div className="ml-auto flex items-center">
-        <button
-          type="button"
-          aria-label={`Notifications (${CURRENT_USER.notifications})`}
-          className="relative flex h-[29px] w-[29px] items-center justify-center rounded-full bg-white"
-        >
-          <Bell
-            className="h-[17px] w-[17px] text-maroon"
-            fill="currentColor"
-            strokeWidth={1.5}
-          />
-          <span className="absolute right-[-0.5px] top-[0.5px] flex h-[10px] w-[10px] items-center justify-center rounded-full bg-alert text-[7px] font-bold leading-none text-white">
-            {CURRENT_USER.notifications}
-          </span>
-        </button>
+        <NotificationBell count={user.notifications} items={NOTIFICATIONS} />
 
         <Link
           href="/portal/profile"
@@ -51,15 +44,15 @@ export default function PortalTopBar() {
         >
           <span className="flex flex-col text-right">
             <span className="text-subheading font-semibold leading-[17px]">
-              {CURRENT_USER.name}
+              {user.name}
             </span>
             <span className="text-subheading leading-[17px]">
-              {CURRENT_USER.position}
+              {user.position}
             </span>
           </span>
 
           <Image
-            src={CURRENT_USER.avatar}
+            src={user.avatar}
             alt=""
             width={80}
             height={80}

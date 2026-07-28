@@ -1,15 +1,21 @@
 "use client";
 
-import { ChevronDown, Eye, EyeOff } from "lucide-react";
+import { ChevronDown, ChevronUp, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 
+/**
+ * Measured off the Profile frames (identical for every role): 40px tall, 1px
+ * #B9B8B8 border, 12px text inset 22px, and **no fill of its own** — the field
+ * sits on the panel and lets its #F9F9F9 through, which is why this is
+ * `bg-transparent` rather than `bg-white`.
+ */
 const SHELL =
-  "h-[46px] w-full rounded-[10px] border border-[color:var(--color-gray)]/60 bg-white px-[18px] text-subheading leading-none text-black outline-none placeholder:text-black";
+  "h-[40px] w-full rounded-[10px] border border-[color:var(--color-gray)]/50 bg-transparent px-[22px] text-regular leading-none text-black outline-none placeholder:text-black";
 
 /** Maroon field label above an input. */
 export function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="block text-subheading font-semibold leading-none text-maroon">
+    <span className="block text-regular font-semibold leading-none text-maroon">
       {children}
     </span>
   );
@@ -24,25 +30,135 @@ export function TextInput({
   return <input aria-label={label} className={`${SHELL} ${className}`} {...rest} />;
 }
 
+/** Swap the shell's resting border for the maroon focus border. */
+const shell = (maroon: boolean) =>
+  SHELL.replace(
+    "border-[color:var(--color-gray)]/50",
+    maroon ? "border-maroon" : "border-[color:var(--color-gray)]/50",
+  );
+
 export function SelectInput({
   label,
   options,
+  value,
+  active = false,
+  defaultValue,
+}: {
+  label: string;
+  options?: string[];
+  /** When set, renders a filled display control (a truncated selected value)
+   *  instead of an option list — the multi-select Discipline Expertise field on
+   *  internal_accreditor/05-Profile shows its picks as comma text. */
+  value?: string;
+  /** The frame draws the focused field with a maroon border and chevron. */
+  active?: boolean;
+  /** Which option is shown selected before the user touches it; defaults to the
+   *  first option (the create-assignment frame pre-selects e.g. "IV"). */
+  defaultValue?: string;
+}) {
+  // Display-only branch: a fixed value, no menu. Chevron is decorative.
+  if (value !== undefined) {
+    return (
+      <span className="relative block">
+        <button
+          type="button"
+          aria-label={label}
+          className={`${shell(active)} flex items-center pr-[40px]`}
+        >
+          <span className="truncate">{value}</span>
+        </button>
+        <ChevronDown
+          className={`pointer-events-none absolute right-[14px] top-1/2 h-[17px] w-[17px] -translate-y-1/2 ${active ? "text-maroon" : "text-black"}`}
+          strokeWidth={2}
+          aria-hidden
+        />
+      </span>
+    );
+  }
+
+  return <SelectMenu label={label} options={options ?? []} defaultValue={defaultValue} />;
+}
+
+/**
+ * The wired dropdown (qac_personnel/03.1-Create new assignment + the "College
+ * Dean" reference popup). Closed it reads as the resting field; open, the
+ * trigger takes the maroon border and up-chevron and drops a white menu whose
+ * width follows the field, the selected row flagged by a maroon left bar.
+ */
+function SelectMenu({
+  label,
+  options,
+  defaultValue,
 }: {
   label: string;
   options: string[];
+  defaultValue?: string;
 }) {
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState(defaultValue ?? options[0] ?? "");
+  const Chevron = open ? ChevronUp : ChevronDown;
+
   return (
     <span className="relative block">
-      <select aria-label={label} className={`${SHELL} appearance-none pr-[44px]`}>
-        {options.map((o) => (
-          <option key={o}>{o}</option>
-        ))}
-      </select>
-      <ChevronDown
-        className="pointer-events-none absolute right-[16px] top-1/2 h-[20px] w-[20px] -translate-y-1/2 text-black"
+      <button
+        type="button"
+        aria-label={label}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className={`${shell(open)} flex items-center pr-[40px] text-left`}
+      >
+        <span className="truncate">{selected}</span>
+      </button>
+      <Chevron
+        className={`pointer-events-none absolute right-[14px] top-1/2 h-[17px] w-[17px] -translate-y-1/2 ${open ? "text-maroon" : "text-black"}`}
         strokeWidth={2}
         aria-hidden
       />
+
+      {open && (
+        <>
+          {/* click-away, mirrors NotificationBell */}
+          <button
+            type="button"
+            aria-hidden
+            tabIndex={-1}
+            onClick={() => setOpen(false)}
+            className="fixed inset-0 z-20 cursor-default"
+          />
+          <ul
+            role="listbox"
+            aria-label={label}
+            className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 overflow-hidden rounded-[10px] bg-white py-[6px] shadow-[0_8px_24px_rgba(0,0,0,0.14)]"
+          >
+            {options.map((o) => {
+              const isSelected = o === selected;
+              return (
+                <li key={o}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={isSelected}
+                    onClick={() => {
+                      setSelected(o);
+                      setOpen(false);
+                    }}
+                    className={`relative flex w-full items-center px-[22px] py-[11px] text-left text-regular leading-none text-black transition-colors hover:bg-highlight ${isSelected ? "font-semibold" : ""}`}
+                  >
+                    {isSelected && (
+                      <span
+                        className="absolute left-0 top-[6px] bottom-[6px] w-[4px] rounded-r-[3px] bg-maroon"
+                        aria-hidden
+                      />
+                    )}
+                    <span className="truncate">{o}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
     </span>
   );
 }
@@ -63,15 +179,15 @@ export function PasswordInput({
         type={shown ? "text" : "password"}
         aria-label={label}
         defaultValue={defaultValue}
-        className={`${SHELL} pr-[52px]`}
+        className={`${SHELL} pr-[46px]`}
       />
       <button
         type="button"
         aria-label={shown ? `Hide ${label}` : `Show ${label}`}
         onClick={() => setShown((s) => !s)}
-        className="absolute right-[16px] top-1/2 -translate-y-1/2 text-gray transition-opacity hover:opacity-70"
+        className="absolute right-[14px] top-1/2 -translate-y-1/2 text-gray transition-opacity hover:opacity-70"
       >
-        <Icon className="h-[20px] w-[20px]" strokeWidth={2} aria-hidden />
+        <Icon className="h-[17px] w-[17px]" strokeWidth={2} aria-hidden />
       </button>
     </span>
   );

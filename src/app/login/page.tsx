@@ -16,5 +16,5 @@ export default async function LoginPage({
   searchParams: Promise<{ as?: string }>;
 }) {
   const { as } = await searchParams;
-  return as ? <LoginForm /> : <RolePicker />;
+  return as ? <LoginForm as={as} /> : <RolePicker />;
 }

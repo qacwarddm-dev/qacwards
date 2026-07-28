@@ -188,6 +188,25 @@ deliberately removed rather than overlooked.
 - The prototype is inconsistent about emphasising statutes: 7 RAs are black bold, STO. TOMAS's
   RA 9472 is maroon bold, MULANAY's RA 7645 is not bold at all. Reproduced faithfully rather than
   normalised. LOPEZ ended "Yumul, Sr.." with a doubled period; shipped with one.
-- Prototype navbar is ~58px tall vs our 80px, and its wordmark is all-caps. Not reconciled; flag
-  before touching Navbar.
+- **Brand lockup reconciled 2026-07-26** (`src/components/BrandLockup.tsx`, used by both bars). The
+  client reported the white bar's wordmark as smaller than the maroon one. Measured on their own
+  screenshots: **both wordmarks were already identical** — 20px Poppins bold, 292px ink, cap 16. The
+  drift was around it: the public bar set the university line at 15px against the portal's 10, and
+  the seal at 56px against 45, so the wordmark stopped dominating its block. Both now render
+  identical blocks (PUP cap 7 / w 221, wordmark cap 16 / w 292), matching
+  `qac_personnel/01-Dashboard.png` (291.5 at 1x). Wordmark is also all-caps now, as the prototype has
+  it. Public bar height stays pinned at 80px — auth reserves exactly that (`auth-scale`).
+- **The size difference the client kept reporting was a zoom-layer mismatch, fixed 2026-07-26.** The
+  portal top bar sits inside the shell and is magnified by `--portal-scale` above 1440; the public
+  navbar is not. So the *same* lockup drew 337px in the portal and 292px in the public bar on their
+  1854px window, while matching exactly at 1440 — which is why the verify loop never caught it. The
+  public lockup now takes `min(var(--portal-scale), 1.6)` via `.brand-lockup` (globals.css); measured
+  delta 0.0 at 1280/1440/1854/1920/2560. **Anything measured only at 1440 proves nothing about wide
+  windows — three zoom layers are all 1 there.**
+- An earlier maroon reference the client sent was neither our app nor our frames (367px wide at a 16px
+  cap, ~26% wider tracking, bar 64px+ vs our 59). Their later pair was our app. Ask before chasing it.
+- The seal artwork's white oval and highlights vanish against a white bar — visible box 56x45 on
+  maroon vs 53x42 on white from the same 45px image. Matching it needs a seal asset with a dark edge.
+- Prototype navbar is ~58px tall vs our 80px. Still **not** reconciled: auth reserves 80px
+  (`auth-scale`, globals.css) and changing it moves every page.
 - Gov. Certification hero re-export ≥1850px (see above).

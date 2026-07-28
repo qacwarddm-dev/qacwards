@@ -4,7 +4,7 @@ import { fontVariables } from "@/lib/fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "PUP Quality Assurance Center",
+  title: "QAC-WARDDM",
   description:
     "Quality Assurance Center of the Polytechnic University of the Philippines.",
 };

@@ -1,37 +1,20 @@
-import CopcChart from "@/components/portal/CopcChart";
-import { DASHBOARD_STATS } from "@/components/portal/data";
-import { StatRow } from "@/components/portal/kit";
+import InternalAccreditorDashboard from "@/components/portal/screens/InternalAccreditorDashboard";
+import ProgramRepDashboard from "@/components/portal/screens/ProgramRepDashboard";
+import QacPersonnelDashboard from "@/components/portal/screens/QacPersonnelDashboard";
+import { getCurrentUser } from "@/lib/current-user";
 
 /**
- * QAC Personnel dashboard — assets/FIGMA/qac_personnel/01-Dashboard.png.
- * Paddings are back-solved from measured cap-top positions with the formula in
- * design/prototype-notes.md, so they will not look like round design numbers.
+ * One URL, role-appropriate content. Every role's sidebar links to
+ * `/portal/dashboard` in its own frames, so the route is shared and the screen
+ * is chosen by the identity seam rather than by the path.
+ *
+ * Screens live in `components/portal/screens/` and take no props, so this file
+ * stays a switch.
  */
-export default function DashboardPage() {
-  return (
-    <div className="px-[57px] pt-[45px] pb-[45px]">
-      <section className="h-[180px] rounded-lg bg-maroon px-[26px] pt-[20px] text-white shadow-card">
-        <h1 className="text-title font-semibold leading-[1.2]">
-          Welcome to the QAC Dashboard!
-        </h1>
-        <p className="-mt-px text-subheading leading-none">
-          Here, you can oversee, organize, and manage the entire accreditation
-          process seamlessly.
-        </p>
-      </section>
+export default async function DashboardPage() {
+  const user = await getCurrentUser();
 
-      <div className="mt-[25px]">
-        <StatRow stats={DASHBOARD_STATS} />
-      </div>
-
-      <section className="relative mt-[26px] h-[320px] rounded-lg bg-white shadow-card">
-        <h2 className="absolute left-[24px] top-[28px] text-subheading font-semibold leading-[22px] text-maroon">
-          Overall Program
-          <br />
-          With Issued COPCs
-        </h2>
-        <CopcChart />
-      </section>
-    </div>
-  );
+  if (user.role === "program_representative") return <ProgramRepDashboard />;
+  if (user.role === "internal_accreditor") return <InternalAccreditorDashboard />;
+  return <QacPersonnelDashboard />;
 }

@@ -6,6 +6,12 @@
  */
 export { default as AuthButton } from "./AuthButton";
 export { default as AuthCard } from "./AuthCard";
-export { AuthPasswordField, AuthTextField } from "./AuthField";
+export {
+  AuthInput,
+  AuthLabel,
+  AuthPasswordField,
+  AuthTextField,
+} from "./AuthField";
+export { default as AuthSelect } from "./AuthSelect";
 export { default as AuthShell } from "./AuthShell";
 export { default as BackLink } from "./BackLink";

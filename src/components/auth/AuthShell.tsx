@@ -14,6 +14,20 @@ import Image from "next/image";
  *
  * Below `lg` there is no room for a 922px photo, so the panel takes the whole
  * width and the photo drops out.
+ *
+ * The panel is `bg-white/90` on the client's instruction (2026-07-26). Be aware
+ * it currently has no visible effect, and that is not a bug to go chasing:
+ * everything behind the panel is white, so 90% white lands on 254 against 255.
+ * Behind it is the page's own white plus the asset's — login-hero.jpg is
+ * 2044x1498 but only its first 1844px are photograph, the frame's rounded corner
+ * being baked in as a #F5F5F5 band down the right edge, so the picture stops
+ * dead at exactly x=922 where the panel begins.
+ *
+ * Running the photo full-bleed behind the panel was tried, and it did make the
+ * translucency read as frosted glass. It was reverted (client, 2026-07-26):
+ * covering the full width forces the crop from 0.5 to 0.781 and the campus came
+ * out visibly stretched//zoomed against the frame. This asset has no more
+ * photographic width to give — a wider hero image is the only way to have both.
  */
 
 /** White everywhere except within 100px of the box's top-left corner — the
@@ -23,25 +37,39 @@ const CARVE_MASK = "radial-gradient(circle 100px at 0 0, transparent 99.5%, #000
 export default function AuthShell({
   children,
   topRight,
-  variant = "picker",
+  align = "top",
 }: {
   children: React.ReactNode;
   /** Slot above the card, flush to the panel's right edge (the Back link). */
   topRight?: React.ReactNode;
   /**
-   * Which frame's footnote placement to use. The two login exports disagree:
-   * the footnote block sits 14px higher on LoginForm.png than on MainLogin.png
-   * even though both frames are 809 tall. Reproduced rather than normalised —
-   * flagged to the owner.
+   * `top` is the login frames: the card hangs from the panel top on its own
+   * margin. `center` is the register frames, where the card is centred in the
+   * space above the footnote instead — measured card centres are y383-393 across
+   * all five exports while the cards themselves range 420-592 tall, so the
+   * designer grew them about a fixed middle, not a fixed top. Centring is what
+   * keeps the tall Program Representative state off the footnote.
    */
-  variant?: "picker" | "form";
+  align?: "top" | "center";
 }) {
   const top = topRight ? (
     <div className="mt-[27px] flex w-full justify-end pr-[42px]">{topRight}</div>
   ) : null;
 
+  // No padding here on purpose: this box is what AuthCard measures itself
+  // against, and its own clearance from the footnote is applied in that
+  // calculation instead, where it only binds when the card is actually tight.
+  const body =
+    align === "center" ? (
+      <div className="flex w-full min-h-0 flex-1 flex-col items-center justify-center">
+        {children}
+      </div>
+    ) : (
+      children
+    );
+
   return (
-    <div className="relative flex-1 overflow-hidden bg-white">
+    <div className="auth-scale relative w-full overflow-hidden bg-white">
       {/* object-top so the panel's arc always meets the same image row,
           whatever height the viewport leaves us. */}
       <div className="absolute inset-y-0 left-0 hidden w-[1022px] lg:block">
@@ -61,10 +89,10 @@ export default function AuthShell({
         aria-hidden
       />
 
-      <div className="absolute inset-y-0 right-0 left-0 flex flex-col items-center bg-white lg:left-[922px] lg:rounded-tl-[100px]">
+      <div className="absolute inset-y-0 right-0 left-0 flex flex-col items-center bg-white/90 lg:left-[922px] lg:rounded-tl-[100px]">
         {top}
-        {children}
-        <AuthFootnote variant={variant} />
+        {body}
+        <AuthFootnote />
       </div>
     </div>
   );
@@ -76,13 +104,15 @@ const TERMS =
 const COPYRIGHT =
   "© 2025 Polytechnic University of the Philippines. All Rights Reserved.";
 
-function AuthFootnote({ variant }: { variant: "picker" | "form" }) {
+/**
+ * The two login exports disagree: the block sits 14px higher on LoginForm.png
+ * than on MainLogin.png even though both frames are 809 tall and the internal
+ * spacing is identical. Owner's call (2026-07-23) was to normalise on
+ * MainLogin's placement rather than carry a variant into `register/`.
+ */
+function AuthFootnote() {
   return (
-    <div
-      className={`mt-auto px-4 text-center text-gray ${
-        variant === "picker" ? "mb-[8px]" : "mb-[22px]"
-      }`}
-    >
+    <div className="mt-auto mb-[8px] px-4 text-center text-gray">
       {/* Sizes are the token that renders closest, not the one cap height alone
           implies: the prototype's small text is set tighter than Inter's default
           tracking, so cap height reads ~5% larger than the ink run does. r1

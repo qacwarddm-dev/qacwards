@@ -113,7 +113,7 @@ export default function Footer() {
       </div>
 
       <div className="border-t border-white/20 px-4 py-4 text-center text-regular sm:px-6 lg:px-8">
-        © 2024 Polytechnic University of the Philippines
+        © 2026 Polytechnic University of the Philippines
       </div>
     </footer>
   );

@@ -2,8 +2,13 @@
 
 import { LogOut } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { CURRENT_USER, PORTAL_NAV, type PortalNavItem } from "./portal-nav";
+import { usePathname, useRouter } from "next/navigation";
+import { DEV_USER_COOKIE } from "@/lib/dev-user";
+import {
+  PORTAL_NAV,
+  type PortalNavItem,
+  type PortalUser,
+} from "./portal-nav";
 
 /**
  * Portal sidebar. Geometry measured off assets/FIGMA/qac_personnel: 250px wide,
@@ -63,9 +68,19 @@ function NavRow({ item, active }: { item: PortalNavItem; active: boolean }) {
   );
 }
 
-export default function PortalSidebar() {
+export default function PortalSidebar({ user }: { user: PortalUser }) {
   const pathname = usePathname();
-  const items = PORTAL_NAV[CURRENT_USER.role] ?? [];
+  const router = useRouter();
+  // Empty until a role's frames land — PORTAL_NAV is deliberately not guessed.
+  const items = PORTAL_NAV[user.role] ?? [];
+
+  // Inverse of the login demo shortcut: drop the dev-preview cookie the login
+  // form set and return to the login flow. Real sign-out lands with the seam
+  // in phase 3b; until then this only forgets which fake person to draw.
+  function handleLogOut() {
+    document.cookie = `${DEV_USER_COOKIE}=; path=/; Max-Age=0; SameSite=Lax`;
+    router.push("/login");
+  }
 
   return (
     <nav className="flex w-[250px] shrink-0 flex-col bg-white pt-[16px] pb-[35px] shadow-sidebar">
@@ -77,7 +92,7 @@ export default function PortalSidebar() {
         />
       ))}
 
-      <button type="button" className={`mt-auto ${ROW}`}>
+      <button type="button" onClick={handleLogOut} className={`mt-auto ${ROW}`}>
         <LogOut className={ICON} size={ICON_SIZE} strokeWidth={ICON_STROKE} />
         <span className="text-subheading leading-none">Log Out</span>
       </button>

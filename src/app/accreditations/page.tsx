@@ -85,7 +85,7 @@ export default function AccreditationsPage() {
                   className="object-cover opacity-20"
                 />
                 <span
-                  className={`relative flex h-full items-center justify-center text-[120px] font-bold leading-none text-maroon ${NUMERAL_KEYLINE}`}
+                  className={`relative flex h-full items-center justify-center text-[120px] font-extrabold leading-none text-maroon ${NUMERAL_KEYLINE}`}
                 >
                   {level.count}
                 </span>

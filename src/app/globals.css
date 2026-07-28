@@ -26,9 +26,27 @@
   --color-positive: #06aa8d;
   --color-alert: #f90509;
   --color-holiday: #2363ee;
+  /* Distinct from --color-positive (#06aa8d, the stat-card up-arrow): this is
+     the "Approved" green on program_representative/01-Dashboard. */
+  --color-approved: #21a235;
+  /* PDF badge on the Documents tiles. */
+  --color-pdf: #ea4335;
+  /* Blue filename links inside the document-evaluation chips. Measured off
+     internal_accreditor/03.1-DocumentEvaluation, a 1x export — unverified until
+     re-exported at 2x. See design/figma-tokens.md. */
+  --color-link: #3996ff;
+  /* Unread/hover row fill in the notifications panel (the highlighted "Earlier"
+     item). Measured off qac_personnel/interactables/overall-notifications-button,
+     a 2x export — a touch darker than --color-surface (#f5f5f5). */
+  --color-highlight: #ebebeb;
 
   --text-small: 10px;
   --text-micro: 9px;
+  /* "Welcome to ..." banner/hero heading. Measures 31 / 31 / 30.3 across the
+     qac_personnel dashboard, the login hero and the program_representative
+     dashboard; there is no token between 20 and 36, so this is one value for
+     all three rather than an arbitrary size repeated per screen. */
+  --text-banner: 31px;
 
   --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.1);
   --shadow-sidebar: 2px 0 8px rgba(0, 0, 0, 0.1);
@@ -73,8 +91,72 @@ body {
    not rescale viewport units, so inside the scaled subtree `100dvh` is still
    the window in *unscaled* px and lays out `scale` times too tall. Dividing it
    back out is what keeps the shell exactly one window high, so `main` stays the
-   scroller instead of the document. */
+   scroller instead of the document.
+
+   The 80px is the portal top bar, which sits outside this scale so it stays the
+   same height as the public navbar — same reason auth-scale subtracts the same
+   80. Subtract before dividing: the bar is unscaled px, the shell is not. */
 @utility portal-scale {
   zoom: var(--portal-scale);
-  height: calc(100dvh / var(--portal-scale));
+  height: calc((100dvh - 80px) / var(--portal-scale));
+}
+
+/* Auth (login/register) frame scale. Same idea as --portal-scale, but *not*
+   damped: the login frame is a full-bleed hero + panel, and the owner's read of
+   "too small" is a card that stayed 1440-sized inside a much wider window. The
+   undamped ratio holds the frame's proportions exactly at any width — the photo,
+   the 922px panel seam and the 382px card all grow together. Clamped to 1 at and
+   below 1440, so the pixel-diff verify loop (measured at 1440) is unaffected.
+
+   The 80px is the public navbar, which is not scaled (it is the shared site
+   navbar); the auth body fills the window below it. */
+@property --auth-scale {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
+:root {
+  --auth-scale: clamp(1, tan(atan2(100vw, 1440px)), 2);
+}
+
+@utility auth-scale {
+  zoom: var(--auth-scale);
+  height: calc((100dvh - 80px) / var(--auth-scale));
+}
+
+/* Brand lockup scale — worn by both navbars.
+
+   BrandLockup is one component rendered by both bars, and this class is the one
+   place its width factor is applied. It used to be public-only: the portal top
+   bar sat inside the shell and picked up --portal-scale by inheritance, so the
+   *same* lockup drew larger there on any wide window — measured on the client's
+   1854px screen, the wordmark came out 337px in the portal against 292px in the
+   public bar, which is the size difference they kept reporting. Everything at
+   1440 and below matched, which is exactly why it did not show up in the verify
+   loop. The top bar is now outside the shell (both bars are 80px of unscaled
+   chrome), so both wear this class and there is no inherited factor left to
+   diverge.
+
+   Capped at 1.6 so the 45px lockup never outgrows the 80px both bars are pinned
+   to (45 x 1.6 = 72, still centred with air); --portal-scale's own ceiling is 2,
+   which would overflow.
+
+   Below 640 it steps down instead — at full size the lockup is 364px wide and
+   will not fit a phone beside the nav icons. `zoom`, not `scale`, so the shrink
+   comes out of the flex row's layout and nothing overflows. */
+.brand-lockup {
+  zoom: 0.55;
+}
+
+@media (min-width: 420px) {
+  .brand-lockup {
+    zoom: 0.72;
+  }
+}
+
+@media (min-width: 640px) {
+  .brand-lockup {
+    zoom: min(var(--portal-scale), 1.6);
+  }
 }

@@ -34,7 +34,7 @@ export default function RolePicker() {
           {TAGLINE}
         </p>
 
-        <h1 className="mt-[52px] text-center text-title leading-none font-bold text-maroon">
+        <h1 className="mt-[52px] text-center text-banner leading-[36px] font-bold text-maroon">
           {HEADING[0]}
           <br />
           {HEADING[1]}

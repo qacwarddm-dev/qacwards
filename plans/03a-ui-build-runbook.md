@@ -98,7 +98,26 @@ swap a data change instead of a rewrite.
 
 All fake data lives in `src/components/portal/data.ts` — the single backend swap point.
 
-## Step 5 — the identity seam (do this before the second role)
+## Step 5 — the identity seam (do this before the second role) — ✅ BUILT 2026-07-23
+
+Shipped as specified below. Files: `src/lib/current-user.ts` (`getCurrentUser()`, `DEV_USER_COOKIE`),
+`PORTAL_USERS` / `PortalUserKey` / `DEFAULT_PORTAL_USER` in `data.ts`, `PortalUser` type in
+`portal-nav.ts`, the route handler `src/app/portal/dev/switch/route.ts`, and the control
+`src/components/portal/DevUserSwitcher.tsx`. `portal/layout.tsx` is now `async` and passes `user`
+to both `PortalTopBar` and `PortalSidebar`; `profile/page.tsx` also reads the seam for its avatar.
+
+Verified: `qac_personnel` dashboard still measures **2.82%** against `01-Dashboard.png` — the
+recorded floor, i.e. unchanged. `npx tsc --noEmit` and `npx next lint` clean.
+
+Two facts worth knowing before the next role:
+
+- **Every role's frame uses the same placeholder name and position** ("Surname, Given Name M.I." /
+  "Position"). The roles differ only by **avatar**, so that is the only field that varies in
+  `PORTAL_USERS`. Avatars were lifted from each role's `01-Dashboard` frame at 2x.
+- **`qac_admin` has no entry** — its folder is empty and the role is out of scope, so a fake user
+  for it would be an invention.
+- The switcher is absolutely positioned and takes no layout space, so it cannot move the measured
+  geometry. Screenshot scripts hide it with `[data-dev-switcher]{display:none}`.
 
 Today the signed-in user is a hardcoded constant at `src/components/portal/portal-nav.ts:59`, so
 no other role is reachable without editing source. Replace it with one seam:
@@ -156,17 +175,14 @@ Per-role checklist, tick as frames land and screens ship:
 
 | Role | Frames exported | Screens built | Owner confirmed |
 |---|---|---|---|
-| `login` | ☐ | ☐ | ☐ |
-| `register` (shared steps) | ☐ | ☐ | ☐ |
-| `register/program_representative` | ☐ | ☐ | ☐ |
-| `register/internal_accreditor` | ☐ | ☐ | ☐ |
-| `register/qac_personnel` | ☐ | ☐ | ☐ |
-| `register/qac_admin` | ☐ | ☐ | ☐ |
-| `_shared` | ☐ | ☐ | ☐ |
+| `login` | ✅ 2 | ✅ 2 | ✅ |
+| `register` (shared steps) | ☐ | ☐ | — out of scope, owner 2026-07-23 |
+| `register/*` (four roles) | ☐ | ☐ | — out of scope, owner 2026-07-23 |
+| `_shared` | ☐ empty | ☐ | ☐ |
 | `qac_personnel` | ✅ 12 | ✅ 12 | ☐ |
-| `program_representative` | ☐ | ☐ | ☐ |
-| `internal_accreditor` | ☐ | ☐ | ☐ |
-| `qac_admin` | ☐ | ☐ | ☐ |
+| `program_representative` | ✅ 12 | ☐ | ☐ |
+| `internal_accreditor` | ✅ 7 (2 at 1x) | ☐ | ☐ |
+| `qac_admin` | ☐ empty | — | — out of scope, owner 2026-07-23 |
 
 ## Traps that have already cost real time
 

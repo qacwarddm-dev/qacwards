@@ -187,20 +187,22 @@ export default function CampusesPage() {
 
       <section className="px-4 pb-28 pt-20 sm:px-6 lg:px-8">
         <div
-          className={`mx-auto flex items-center gap-x-6 md:gap-x-[60px] ${BAND}`}
+          className={`mx-auto grid grid-cols-[1fr_auto_auto_1fr] items-center gap-x-6 md:gap-x-[60px] ${BAND}`}
         >
-          <span className="h-3.5 flex-1 bg-maroon" aria-hidden />
-          {STATS.map((stat) => (
-            <div key={stat.label} className="flex flex-col items-center">
-              <span className="text-[96px] font-bold leading-none text-maroon md:text-[150px]">
-                {stat.value}
-              </span>
-              <span className="mt-9 text-heading font-bold leading-[1.2] md:text-title">
-                {stat.label}
-              </span>
-            </div>
-          ))}
-          <span className="h-3.5 flex-1 bg-maroon" aria-hidden />
+          <span className="col-start-1 row-start-1 h-3.5 bg-maroon" aria-hidden />
+          <span className="col-start-2 row-start-1 text-[96px] font-extrabold leading-none text-maroon md:text-[150px]">
+            {STATS[0].value}
+          </span>
+          <span className="col-start-3 row-start-1 text-[96px] font-extrabold leading-none text-maroon md:text-[150px]">
+            {STATS[1].value}
+          </span>
+          <span className="col-start-4 row-start-1 h-3.5 bg-maroon" aria-hidden />
+          <span className="col-start-2 row-start-2 mt-9 text-center text-heading font-bold leading-[1.2] md:text-title">
+            {STATS[0].label}
+          </span>
+          <span className="col-start-3 row-start-2 mt-9 text-center text-heading font-bold leading-[1.2] md:text-title">
+            {STATS[1].label}
+          </span>
         </div>
 
         <p

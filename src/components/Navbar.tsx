@@ -7,8 +7,8 @@ import {
   Menu,
   X,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
+import BrandLockup from "@/components/BrandLockup";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -69,24 +69,14 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 bg-white">
-      <nav className="flex items-center justify-between gap-4 px-6 py-3">
-        <Link href="/" className="flex min-w-0 items-center gap-3">
-          <Image
-            src="/assets/logos/qac.png"
-            alt="Quality Assurance Center seal"
-            width={56}
-            height={56}
-            className="h-12 w-12 object-contain sm:h-14 sm:w-14"
-            priority
-          />
-          <span className="flex flex-col leading-tight">
-            <span className="font-pup text-regular text-maroon sm:text-subheading">
-              Polytechnic University of the Philippines
-            </span>
-            <span className="font-qac text-subheading font-bold text-maroon sm:text-heading">
-              Quality Assurance Center
-            </span>
-          </span>
+      {/* Height is pinned, not derived from the lockup: the auth screens reserve
+          exactly 80px for this bar (`auth-scale`, globals.css), so the lockup
+          shrinking from a 56px seal to the portal's 45 must not move it. */}
+      <nav className="flex h-[80px] items-center justify-between gap-4 px-6">
+        {/* brand-lockup carries the scale, not BrandLockup itself — the portal
+            top bar gets the same growth for free from the shell it sits in. */}
+        <Link href="/" className="brand-lockup flex min-w-0 items-center">
+          <BrandLockup tone="maroon" />
         </Link>
 
         <div className="flex items-center gap-6 lg:gap-10">

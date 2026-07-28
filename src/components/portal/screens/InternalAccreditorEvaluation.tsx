@@ -1,0 +1,72 @@
+import { Download, GitCommitHorizontal } from "lucide-react";
+import { IA_EVALUATION_STEPS, IA_EVALUATIONS } from "../data";
+import { type Column, DataTable, Panel, Stepper } from "../kit";
+
+/**
+ * Internal Accreditor → Evaluation (list) —
+ * assets/FIGMA/internal_accreditor/03-DocumentEvaluation.png.
+ *
+ * The same `Panel` + leading-marker `DataTable` the Assignment screens use,
+ * with a download action in the panel header and the evaluation stepper
+ * expanded under the second row. Rows link to the per-document evaluation sheet
+ * (`03.1` / `03.2`), which lives at `/portal/evaluation/[id]`.
+ */
+const COLUMNS: Column[] = [
+  { key: "campus", header: "Campus", width: "w-[150px]" },
+  { key: "college", header: "College", width: "w-[140px]" },
+  { key: "program", header: "Program", width: "flex-1" },
+  { key: "level", header: "Level", width: "w-[130px]" },
+  { key: "accreditor", header: "Accreditor Assigned", width: "w-[190px]" },
+  { key: "score", header: "Score", width: "w-[150px]" },
+];
+
+export default function InternalAccreditorEvaluation() {
+  const rows = IA_EVALUATIONS.map((e, i) => ({
+    id: e.id,
+    href: `/portal/evaluation/${e.id}`,
+    cells: {
+      campus: e.campus,
+      college: e.college,
+      program: <span className="block truncate">{e.program}</span>,
+      level: e.level,
+      accreditor: e.accreditor,
+      score: <span className="italic text-gray">{e.score}</span>,
+    },
+    // The prototype leaves the second row expanded onto its evaluation track.
+    detail:
+      i === IA_EVALUATIONS.length - 1 ? (
+        <div className="px-[54px] pb-[26px] pt-[10px]">
+          <Stepper steps={IA_EVALUATION_STEPS} />
+        </div>
+      ) : undefined,
+  }));
+
+  return (
+    <div className="pb-[50px] pl-[54px] pr-[52px] pt-[50px]">
+      <Panel
+        title="Document Evaluation"
+        action={
+          <button
+            type="button"
+            className="flex items-center gap-[8px] text-subheading font-semibold leading-none text-maroon transition-opacity hover:opacity-70"
+          >
+            <Download className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
+            Download Accreditation Visit Evaluation Form
+          </button>
+        }
+      >
+        <DataTable
+          columns={COLUMNS}
+          rows={rows}
+          leading={() => (
+            <GitCommitHorizontal
+              className="h-[20px] w-[20px] text-maroon"
+              strokeWidth={2}
+              aria-hidden
+            />
+          )}
+        />
+      </Panel>
+    </div>
+  );
+}
