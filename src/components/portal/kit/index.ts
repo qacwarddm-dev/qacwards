@@ -14,7 +14,14 @@ export { default as DocCard } from "./DocCard";
 export { default as DocTabs, type DocTab } from "./DocTabs";
 export { default as DocumentBrowser } from "./DocumentBrowser";
 export { default as EmptyState } from "./EmptyState";
-export { FieldLabel, PasswordInput, SelectInput, TextInput } from "./Field";
+export {
+  FieldLabel,
+  PasswordInput,
+  ReadOnlyField,
+  ReadOnlyValue,
+  SelectInput,
+  TextInput,
+} from "./Field";
 export { default as FileCard } from "./FileCard";
 export { default as FolderCard } from "./FolderCard";
 export { default as FolderGrid, type FolderEntry } from "./FolderGrid";

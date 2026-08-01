@@ -1,14 +1,16 @@
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 
-type Variant = "solid" | "outline" | "muted";
+type Variant = "solid" | "outline" | "muted" | "yellow";
 type Size = "md" | "lg";
 
 /**
  * Pill button. `solid` is the filled maroon (Sort, New on Assignment/Reports,
- * Save Changes); `outline` is the white/maroon-bordered one (New in the
- * document browser); `muted` is the half-strength maroon the Submissions frames
- * use for Next / Submit.
+ * Change Password); `outline` is the white/maroon-bordered one (New in the
+ * document browser, Reset on Profile); `muted` is the half-strength maroon the
+ * Submissions frames use for Next / Submit; `yellow` is the accent token, so
+ * far only Profile's Remove Photo — a destructive action the frame deliberately
+ * does not draw in maroon.
  *
  * `md` is the 32px/12px button measured across the document browser; `lg` is
  * the 35px/15px one on program_representative/07-Submissions(Phases).png.
@@ -22,6 +24,7 @@ const VARIANTS: Record<Variant, string> = {
   solid: "bg-maroon text-white",
   outline: "border border-maroon bg-white text-maroon",
   muted: "bg-[color:var(--color-maroon)]/50 text-white",
+  yellow: "bg-yellow text-white",
 };
 
 export default function Button({

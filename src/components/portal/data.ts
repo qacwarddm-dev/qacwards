@@ -583,58 +583,81 @@ export const PR_REQUIREMENTS = [
 ];
 
 /**
- * Profile screen content. The layout is identical for every role — measured
- * card-for-card on qac_personnel/06-Profile and program_representative/09-Profile
- * — so this is one screen with role-varying content, not one screen per role.
+ * Profile screen content. One screen for every role: the owner's 2026-08-01
+ * revision replaced the old header-card layout with four panels (Profile /
+ * Personal Details over Account Access / Change Password), and the panels are
+ * the same for everyone — only these values differ.
  *
- * The frames differ only in the details card's middle row:
- * - `campuses` (program_representative) ⇒ a Campus select beside Position.
- * - `disciplineExpertise` (internal_accreditor/05-Profile) ⇒ one full-width,
- *   focused multi-select showing the picks as comma text, replacing that row.
- * - neither (qac_personnel) ⇒ a lone Position select.
- * The header subtitle reads "Position | Campus" for the first two.
+ * **Personal Details is now display only.** Every field in the revision is
+ * labelled "(Cannot be changed)", including Discipline Expertise, which used to
+ * be an editable multi-select. Identity is fixed at registration; the two things
+ * a user can still change here are the photo and the password.
+ *
+ * The frame prints "Academic Program" in System Role, the same filled example it
+ * printed on the register form. The owner already ruled on that one: the real
+ * values are the three roles in `register-options.ts` SYSTEM_ROLES, so that is
+ * what these carry.
+ *
+ * Names stay as the literal "Surname / Given Name / M.I." the frames draw. Campus,
+ * position and college text come from `register-options.ts`, which is real PUP
+ * data rather than invented content.
  */
 export type PortalProfile = {
-  name: string;
+  /** Full Name renders as three separate boxes, so it is stored split. */
+  surname: string;
+  givenName: string;
+  middleInitial: string;
+  systemRole: string;
+  /** Omitted where the role has no campus — QAC Personnel sit in the centre, not
+   *  on a campus, and the three-up row then runs two wide. */
+  campus?: string;
   position: string;
-  /** Italic text after the position in the header card. */
-  affiliation: string;
+  /** The wide field under the three-up row. It is Department for the campus
+   *  roles and Discipline Expertise for an Internal Accreditor: same slot, own
+   *  label, so the panel does not need a per-role branch. */
+  wide: { label: string; value: string };
   webmail: string;
   createdOn: string;
-  positions: string[];
-  /** Present ⇒ the details card shows Campus and Position side by side. */
-  campuses?: string[];
-  /** Present ⇒ the details card shows a full-width Discipline Expertise field
-   *  instead of the Campus/Position row. The string is the comma-joined picks. */
-  disciplineExpertise?: string;
 };
 
 export const PROFILES: Record<PortalUserKey, PortalProfile> = {
   qac_personnel: {
-    name: "Surname, Given Name M.I",
+    surname: "Surname",
+    givenName: "Given Name",
+    middleInitial: "M.I.",
+    systemRole: "QAC Personnel",
     position: "Position",
-    affiliation: "PUP Quality Assurance Center",
+    wide: { label: "Department", value: "PUP Quality Assurance Center" },
     webmail: "example@pup.edu.ph",
     createdOn: "Account Created on May 2026",
-    positions: ["Position"],
   },
   program_representative: {
-    name: "Surname, Given Name M.I",
-    position: "Position",
-    affiliation: "Campus",
+    surname: "Surname",
+    givenName: "Given Name",
+    middleInitial: "M.I.",
+    systemRole: "Program Representative",
+    campus: "Sta. Mesa, Manila",
+    position: "Dean",
+    wide: {
+      label: "Department",
+      value: "College of Computer and Information Sciences (CCIS)",
+    },
     webmail: "example@pup.edu.ph",
     createdOn: "Account Created on May 2026",
-    positions: ["Position"],
-    campuses: ["Campus"],
   },
   internal_accreditor: {
-    name: "Surname, Given Name M.I",
+    surname: "Surname",
+    givenName: "Given Name",
+    middleInitial: "M.I.",
+    systemRole: "Internal Accreditor",
+    campus: "Sta. Mesa, Manila",
     position: "Position",
-    affiliation: "Campus",
+    wide: {
+      label: "Discipline Expertise",
+      value:
+        "Accountancy, Accounting and Finance, Administration and Governance, Anthropology",
+    },
     webmail: "example@pup.edu.ph",
     createdOn: "Account Created on May 2026",
-    positions: ["Position"],
-    disciplineExpertise:
-      "Accountancy, Accounting and Finance, Administration and Governance, Anthropology,",
   },
 };

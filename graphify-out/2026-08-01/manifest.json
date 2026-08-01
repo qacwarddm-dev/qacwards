@@ -130,8 +130,8 @@
     "semantic_hash": "692f71b2df42f1336dcc34740cbe7c79"
   },
   "src/app/portal/profile/page.tsx": {
-    "mtime": 1785582672.7967496,
-    "ast_hash": "a1852cd60bc7fa48949dace8bd88d6e8",
+    "mtime": 1785285066.9984438,
+    "ast_hash": "f45f5a758c009800a4a079ca9d098946",
     "semantic_hash": ""
   },
   "src/app/portal/reports/page.tsx": {
@@ -200,8 +200,8 @@
     "semantic_hash": ""
   },
   "src/components/portal/data.ts": {
-    "mtime": 1785582175.81641,
-    "ast_hash": "cce62be060935b373552343e2aff1a17",
+    "mtime": 1785285066.9996853,
+    "ast_hash": "25b3dc421225e7284d206b03bb3e722f",
     "semantic_hash": ""
   },
   "src/components/portal/kit/BackLink.tsx": {
@@ -215,8 +215,8 @@
     "semantic_hash": ""
   },
   "src/components/portal/kit/Button.tsx": {
-    "mtime": 1785582134.4005089,
-    "ast_hash": "5cbb16a45e87a3ccb53ed6289f799c48",
+    "mtime": 1785285066.9999723,
+    "ast_hash": "da33e5be83b4cc5ae78a9dd8f9b8d245",
     "semantic_hash": ""
   },
   "src/components/portal/kit/Card.tsx": {
@@ -245,8 +245,8 @@
     "semantic_hash": "8db5db5bc9acd600581d2a9c91d761fc"
   },
   "src/components/portal/kit/Field.tsx": {
-    "mtime": 1785582667.4237533,
-    "ast_hash": "28c8ca3a6d448dce567be691abf62d7b",
+    "mtime": 1785285066.9999723,
+    "ast_hash": "3a6bfde4768adfc03e334eeee0ef01bb",
     "semantic_hash": ""
   },
   "src/components/portal/kit/FileCard.tsx": {
@@ -300,8 +300,8 @@
     "semantic_hash": "747ef3b9bdfd30d5609357db132cbfaf"
   },
   "src/components/portal/kit/index.ts": {
-    "mtime": 1785582124.3035345,
-    "ast_hash": "80c90259aa67d99a9482fcd6cb5a9d32",
+    "mtime": 1785285066.9999723,
+    "ast_hash": "4ad958ec50b3adc35506bfbc19c72c6a",
     "semantic_hash": ""
   },
   "src/components/portal/portal-nav.ts": {
@@ -1610,8 +1610,8 @@
     "semantic_hash": ""
   },
   "tests/visual/screens.ts": {
-    "mtime": 1785582359.0060697,
-    "ast_hash": "13bb81d36accc0dbdd377e95b69cd727",
+    "mtime": 1785285067.0015676,
+    "ast_hash": "bcbc9cc06ad4e44589eba70114307191",
     "semantic_hash": ""
   },
   "HANDOFF.md": {
@@ -1772,11 +1772,6 @@
   "src/components/BrandLockup.tsx": {
     "mtime": 1785285066.9991732,
     "ast_hash": "85629cdce58c57f74754329a95ba19fc",
-    "semantic_hash": ""
-  },
-  "assets/FIGMA/_shared/Profile-2026-08-01.png": {
-    "mtime": 1785582339.5576606,
-    "ast_hash": "e470e63bb330f184b192597a6aee5081",
     "semantic_hash": ""
   }
 }

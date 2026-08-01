@@ -9,15 +9,79 @@ import { useState } from "react";
  * sits on the panel and lets its #F9F9F9 through, which is why this is
  * `bg-transparent` rather than `bg-white`.
  */
-const SHELL =
-  "h-[40px] w-full rounded-[10px] border border-[color:var(--color-gray)]/50 bg-transparent px-[22px] text-regular leading-none text-black outline-none placeholder:text-black";
+const SHELL_BASE =
+  "h-[40px] w-full rounded-[10px] border border-[color:var(--color-gray)]/50 bg-transparent px-[22px] text-regular leading-none outline-none";
+const SHELL = `${SHELL_BASE} text-black placeholder:text-black`;
 
-/** Maroon field label above an input. */
-export function FieldLabel({ children }: { children: React.ReactNode }) {
+/**
+ * Maroon field label above an input. `note` is the grey parenthetical the
+ * Profile frame hangs off every locked field — it lives here rather than in the
+ * caller's string so the wording cannot drift field to field.
+ */
+export function FieldLabel({
+  note,
+  children,
+}: {
+  note?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <span className="block text-regular font-semibold leading-none text-maroon">
+    // nowrap: with a note attached the label is the widest thing in a 197px
+    // column, and letting it wrap pushes that one field's input a line below its
+    // neighbours' — the frame keeps every label on one line.
+    <span className="block whitespace-nowrap text-regular font-semibold leading-none text-maroon">
       {children}
+      {note && <span className="ml-[6px] font-normal text-gray">({note})</span>}
     </span>
+  );
+}
+
+/**
+ * A value the user can read but not edit. Same 40px shell as the inputs so the
+ * locked rows line up with the live ones, but grey text and no control — the
+ * Profile frame's PERSONAL DETAILS panel is display only.
+ */
+export function ReadOnlyValue({
+  label,
+  value,
+  className = "",
+}: {
+  label: string;
+  value: string;
+  className?: string;
+}) {
+  return (
+    <p
+      aria-label={label}
+      // Internal Accreditor's Discipline Expertise is a long comma list that
+      // does not fit its box, and there is no control to expand — the title
+      // keeps the full value reachable.
+      title={value}
+      className={`${SHELL_BASE} flex items-center text-gray ${className}`}
+    >
+      <span className="truncate">{value}</span>
+    </p>
+  );
+}
+
+/** `FieldLabel` + `ReadOnlyValue`, the shape every locked row on Profile takes
+ *  apart from Full Name (one label over three boxes). */
+export function ReadOnlyField({
+  label,
+  value,
+  className = "",
+}: {
+  label: string;
+  value: string;
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      <FieldLabel note="Cannot be changed">{label}</FieldLabel>
+      <div className="mt-[10px]">
+        <ReadOnlyValue label={label} value={value} />
+      </div>
+    </div>
   );
 }
 

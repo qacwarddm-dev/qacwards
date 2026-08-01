@@ -62,7 +62,6 @@ export const SCREENS: Screen[] = [
   { name: "qp / assignment", route: "/portal/assignment", frame: "assets/FIGMA/qac_personnel/03-Accreditation Assignment.png", role: "qac_personnel", budget: 4.8 },
   { name: "qp / events", route: "/portal/events", frame: "assets/FIGMA/qac_personnel/04-Events.png", role: "qac_personnel", budget: 5.0 },
   { name: "qp / reports", route: "/portal/reports", frame: "assets/FIGMA/qac_personnel/05-Reports.png", role: "qac_personnel", budget: 3.2 },
-  { name: "qp / profile", route: "/portal/profile", frame: "assets/FIGMA/qac_personnel/06-Profile.png", role: "qac_personnel", budget: 5.0 },
 
   // --- program_representative ---------------------------------------------
   { name: "pr / dashboard", route: "/portal/dashboard", frame: "assets/FIGMA/program_representative/01-Dashboard.png", role: "program_representative", budget: 3.6, contentFromX: 250 },
@@ -71,9 +70,22 @@ export const SCREENS: Screen[] = [
   { name: "pr / documents · common files", route: "/portal/documents?tab=common&nda=1", frame: "assets/FIGMA/program_representative/04-CommonDocuments(NDAFiles).png", role: "program_representative", budget: 6.5 },
   { name: "pr / documents · reports", route: "/portal/documents?tab=reports", frame: "assets/FIGMA/program_representative/05-AccreditationFiles.png", role: "program_representative", budget: 3.9 },
   { name: "pr / documents · in folder", route: "/portal/documents?tab=reports&folder=x", frame: "assets/FIGMA/program_representative/06-AccreditationFiles&Folders.png", role: "program_representative", budget: 4.3 },
-  { name: "pr / profile", route: "/portal/profile", frame: "assets/FIGMA/program_representative/09-Profile.png", role: "program_representative", budget: 5.0 },
   { name: "pr / events", route: "/portal/events", frame: "assets/FIGMA/program_representative/010-Events.png", role: "program_representative", budget: 4.8 },
 
+  // --- not measurable yet ---------------------------------------------------
+  // Profile (/portal/profile, every role). The owner replaced the layout on
+  // 2026-08-01; qac_personnel/06-Profile and program_representative/09-Profile
+  // are superseded, so the old entries were removed rather than left failing
+  // against a design that no longer exists.
+  //
+  // The revision arrived as assets/FIGMA/_shared/Profile-2026-08-01.png, which
+  // is a 1999x1222 *live-size screenshot*, not a 2x/1440 Figma export: the top
+  // bar in it measures 80 design px while the sidebar measures 330, i.e. the
+  // portal-scale region is zoomed and the bar is not. The harness compares raw
+  // pixels against a uniform 2x frame, so no single resize reproduces that split
+  // and the file cannot be diffed. Re-add one shared entry once the frame is
+  // exported at 2x from Figma.
+  //
   // --- not built yet ------------------------------------------------------
   // program_representative: 07-Submissions{,(Phases),(PhasesReqs)},
   //   08-Submissions{(Levels),(LevelsAcred}  -> /portal/submission

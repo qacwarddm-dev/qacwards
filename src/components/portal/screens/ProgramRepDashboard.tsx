@@ -28,6 +28,10 @@ import {
  * stat row and two 294 rows split 605 / 450 with a 21px gutter, everything 20px
  * apart.
  *
+ * Deliberate deviation from the frame: the two card rows are swapped, so
+ * Document Status / Recent Uploads sits above On-Going Accreditation / the
+ * calendar. Owner's call, not a measurement error.
+ *
  * Content padding is 61 left / 53 right — the frame's content group sits 4px
  * right of centre. qac_personnel's dashboard measures exactly 57/57 at the same
  * 1076 width, so this is almost certainly a nudge in the Figma file; it is
@@ -68,25 +72,9 @@ export default function ProgramRepDashboard() {
       </div>
 
       {/* Left column flexes, right column stays at the frame's 450 — so the pair
-          fills the content box and the calendar's right edge lands on the same
-          line as the stat row and banner above it, at any window width. The
-          frame's 605 is what flex-1 resolves to at exactly 1440. */}
-      <div className="mt-[20px] flex gap-[21px]">
-        <Card className="h-[294px] min-w-0 flex-1">
-          <CardTitleBar title="On-Going Program Accreditation" />
-          {/* Header is 54; the frame puts the table's grey band at 58. */}
-          <div className="mt-[4px] px-[25px]">
-            <DataTable columns={COLUMNS} rows={rows} variant="outlined" />
-          </div>
-        </Card>
-
-        <MiniCalendar
-          month={PR_CALENDAR_MONTH}
-          today={PR_CALENDAR_TODAY}
-          marks={PR_CALENDAR_MARKS}
-        />
-      </div>
-
+          fills the content box and the right card's edge lands on the same line
+          as the stat row and banner above it, at any window width. The frame's
+          605 is what flex-1 resolves to at exactly 1440. */}
       <div className="mt-[20px] flex gap-[21px]">
         <Card className="h-[294px] min-w-0 flex-1 overflow-hidden">
           <CardTitleBar title="Document Status Distribution" divider />
@@ -109,6 +97,22 @@ export default function ProgramRepDashboard() {
           />
           <UploadList uploads={PR_RECENT_UPLOADS} />
         </Card>
+      </div>
+
+      <div className="mt-[20px] flex gap-[21px]">
+        <Card className="h-[294px] min-w-0 flex-1">
+          <CardTitleBar title="On-Going Program Accreditation" />
+          {/* Header is 54; the frame puts the table's grey band at 58. */}
+          <div className="mt-[4px] px-[25px]">
+            <DataTable columns={COLUMNS} rows={rows} variant="outlined" />
+          </div>
+        </Card>
+
+        <MiniCalendar
+          month={PR_CALENDAR_MONTH}
+          today={PR_CALENDAR_TODAY}
+          marks={PR_CALENDAR_MARKS}
+        />
       </div>
     </div>
   );

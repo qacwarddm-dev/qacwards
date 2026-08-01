@@ -1072,8 +1072,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_app_login_rolepicker_roles",
-      "community": 23,
-      "community_name": "kit/index.ts",
+      "community": 9,
+      "community_name": "Portal Shell and Identity Seam",
       "norm_label": "roles"
     },
     {
@@ -1567,8 +1567,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_portal_page",
-      "community": 44,
-      "community_name": "Can One Person Hold Two Roles?",
+      "community": 29,
+      "community_name": "ProgressRow.tsx",
       "norm_label": "portal/page.tsx"
     },
     {
@@ -1578,8 +1578,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "src_app_portal_page_portalindex",
-      "community": 44,
-      "community_name": "Can One Person Hold Two Roles?",
+      "community": 29,
+      "community_name": "ProgressRow.tsx",
       "norm_label": "portalindex()"
     },
     {
@@ -1597,7 +1597,7 @@
       "label": "ProfilePage()",
       "file_type": "code",
       "source_file": "src/app/portal/profile/page.tsx",
-      "source_location": "L46",
+      "source_location": "L25",
       "_origin": "ast",
       "id": "src_app_portal_profile_page_profilepage",
       "community": 52,
@@ -1644,7 +1644,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_portal_submission_page",
-      "community": 48,
+      "community": 71,
       "community_name": "submission/page.tsx",
       "norm_label": "submission/page.tsx"
     },
@@ -1655,7 +1655,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_app_portal_submission_page_views",
-      "community": 48,
+      "community": 71,
       "community_name": "submission/page.tsx",
       "norm_label": "views"
     },
@@ -1666,7 +1666,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_app_portal_submission_page_submissionpage",
-      "community": 48,
+      "community": 71,
       "community_name": "submission/page.tsx",
       "norm_label": "submissionpage()"
     },
@@ -1930,8 +1930,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_brandlockup",
-      "community": 2,
-      "community_name": "Design Tokens and Site Shell",
+      "community": 9,
+      "community_name": "Portal Shell and Identity Seam",
       "norm_label": "brandlockup.tsx"
     },
     {
@@ -1941,8 +1941,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "src_components_brandlockup_brandlockup",
-      "community": 2,
-      "community_name": "Design Tokens and Site Shell",
+      "community": 9,
+      "community_name": "Portal Shell and Identity Seam",
       "norm_label": "brandlockup()"
     },
     {
@@ -2084,8 +2084,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_auth_authbutton",
-      "community": 11,
-      "community_name": "Document Browser Screen",
+      "community": 52,
+      "community_name": "MiniCalendar.tsx",
       "norm_label": "authbutton.tsx"
     },
     {
@@ -2095,8 +2095,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "src_components_auth_authbutton_tone",
-      "community": 11,
-      "community_name": "Document Browser Screen",
+      "community": 52,
+      "community_name": "MiniCalendar.tsx",
       "norm_label": "tone"
     },
     {
@@ -2106,8 +2106,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_components_auth_authbutton_size",
-      "community": 11,
-      "community_name": "Document Browser Screen",
+      "community": 52,
+      "community_name": "MiniCalendar.tsx",
       "norm_label": "size"
     },
     {
@@ -2117,8 +2117,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_components_auth_authbutton_authbutton",
-      "community": 11,
-      "community_name": "Document Browser Screen",
+      "community": 52,
+      "community_name": "MiniCalendar.tsx",
       "norm_label": "authbutton()"
     },
     {
@@ -2392,8 +2392,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_portal_notificationbell",
-      "community": 71,
-      "community_name": "submission/page.tsx",
+      "community": 20,
+      "community_name": "What You Must Do When Invoked",
       "norm_label": "notificationbell.tsx"
     },
     {
@@ -2403,8 +2403,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_components_portal_notificationbell_notificationbell",
-      "community": 71,
-      "community_name": "submission/page.tsx",
+      "community": 20,
+      "community_name": "What You Must Do When Invoked",
       "norm_label": "notificationbell()"
     },
     {
@@ -2469,8 +2469,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_portal_data",
-      "community": 71,
-      "community_name": "submission/page.tsx",
+      "community": 20,
+      "community_name": "What You Must Do When Invoked",
       "norm_label": "data.ts"
     },
     {
@@ -2491,8 +2491,8 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "src_components_portal_data_portalnotification",
-      "community": 71,
-      "community_name": "submission/page.tsx",
+      "community": 20,
+      "community_name": "What You Must Do When Invoked",
       "norm_label": "portalnotification"
     },
     {
@@ -2513,8 +2513,8 @@
       "source_location": "L100",
       "_origin": "ast",
       "id": "src_components_portal_data_slug",
-      "community": 71,
-      "community_name": "submission/page.tsx",
+      "community": 20,
+      "community_name": "What You Must Do When Invoked",
       "norm_label": "slug()"
     },
     {
@@ -2689,8 +2689,8 @@
       "source_location": "L336",
       "_origin": "ast",
       "id": "src_components_portal_data_pr_dashboard_stats",
-      "community": 38,
-      "community_name": "ProgramRepDashboard.tsx",
+      "community": 20,
+      "community_name": "What You Must Do When Invoked",
       "norm_label": "pr_dashboard_stats"
     },
     {
@@ -2700,8 +2700,8 @@
       "source_location": "L344",
       "_origin": "ast",
       "id": "src_components_portal_data_pr_ongoing_accreditation",
-      "community": 38,
-      "community_name": "ProgramRepDashboard.tsx",
+      "community": 20,
+      "community_name": "What You Must Do When Invoked",
       "norm_label": "pr_ongoing_accreditation"
     },
     {
@@ -2711,8 +2711,8 @@
       "source_location": "L359",
       "_origin": "ast",
       "id": "src_components_portal_data_pr_calendar_month",
-      "community": 73,
-      "community_name": "CopcChart.tsx",
+      "community": 20,
+      "community_name": "What You Must Do When Invoked",
       "norm_label": "pr_calendar_month"
     },
     {
@@ -2722,8 +2722,8 @@
       "source_location": "L361",
       "_origin": "ast",
       "id": "src_components_portal_data_pr_calendar_marks",
-      "community": 73,
-      "community_name": "CopcChart.tsx",
+      "community": 20,
+      "community_name": "What You Must Do When Invoked",
       "norm_label": "pr_calendar_marks"
     },
     {
@@ -2733,8 +2733,8 @@
       "source_location": "L363",
       "_origin": "ast",
       "id": "src_components_portal_data_pr_doc_status",
-      "community": 38,
-      "community_name": "ProgramRepDashboard.tsx",
+      "community": 20,
+      "community_name": "What You Must Do When Invoked",
       "norm_label": "pr_doc_status"
     },
     {
@@ -2744,8 +2744,8 @@
       "source_location": "L369",
       "_origin": "ast",
       "id": "src_components_portal_data_pr_recent_uploads",
-      "community": 38,
-      "community_name": "ProgramRepDashboard.tsx",
+      "community": 20,
+      "community_name": "What You Must Do When Invoked",
       "norm_label": "pr_recent_uploads"
     },
     {
@@ -2832,8 +2832,8 @@
       "source_location": "L471",
       "_origin": "ast",
       "id": "src_components_portal_data_ia_assignments",
-      "community": 47,
-      "community_name": "InternalAccreditorAssignment.tsx",
+      "community": 9,
+      "community_name": "Portal Shell and Identity Seam",
       "norm_label": "ia_assignments"
     },
     {
@@ -2939,18 +2939,18 @@
       "label": "PortalProfile",
       "file_type": "code",
       "source_file": "src/components/portal/data.ts",
-      "source_location": "L605",
+      "source_location": "L597",
       "_origin": "ast",
       "id": "src_components_portal_data_portalprofile",
-      "community": 71,
-      "community_name": "submission/page.tsx",
+      "community": 20,
+      "community_name": "What You Must Do When Invoked",
       "norm_label": "portalprofile"
     },
     {
       "label": "PROFILES",
       "file_type": "code",
       "source_file": "src/components/portal/data.ts",
-      "source_location": "L623",
+      "source_location": "L612",
       "_origin": "ast",
       "id": "src_components_portal_data_profiles",
       "community": 52,
@@ -2986,8 +2986,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_portal_kit_breadcrumb",
-      "community": 11,
-      "community_name": "Document Browser Screen",
+      "community": 56,
+      "community_name": "[campus]/[folder]/page.tsx",
       "norm_label": "breadcrumb.tsx"
     },
     {
@@ -2997,8 +2997,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_components_portal_kit_breadcrumb_crumb",
-      "community": 11,
-      "community_name": "Document Browser Screen",
+      "community": 56,
+      "community_name": "[campus]/[folder]/page.tsx",
       "norm_label": "crumb"
     },
     {
@@ -3008,8 +3008,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_components_portal_kit_breadcrumb_variants",
-      "community": 11,
-      "community_name": "Document Browser Screen",
+      "community": 56,
+      "community_name": "[campus]/[folder]/page.tsx",
       "norm_label": "variants"
     },
     {
@@ -3019,8 +3019,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "src_components_portal_kit_breadcrumb_breadcrumb",
-      "community": 11,
-      "community_name": "Document Browser Screen",
+      "community": 56,
+      "community_name": "[campus]/[folder]/page.tsx",
       "norm_label": "breadcrumb()"
     },
     {
@@ -3030,8 +3030,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_portal_kit_button",
-      "community": 11,
-      "community_name": "Document Browser Screen",
+      "community": 23,
+      "community_name": "kit/index.ts",
       "norm_label": "button.tsx"
     },
     {
@@ -3041,8 +3041,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_components_portal_kit_button_variant",
-      "community": 11,
-      "community_name": "Document Browser Screen",
+      "community": 23,
+      "community_name": "kit/index.ts",
       "norm_label": "variant"
     },
     {
@@ -3052,41 +3052,41 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_components_portal_kit_button_size",
-      "community": 11,
-      "community_name": "Document Browser Screen",
+      "community": 23,
+      "community_name": "kit/index.ts",
       "norm_label": "size"
     },
     {
       "label": "SIZES",
       "file_type": "code",
       "source_file": "src/components/portal/kit/Button.tsx",
-      "source_location": "L18",
+      "source_location": "L16",
       "_origin": "ast",
       "id": "src_components_portal_kit_button_sizes",
-      "community": 11,
-      "community_name": "Document Browser Screen",
+      "community": 23,
+      "community_name": "kit/index.ts",
       "norm_label": "sizes"
     },
     {
       "label": "VARIANTS",
       "file_type": "code",
       "source_file": "src/components/portal/kit/Button.tsx",
-      "source_location": "L23",
+      "source_location": "L21",
       "_origin": "ast",
       "id": "src_components_portal_kit_button_variants",
-      "community": 11,
-      "community_name": "Document Browser Screen",
+      "community": 23,
+      "community_name": "kit/index.ts",
       "norm_label": "variants"
     },
     {
       "label": "Button()",
       "file_type": "code",
       "source_file": "src/components/portal/kit/Button.tsx",
-      "source_location": "L30",
+      "source_location": "L27",
       "_origin": "ast",
       "id": "src_components_portal_kit_button_button",
-      "community": 11,
-      "community_name": "Document Browser Screen",
+      "community": 52,
+      "community_name": "MiniCalendar.tsx",
       "norm_label": "button()"
     },
     {
@@ -3294,8 +3294,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_portal_kit_documentbrowser",
-      "community": 11,
-      "community_name": "Document Browser Screen",
+      "community": 56,
+      "community_name": "[campus]/[folder]/page.tsx",
       "norm_label": "documentbrowser.tsx"
     },
     {
@@ -3346,7 +3346,7 @@
       "label": "FieldLabel()",
       "file_type": "code",
       "source_file": "src/components/portal/kit/Field.tsx",
-      "source_location": "L21",
+      "source_location": "L16",
       "_origin": "ast",
       "id": "src_components_portal_kit_field_fieldlabel",
       "community": 52,
@@ -3354,32 +3354,10 @@
       "norm_label": "fieldlabel()"
     },
     {
-      "label": "ReadOnlyValue()",
-      "file_type": "code",
-      "source_file": "src/components/portal/kit/Field.tsx",
-      "source_location": "L44",
-      "_origin": "ast",
-      "id": "src_components_portal_kit_field_readonlyvalue",
-      "community": 52,
-      "community_name": "MiniCalendar.tsx",
-      "norm_label": "readonlyvalue()"
-    },
-    {
-      "label": "ReadOnlyField()",
-      "file_type": "code",
-      "source_file": "src/components/portal/kit/Field.tsx",
-      "source_location": "L69",
-      "_origin": "ast",
-      "id": "src_components_portal_kit_field_readonlyfield",
-      "community": 52,
-      "community_name": "MiniCalendar.tsx",
-      "norm_label": "readonlyfield()"
-    },
-    {
       "label": "TextInput()",
       "file_type": "code",
       "source_file": "src/components/portal/kit/Field.tsx",
-      "source_location": "L88",
+      "source_location": "L24",
       "_origin": "ast",
       "id": "src_components_portal_kit_field_textinput",
       "community": 52,
@@ -3390,7 +3368,7 @@
       "label": "shell()",
       "file_type": "code",
       "source_file": "src/components/portal/kit/Field.tsx",
-      "source_location": "L98",
+      "source_location": "L34",
       "_origin": "ast",
       "id": "src_components_portal_kit_field_shell",
       "community": 52,
@@ -3401,7 +3379,7 @@
       "label": "SelectInput()",
       "file_type": "code",
       "source_file": "src/components/portal/kit/Field.tsx",
-      "source_location": "L104",
+      "source_location": "L40",
       "_origin": "ast",
       "id": "src_components_portal_kit_field_selectinput",
       "community": 52,
@@ -3412,7 +3390,7 @@
       "label": "SelectMenu()",
       "file_type": "code",
       "source_file": "src/components/portal/kit/Field.tsx",
-      "source_location": "L152",
+      "source_location": "L88",
       "_origin": "ast",
       "id": "src_components_portal_kit_field_selectmenu",
       "community": 52,
@@ -3423,7 +3401,7 @@
       "label": "PasswordInput()",
       "file_type": "code",
       "source_file": "src/components/portal/kit/Field.tsx",
-      "source_location": "L230",
+      "source_location": "L166",
       "_origin": "ast",
       "id": "src_components_portal_kit_field_passwordinput",
       "community": 52,
@@ -3459,8 +3437,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_portal_kit_foldercard",
-      "community": 49,
-      "community_name": "FolderGrid.tsx",
+      "community": 53,
+      "community_name": "QAC Wards Accreditation System",
       "norm_label": "foldercard.tsx"
     },
     {
@@ -3470,8 +3448,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_components_portal_kit_foldercard_foldercard",
-      "community": 49,
-      "community_name": "FolderGrid.tsx",
+      "community": 53,
+      "community_name": "QAC Wards Accreditation System",
       "norm_label": "foldercard()"
     },
     {
@@ -3481,8 +3459,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_portal_kit_foldergrid",
-      "community": 49,
-      "community_name": "FolderGrid.tsx",
+      "community": 53,
+      "community_name": "QAC Wards Accreditation System",
       "norm_label": "foldergrid.tsx"
     },
     {
@@ -3492,8 +3470,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "src_components_portal_kit_foldergrid_folderentry",
-      "community": 49,
-      "community_name": "FolderGrid.tsx",
+      "community": 53,
+      "community_name": "QAC Wards Accreditation System",
       "norm_label": "folderentry"
     },
     {
@@ -3800,8 +3778,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_portal_kit_searchfield",
-      "community": 11,
-      "community_name": "Document Browser Screen",
+      "community": 56,
+      "community_name": "[campus]/[folder]/page.tsx",
       "norm_label": "searchfield.tsx"
     },
     {
@@ -3811,8 +3789,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_components_portal_kit_searchfield_searchfield",
-      "community": 11,
-      "community_name": "Document Browser Screen",
+      "community": 56,
+      "community_name": "[campus]/[folder]/page.tsx",
       "norm_label": "searchfield()"
     },
     {
@@ -3921,8 +3899,8 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "src_components_portal_kit_statcard_statrow",
-      "community": 54,
-      "community_name": "Phase Roadmap",
+      "community": 38,
+      "community_name": "ProgramRepDashboard.tsx",
       "norm_label": "statrow()"
     },
     {
@@ -4119,8 +4097,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_components_portal_kit_uploadlist_uploadlist",
-      "community": 38,
-      "community_name": "ProgramRepDashboard.tsx",
+      "community": 36,
+      "community_name": "Decision: a Literal /portal Segment",
       "norm_label": "uploadlist()"
     },
     {
@@ -4130,8 +4108,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_portal_kit_viewtoggle",
-      "community": 53,
-      "community_name": "QAC Wards Accreditation System",
+      "community": 56,
+      "community_name": "[campus]/[folder]/page.tsx",
       "norm_label": "viewtoggle.tsx"
     },
     {
@@ -4141,8 +4119,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_components_portal_kit_viewtoggle_browserview",
-      "community": 53,
-      "community_name": "QAC Wards Accreditation System",
+      "community": 56,
+      "community_name": "[campus]/[folder]/page.tsx",
       "norm_label": "browserview"
     },
     {
@@ -4152,8 +4130,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_components_portal_kit_viewtoggle_viewtoggle",
-      "community": 53,
-      "community_name": "QAC Wards Accreditation System",
+      "community": 56,
+      "community_name": "[campus]/[folder]/page.tsx",
       "norm_label": "viewtoggle()"
     },
     {
@@ -4185,8 +4163,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_components_portal_portal_nav_portalrole",
-      "community": 43,
-      "community_name": "Phase Roadmap",
+      "community": 29,
+      "community_name": "ProgressRow.tsx",
       "norm_label": "portalrole"
     },
     {
@@ -4229,8 +4207,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_portal_screens_internalaccreditorassignment",
-      "community": 47,
-      "community_name": "InternalAccreditorAssignment.tsx",
+      "community": 9,
+      "community_name": "Portal Shell and Identity Seam",
       "norm_label": "internalaccreditorassignment.tsx"
     },
     {
@@ -4240,8 +4218,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_components_portal_screens_internalaccreditorassignment_columns",
-      "community": 47,
-      "community_name": "InternalAccreditorAssignment.tsx",
+      "community": 9,
+      "community_name": "Portal Shell and Identity Seam",
       "norm_label": "columns"
     },
     {
@@ -4251,8 +4229,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_components_portal_screens_internalaccreditorassignment_actionsquare",
-      "community": 47,
-      "community_name": "InternalAccreditorAssignment.tsx",
+      "community": 9,
+      "community_name": "Portal Shell and Identity Seam",
       "norm_label": "actionsquare()"
     },
     {
@@ -4262,8 +4240,8 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "src_components_portal_screens_internalaccreditorassignment_internalaccreditorassignment",
-      "community": 47,
-      "community_name": "InternalAccreditorAssignment.tsx",
+      "community": 9,
+      "community_name": "Portal Shell and Identity Seam",
       "norm_label": "internalaccreditorassignment()"
     },
     {
@@ -4317,8 +4295,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "src_components_portal_screens_internalaccreditordashboard_internalaccreditordashboard",
-      "community": 73,
-      "community_name": "CopcChart.tsx",
+      "community": 38,
+      "community_name": "ProgramRepDashboard.tsx",
       "norm_label": "internalaccreditordashboard()"
     },
     {
@@ -4427,8 +4405,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_portal_screens_programrepdashboard",
-      "community": 38,
-      "community_name": "ProgramRepDashboard.tsx",
+      "community": 20,
+      "community_name": "What You Must Do When Invoked",
       "norm_label": "programrepdashboard.tsx"
     },
     {
@@ -4438,8 +4416,8 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "src_components_portal_screens_programrepdashboard_columns",
-      "community": 38,
-      "community_name": "ProgramRepDashboard.tsx",
+      "community": 20,
+      "community_name": "What You Must Do When Invoked",
       "norm_label": "columns"
     },
     {
@@ -4559,7 +4537,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "src_components_portal_screens_programrepsubmissions_submissionview",
-      "community": 48,
+      "community": 71,
       "community_name": "submission/page.tsx",
       "norm_label": "submissionview"
     },
@@ -6916,9 +6894,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Accreditation workflow system for the PUP Quality Assurance Center: a public information site plus role-gated internal portals, single Next.js app, single domain.",
-      "community": 20,
+      "community": 29,
       "norm_label": "qac wards accreditation system",
-      "community_name": "What You Must Do When Invoked",
+      "community_name": "ProgressRow.tsx",
       "id": "prd_qac_wards"
     },
     {
@@ -6931,9 +6909,9 @@
       "author": null,
       "contributor": null,
       "rationale": "document submission -> internal review -> accreditor visit -> status publication, with an audit trail behind it.",
-      "community": 45,
+      "community": 29,
       "norm_label": "accreditation lifecycle",
-      "community_name": "Accreditation Lifecycle",
+      "community_name": "ProgressRow.tsx",
       "id": "prd_accreditation_lifecycle"
     },
     {
@@ -6945,9 +6923,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 20,
+      "community": 29,
       "norm_label": "role: public",
-      "community_name": "What You Must Do When Invoked",
+      "community_name": "ProgressRow.tsx",
       "id": "prd_role_public"
     },
     {
@@ -6959,9 +6937,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 43,
+      "community": 29,
       "norm_label": "role: program representative",
-      "community_name": "Phase Roadmap",
+      "community_name": "ProgressRow.tsx",
       "id": "prd_role_program_representative"
     },
     {
@@ -6973,9 +6951,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 43,
+      "community": 29,
       "norm_label": "role: internal accreditor",
-      "community_name": "Phase Roadmap",
+      "community_name": "ProgressRow.tsx",
       "id": "prd_role_internal_accreditor"
     },
     {
@@ -6987,9 +6965,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 20,
+      "community": 29,
       "norm_label": "role: qac personnel",
-      "community_name": "What You Must Do When Invoked",
+      "community_name": "ProgressRow.tsx",
       "id": "prd_role_qac_personnel"
     },
     {
@@ -7001,9 +6979,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 20,
+      "community": 29,
       "norm_label": "role: qac admin",
-      "community_name": "What You Must Do When Invoked",
+      "community_name": "ProgressRow.tsx",
       "id": "prd_role_qac_admin"
     },
     {
@@ -7016,9 +6994,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Every uploaded PDF carries a UUID written into the file itself, so document integrity survives outside the database.",
-      "community": 46,
+      "community": 29,
       "norm_label": "document uuid stamping",
-      "community_name": "Shared URL vs Role-Prefixed URL Rule",
+      "community_name": "ProgressRow.tsx",
       "id": "prd_document_uuid_stamping"
     },
     {
@@ -7031,9 +7009,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Accreditation state transitions are recorded in Postgres for auditability.",
-      "community": 45,
+      "community": 29,
       "norm_label": "audit log of state transitions",
-      "community_name": "Accreditation Lifecycle",
+      "community_name": "ProgressRow.tsx",
       "id": "prd_audit_log"
     },
     {
@@ -7060,9 +7038,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Accounts are provisioned by QAC Admin; public sign-up is explicitly out of scope.",
-      "community": 20,
+      "community": 29,
       "norm_label": "no public self-registration",
-      "community_name": "What You Must Do When Invoked",
+      "community_name": "ProgressRow.tsx",
       "id": "prd_no_public_self_registration"
     },
     {
@@ -7075,9 +7053,9 @@
       "author": null,
       "contributor": null,
       "rationale": "One Next.js app serves both the public site and all internal portals; public and internal are split by route, not by deployment.",
-      "community": 20,
+      "community": 29,
       "norm_label": "single app, single domain",
-      "community_name": "What You Must Do When Invoked",
+      "community_name": "ProgressRow.tsx",
       "id": "prd_single_app_single_domain"
     },
     {
@@ -7090,9 +7068,9 @@
       "author": null,
       "contributor": null,
       "rationale": "XState owns transition and guard logic only; the actual state lives in Postgres so it is queryable and auditable.",
-      "community": 45,
+      "community": 29,
       "norm_label": "workflow state persisted in postgres",
-      "community_name": "Accreditation Lifecycle",
+      "community_name": "ProgressRow.tsx",
       "id": "prd_workflow_state_in_postgres"
     },
     {
@@ -7105,9 +7083,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Supabase RLS, not only middleware. A portal route being reachable must never be the only thing standing between a role and another role's data.",
-      "community": 23,
+      "community": 29,
       "norm_label": "access control enforced at the database",
-      "community_name": "kit/index.ts",
+      "community_name": "ProgressRow.tsx",
       "id": "prd_access_control_at_database"
     },
     {
@@ -7120,9 +7098,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Per-role permission matrix, the accreditation state machine, the data model, account provisioning, email triggers, and audit-log retention are all unspecified.",
-      "community": 44,
+      "community": 29,
       "norm_label": "open questions blocking phases 3+",
-      "community_name": "Can One Person Hold Two Roles?",
+      "community_name": "ProgressRow.tsx",
       "id": "prd_open_questions"
     },
     {
@@ -7135,9 +7113,9 @@
       "author": null,
       "contributor": null,
       "rationale": "635 KB client document that may answer several open questions; not yet read. Plans 00-index record it as holding only colors, fonts and the type scale.",
-      "community": 44,
+      "community": 29,
       "norm_label": "system design format.docx (unmined source)",
-      "community_name": "Can One Person Hold Two Roles?",
+      "community_name": "ProgressRow.tsx",
       "id": "prd_system_design_docx"
     },
     {
@@ -7194,9 +7172,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 20,
+      "community": 29,
       "norm_label": "planned repo layout",
-      "community_name": "What You Must Do When Invoked",
+      "community_name": "ProgressRow.tsx",
       "id": "prd_repo_layout"
     },
     {
@@ -7208,9 +7186,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 20,
+      "community": 29,
       "norm_label": "next.js (app router) + react",
-      "community_name": "What You Must Do When Invoked",
+      "community_name": "ProgressRow.tsx",
       "id": "prd_nextjs_app_router"
     },
     {
@@ -7222,9 +7200,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 20,
+      "community": 29,
       "norm_label": "typescript",
-      "community_name": "What You Must Do When Invoked",
+      "community_name": "ProgressRow.tsx",
       "id": "prd_typescript"
     },
     {
@@ -7264,9 +7242,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 45,
+      "community": 29,
       "norm_label": "postgresql",
-      "community_name": "Accreditation Lifecycle",
+      "community_name": "ProgressRow.tsx",
       "id": "prd_postgresql"
     },
     {
@@ -7278,9 +7256,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 46,
+      "community": 29,
       "norm_label": "supabase storage",
-      "community_name": "Shared URL vs Role-Prefixed URL Rule",
+      "community_name": "ProgressRow.tsx",
       "id": "prd_supabase_storage"
     },
     {
@@ -7292,9 +7270,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 23,
+      "community": 29,
       "norm_label": "supabase auth",
-      "community_name": "kit/index.ts",
+      "community_name": "ProgressRow.tsx",
       "id": "prd_supabase_auth"
     },
     {
@@ -7306,9 +7284,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 45,
+      "community": 29,
       "norm_label": "xstate",
-      "community_name": "Accreditation Lifecycle",
+      "community_name": "ProgressRow.tsx",
       "id": "prd_xstate"
     },
     {
@@ -7320,9 +7298,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 46,
+      "community": 29,
       "norm_label": "pdf-parse",
-      "community_name": "Shared URL vs Role-Prefixed URL Rule",
+      "community_name": "ProgressRow.tsx",
       "id": "prd_pdf_parse"
     },
     {
@@ -7334,9 +7312,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 46,
+      "community": 29,
       "norm_label": "pdf-lib",
-      "community_name": "Shared URL vs Role-Prefixed URL Rule",
+      "community_name": "ProgressRow.tsx",
       "id": "prd_pdf_lib"
     },
     {
@@ -7348,9 +7326,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 46,
+      "community": 29,
       "norm_label": "smtp via nodemailer",
-      "community_name": "Shared URL vs Role-Prefixed URL Rule",
+      "community_name": "ProgressRow.tsx",
       "id": "prd_nodemailer"
     },
     {
@@ -7376,9 +7354,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 20,
+      "community": 29,
       "norm_label": "vercel",
-      "community_name": "What You Must Do When Invoked",
+      "community_name": "ProgressRow.tsx",
       "id": "prd_vercel"
     },
     {
@@ -7406,9 +7384,9 @@
       "author": null,
       "contributor": null,
       "rationale": "If a piece of UI appears on more than one screen it is a component: put it in the kit, never copy-paste into a second page. A kit component owns its own look; pages pass data and variants, not styling.",
-      "community": 53,
+      "community": 54,
       "norm_label": "component kit rule",
-      "community_name": "QAC Wards Accreditation System",
+      "community_name": "Phase Roadmap",
       "id": "claude_component_kit_rule"
     },
     {
@@ -7421,9 +7399,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Kit components take fake data via props so the swap to real data is a page-level change.",
-      "community": 53,
+      "community": 54,
       "norm_label": "kit components are presentational",
-      "community_name": "QAC Wards Accreditation System",
+      "community_name": "Phase Roadmap",
       "id": "claude_kit_presentational"
     },
     {
@@ -8055,9 +8033,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 43,
+      "community": 29,
       "norm_label": "phase roadmap",
-      "community_name": "Phase Roadmap",
+      "community_name": "ProgressRow.tsx",
       "id": "plans_00_index_roadmap"
     },
     {
@@ -8353,9 +8331,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Never user_metadata, which users can edit themselves - that is a privilege-escalation path.",
-      "community": 23,
+      "community": 29,
       "norm_label": "role claim belongs in app_metadata",
-      "community_name": "kit/index.ts",
+      "community_name": "ProgressRow.tsx",
       "id": "plans_03_auth_role_gate_app_metadata_role_claim"
     },
     {
@@ -8383,9 +8361,9 @@
       "author": null,
       "contributor": null,
       "rationale": "No separate /portal/dashboard; /portal itself dispatches on the role claim.",
-      "community": 44,
+      "community": 29,
       "norm_label": "/portal is the role dispatcher",
-      "community_name": "Can One Person Hold Two Roles?",
+      "community_name": "ProgressRow.tsx",
       "id": "plans_03_auth_role_gate_role_dispatcher"
     },
     {
@@ -8398,9 +8376,9 @@
       "author": null,
       "contributor": null,
       "rationale": "If two roles can open the same database row it gets one URL and the role decides what renders; a feature for exactly one role gets a role-prefixed URL. Two stack-specific reasons to resist role-prefixed URLs for shared records: nodemailer notifications would have to resolve the recipient's role to build a link, and pdf-lib document UUIDs need a stable resolution target.",
-      "community": 46,
+      "community": 29,
       "norm_label": "shared url vs role-prefixed url rule",
-      "community_name": "Shared URL vs Role-Prefixed URL Rule",
+      "community_name": "ProgressRow.tsx",
       "id": "plans_03_auth_role_gate_shared_url_rule"
     },
     {
@@ -8413,9 +8391,9 @@
       "author": null,
       "contributor": null,
       "rationale": "'Different pages per role' most often means different views and actions over shared objects. Only split the route when the underlying data is genuinely disjoint.",
-      "community": 46,
+      "community": 29,
       "norm_label": "per-role views are a rendering split, not a routing split",
-      "community_name": "Shared URL vs Role-Prefixed URL Rule",
+      "community_name": "ProgressRow.tsx",
       "id": "plans_03_auth_role_gate_render_split_not_route_split"
     },
     {
@@ -8428,9 +8406,9 @@
       "author": null,
       "contributor": null,
       "rationale": "/portal/accreditations/[id]/pending-review rots the moment the record transitions. Keep the bare id and render from the state persisted in Postgres.",
-      "community": 45,
+      "community": 29,
       "norm_label": "do not encode workflow state in the path",
-      "community_name": "Accreditation Lifecycle",
+      "community_name": "ProgressRow.tsx",
       "id": "plans_03_auth_role_gate_no_workflow_state_in_path"
     },
     {
@@ -8458,9 +8436,9 @@
       "author": null,
       "contributor": null,
       "rationale": "If yes, the role dispatcher needs a role switcher and role-prefixed URLs become actively harmful. Also changes whether role is a column or a join table, and every RLS policy after it.",
-      "community": 44,
+      "community": 29,
       "norm_label": "can one person hold two roles?",
-      "community_name": "Can One Person Hold Two Roles?",
+      "community_name": "ProgressRow.tsx",
       "id": "plans_03_auth_role_gate_dual_role_question"
     },
     {
@@ -8533,9 +8511,9 @@
       "author": null,
       "contributor": null,
       "rationale": "So all four roles are clickable without real accounts. Must be trivially removable - it is a preview affordance, never an auth mechanism.",
-      "community": 23,
+      "community": 9,
       "norm_label": "dev-only role switcher",
-      "community_name": "kit/index.ts",
+      "community_name": "Portal Shell and Identity Seam",
       "id": "plans_03a_portal_ui_static_dev_role_switcher"
     },
     {
@@ -8548,9 +8526,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Owner chose it over academic_representative on 2026-07-23.",
-      "community": 43,
+      "community": 29,
       "norm_label": "role slug is program_representative",
-      "community_name": "Phase Roadmap",
+      "community_name": "ProgressRow.tsx",
       "id": "plans_03a_portal_ui_static_role_slug_decision"
     },
     {
@@ -8563,9 +8541,9 @@
       "author": null,
       "contributor": null,
       "rationale": "No Supabase client, middleware, RLS, API routes, sessions, email or PDF processing. Nothing @supabase/* is installed and no .env* exists - keep it that way. The (public) migration is also not part of this phase.",
-      "community": 23,
+      "community": 29,
       "norm_label": "backend explicitly out of scope for 3a",
-      "community_name": "kit/index.ts",
+      "community_name": "ProgressRow.tsx",
       "id": "plans_03a_portal_ui_static_out_of_scope"
     },
     {
@@ -8578,9 +8556,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Kept in a clearly-named array per screen so the swap point is obvious when the backend arrives.",
-      "community": 54,
+      "community": 20,
       "norm_label": "fake data typed into the files",
-      "community_name": "Phase Roadmap",
+      "community_name": "What You Must Do When Invoked",
       "id": "plans_03a_portal_ui_static_fake_data_typed_in"
     },
     {
@@ -8683,9 +8661,9 @@
       "author": null,
       "contributor": null,
       "rationale": "The signed-in user is a hardcoded constant, so no other role is reachable without editing source. Replace it with getCurrentUser() reading a dev cookie into PORTAL_USERS. The cookie holds a user key, not a role, because the top bar shows name, position and avatar - switching role alone would leave one person's name on every role. Later this becomes supabase.auth.getUser() + app_metadata.role: one function body changes.",
-      "community": 23,
+      "community": 9,
       "norm_label": "the identity seam",
-      "community_name": "kit/index.ts",
+      "community_name": "Portal Shell and Identity Seam",
       "id": "plans_03a_ui_build_runbook_identity_seam"
     },
     {
@@ -8698,9 +8676,9 @@
       "author": null,
       "contributor": null,
       "rationale": "PortalTopBar and PortalSidebar both import the hardcoded constant directly today. The sidebar is a client component because it needs usePathname, so it has to receive the user as a prop rather than call the server-only accessor.",
-      "community": 23,
+      "community": 9,
       "norm_label": "the sidebar must receive the user",
-      "community_name": "kit/index.ts",
+      "community_name": "Portal Shell and Identity Seam",
       "id": "plans_03a_ui_build_runbook_sidebar_must_receive_user"
     },
     {
@@ -8713,9 +8691,9 @@
       "author": null,
       "contributor": null,
       "rationale": "PORTAL_NAV only defines qac_personnel. Until a role's frames land its sidebar is empty by design - say so in the switcher rather than rendering a blank rail, or it reads as a bug.",
-      "community": 23,
+      "community": 9,
       "norm_label": "an empty sidebar is by design, say so",
-      "community_name": "kit/index.ts",
+      "community_name": "Portal Shell and Identity Seam",
       "id": "plans_03a_ui_build_runbook_empty_sidebar_by_design"
     },
     {
@@ -8728,9 +8706,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Read kit/index.ts before building any screen. Reuse what is there, extend with a prop rather than forking a near-duplicate, and the moment a second screen needs something a page has inline, move it to the kit and update the first screen.",
-      "community": 53,
+      "community": 54,
       "norm_label": "kit discipline",
-      "community_name": "QAC Wards Accreditation System",
+      "community_name": "Phase Roadmap",
       "id": "plans_03a_ui_build_runbook_kit_discipline"
     },
     {
@@ -8757,9 +8735,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 54,
+      "community": 20,
       "norm_label": "data.ts is the single backend swap point",
-      "community_name": "Phase Roadmap",
+      "community_name": "What You Must Do When Invoked",
       "id": "plans_03a_ui_build_runbook_fake_data_swap_point"
     },
     {
@@ -8817,9 +8795,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Four separate sign-up forms means something has to stop a stranger opening the qac_admin one. Admin invite links, a domain-restricted email, or a pending-approval state are the usual answers - and it is a UI-visible decision, so ask before building the forms. The role must never be settable by the user at signup.",
-      "community": 20,
+      "community": 29,
       "norm_label": "how does a registrant prove role entitlement?",
-      "community_name": "What You Must Do When Invoked",
+      "community_name": "ProgressRow.tsx",
       "id": "plans_03a_ui_build_runbook_registration_entitlement_question"
     },
     {
@@ -8847,9 +8825,9 @@
       "author": null,
       "contributor": null,
       "rationale": "They cost nothing now and a UI assumption that contradicts the real model is a rebuild, not a rewire: dual roles, one accreditation per program or many cycles, rep scoping, and whether accreditors see only assigned accreditations.",
-      "community": 44,
+      "community": 29,
       "norm_label": "schema-shaped questions to ask as you go",
-      "community_name": "Can One Person Hold Two Roles?",
+      "community_name": "ProgressRow.tsx",
       "id": "plans_03a_ui_build_runbook_schema_questions"
     },
     {
@@ -8891,9 +8869,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 43,
+      "community": 29,
       "norm_label": "phase 4 - program rep portal (empty stub)",
-      "community_name": "Phase Roadmap",
+      "community_name": "ProgressRow.tsx",
       "id": "plans_04_program_rep_portal_stub"
     },
     {
@@ -8905,9 +8883,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 43,
+      "community": 29,
       "norm_label": "phase 5 - internal accreditor portal (empty stub)",
-      "community_name": "Phase Roadmap",
+      "community_name": "ProgressRow.tsx",
       "id": "plans_05_accreditor_portal_stub"
     },
     {
@@ -8919,9 +8897,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 20,
+      "community": 29,
       "norm_label": "phase 6 - qac personnel/admin portal (empty stub)",
-      "community_name": "What You Must Do When Invoked",
+      "community_name": "ProgressRow.tsx",
       "id": "plans_06_personnel_admin_portal_stub"
     },
     {
@@ -8947,9 +8925,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 45,
+      "community": 29,
       "norm_label": "phase 8 - audit log + polish + deploy (empty stub)",
-      "community_name": "Accreditation Lifecycle",
+      "community_name": "ProgressRow.tsx",
       "id": "plans_08_audit_deploy_stub"
     },
     {
@@ -11608,7 +11586,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/app/portal/profile/page.tsx",
-      "source_location": "L46",
+      "source_location": "L25",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_portal_profile_page",
@@ -11620,7 +11598,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/portal/profile/page.tsx",
-      "source_location": "L11",
+      "source_location": "L3",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_portal_profile_page",
@@ -11632,7 +11610,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/portal/profile/page.tsx",
-      "source_location": "L11",
+      "source_location": "L3",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_portal_profile_page",
@@ -11644,7 +11622,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/portal/profile/page.tsx",
-      "source_location": "L13",
+      "source_location": "L5",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_portal_profile_page",
@@ -11656,7 +11634,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/portal/profile/page.tsx",
-      "source_location": "L13",
+      "source_location": "L5",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_portal_profile_page",
@@ -11668,7 +11646,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/portal/profile/page.tsx",
-      "source_location": "L13",
+      "source_location": "L5",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_portal_profile_page",
@@ -11680,11 +11658,11 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/portal/profile/page.tsx",
-      "source_location": "L13",
+      "source_location": "L5",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_portal_profile_page",
-      "target": "src_components_portal_kit_field_readonlyfield",
+      "target": "src_components_portal_kit_field_selectinput",
       "confidence_score": 1.0
     },
     {
@@ -11692,11 +11670,11 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/portal/profile/page.tsx",
-      "source_location": "L13",
+      "source_location": "L5",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_portal_profile_page",
-      "target": "src_components_portal_kit_field_readonlyvalue",
+      "target": "src_components_portal_kit_field_textinput",
       "confidence_score": 1.0
     },
     {
@@ -11704,7 +11682,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/portal/profile/page.tsx",
-      "source_location": "L13",
+      "source_location": "L5",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_portal_profile_page",
@@ -11716,7 +11694,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/portal/profile/page.tsx",
-      "source_location": "L13",
+      "source_location": "L5",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_portal_profile_page",
@@ -11728,7 +11706,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/portal/profile/page.tsx",
-      "source_location": "L12",
+      "source_location": "L4",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_portal_profile_page",
@@ -11740,7 +11718,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/portal/profile/page.tsx",
-      "source_location": "L12",
+      "source_location": "L4",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_portal_profile_page",
@@ -11753,7 +11731,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/portal/profile/page.tsx",
-      "source_location": "L47",
+      "source_location": "L26",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_portal_profile_page_profilepage",
@@ -13789,7 +13767,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/data.ts",
-      "source_location": "L605",
+      "source_location": "L597",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_data",
@@ -13965,7 +13943,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/data.ts",
-      "source_location": "L623",
+      "source_location": "L612",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_data",
@@ -14784,7 +14762,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/Button.tsx",
-      "source_location": "L30",
+      "source_location": "L27",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_button",
@@ -14806,7 +14784,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/Button.tsx",
-      "source_location": "L18",
+      "source_location": "L16",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_button",
@@ -14828,7 +14806,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/Button.tsx",
-      "source_location": "L23",
+      "source_location": "L21",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_button",
@@ -15413,7 +15391,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/Field.tsx",
-      "source_location": "L21",
+      "source_location": "L16",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_field",
@@ -15424,7 +15402,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/Field.tsx",
-      "source_location": "L230",
+      "source_location": "L166",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_field",
@@ -15435,29 +15413,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/Field.tsx",
-      "source_location": "L69",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_components_portal_kit_field",
-      "target": "src_components_portal_kit_field_readonlyfield",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/portal/kit/Field.tsx",
-      "source_location": "L44",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_components_portal_kit_field",
-      "target": "src_components_portal_kit_field_readonlyvalue",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/portal/kit/Field.tsx",
-      "source_location": "L104",
+      "source_location": "L40",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_field",
@@ -15468,7 +15424,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/Field.tsx",
-      "source_location": "L152",
+      "source_location": "L88",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_field",
@@ -15479,7 +15435,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/Field.tsx",
-      "source_location": "L98",
+      "source_location": "L34",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_field",
@@ -15490,7 +15446,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/Field.tsx",
-      "source_location": "L88",
+      "source_location": "L24",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_field",
@@ -15542,30 +15498,6 @@
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
-      "target": "src_components_portal_kit_field_readonlyvalue",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "re_exports",
-      "context": "re-export",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L17",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_components_portal_kit_index",
-      "target": "src_components_portal_kit_field_readonlyfield",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "re_exports",
-      "context": "re-export",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L17",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_components_portal_kit_index",
       "target": "src_components_portal_kit_field_textinput",
       "confidence_score": 1.0
     },
@@ -15574,7 +15506,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/Field.tsx",
-      "source_location": "L130",
+      "source_location": "L66",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_field_selectinput",
@@ -15586,7 +15518,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/Field.tsx",
-      "source_location": "L173",
+      "source_location": "L109",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_field_selectmenu",
@@ -15645,7 +15577,7 @@
       "context": "export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L25",
+      "source_location": "L18",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -15680,7 +15612,7 @@
       "context": "export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L26",
+      "source_location": "L19",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -15714,7 +15646,7 @@
       "context": "export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L27",
+      "source_location": "L20",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -15726,7 +15658,7 @@
       "context": "re-export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L27",
+      "source_location": "L20",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -15738,7 +15670,7 @@
       "context": "export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L28",
+      "source_location": "L21",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -15816,7 +15748,7 @@
       "context": "re-export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L28",
+      "source_location": "L21",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -15852,7 +15784,7 @@
       "context": "export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L29",
+      "source_location": "L22",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -15952,7 +15884,7 @@
       "context": "re-export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L29",
+      "source_location": "L22",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -15996,7 +15928,7 @@
       "context": "re-export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L29",
+      "source_location": "L22",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -16008,7 +15940,7 @@
       "context": "export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L34",
+      "source_location": "L27",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -16031,7 +15963,7 @@
       "context": "export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L35",
+      "source_location": "L28",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -16078,7 +16010,7 @@
       "context": "export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L36",
+      "source_location": "L29",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -16113,7 +16045,7 @@
       "context": "export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L37",
+      "source_location": "L30",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -16136,7 +16068,7 @@
       "context": "export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L38",
+      "source_location": "L31",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -16171,7 +16103,7 @@
       "context": "export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L39",
+      "source_location": "L32",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -16206,7 +16138,7 @@
       "context": "export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L40",
+      "source_location": "L33",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -16229,7 +16161,7 @@
       "context": "export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L41",
+      "source_location": "L34",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -16274,7 +16206,7 @@
       "context": "re-export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L41",
+      "source_location": "L34",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -16298,7 +16230,7 @@
       "context": "export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L42",
+      "source_location": "L35",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -16353,7 +16285,7 @@
       "context": "re-export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L42",
+      "source_location": "L35",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -16385,7 +16317,7 @@
       "context": "re-export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L42",
+      "source_location": "L35",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -16433,7 +16365,7 @@
       "context": "export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L43",
+      "source_location": "L36",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -16524,7 +16456,7 @@
       "context": "re-export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L43",
+      "source_location": "L36",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -16548,7 +16480,7 @@
       "context": "export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L44",
+      "source_location": "L37",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -16616,7 +16548,7 @@
       "context": "re-export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L44",
+      "source_location": "L37",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -16652,7 +16584,7 @@
       "context": "export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L45",
+      "source_location": "L38",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -16697,7 +16629,7 @@
       "context": "re-export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L45",
+      "source_location": "L38",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -16709,7 +16641,7 @@
       "context": "export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L46",
+      "source_location": "L39",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -16743,7 +16675,7 @@
       "context": "re-export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L46",
+      "source_location": "L39",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -16767,7 +16699,7 @@
       "context": "export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L47",
+      "source_location": "L40",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
@@ -16801,7 +16733,7 @@
       "context": "re-export",
       "confidence": "EXTRACTED",
       "source_file": "src/components/portal/kit/index.ts",
-      "source_location": "L47",
+      "source_location": "L40",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_components_portal_kit_index",
