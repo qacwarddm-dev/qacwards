@@ -2,7 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { AuthButton, AuthCard, AuthShell, AuthTextField } from "@/components/auth";
+import {
+  AuthButton,
+  AuthCard,
+  AuthShell,
+  AuthTextField,
+  BackLink,
+} from "@/components/auth";
 import { createClient } from "@/lib/supabase/browser";
 import { REGISTER_STEPS } from "../register-options";
 import { draftToAuthMetadata, readDraft } from "../registration-draft";
@@ -82,7 +88,12 @@ export default function VerifyWebmailForm() {
   }
 
   return (
-    <AuthShell align="center">
+    // Back is safe *here and nowhere later in the flow*: `verifyOtp` has not run
+    // yet, so no account exists to strand, and step 1's fields are still in the
+    // sessionStorage draft for `RegisterForm` to restore. From the password step
+    // onward the account is already created and signed in, so those screens
+    // deliberately have no Back.
+    <AuthShell align="center" topRight={<BackLink href="/register" />}>
       <AuthCard variant="register" title="VERIFY WEBMAIL">
         <p className="mt-[18.5px] text-center text-regular leading-[15.5px] text-gray">
           A verification code has been sent to your webmail. Please check your

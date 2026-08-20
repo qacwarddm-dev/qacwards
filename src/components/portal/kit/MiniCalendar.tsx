@@ -46,7 +46,7 @@ export default function MiniCalendar({ month, today, marks = {} }: MiniCalendarP
   while (cells.length % 7 !== 0) cells.push({ day: cells.length - lead - daysInMonth + 1, inMonth: false });
 
   return (
-    <div className="flex h-[294px] w-[450px] flex-col rounded-[20px] border border-maroon bg-white px-[20px] pt-[25px]">
+    <div className="flex h-[294px] w-full max-w-[450px] flex-col rounded-[20px] border border-maroon bg-white px-[20px] pt-[25px]">
       <h3 className="text-subheading font-semibold leading-none text-black">
         {month.toLocaleDateString("en-US", { month: "long" })}
       </h3>

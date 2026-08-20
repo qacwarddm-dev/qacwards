@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AuthButton,
   AuthCard,
@@ -11,6 +11,7 @@ import {
   AuthSelect,
   AuthShell,
   AuthTextField,
+  BackLink,
 } from "@/components/auth";
 import {
   ACADEMIC_PROGRAM_LABEL,
@@ -24,7 +25,7 @@ import {
   SYSTEM_ROLES,
 } from "./register-options";
 import { createClient } from "@/lib/supabase/browser";
-import { draftToAuthMetadata, saveDraft } from "./registration-draft";
+import { draftToAuthMetadata, readDraft, saveDraft } from "./registration-draft";
 
 /**
  * Create-an-account form — assets/FIGMA/register/reg form.png and
@@ -60,6 +61,29 @@ export default function RegisterForm() {
   const [position, setPosition] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+
+  /**
+   * Step 2 can now come Back here, so the draft it was carrying has to come back
+   * with it — otherwise Back reads as "lose everything you typed". Restored in an
+   * effect rather than seeded into `useState`: `sessionStorage` does not exist
+   * during the server render, so lazy initialisers would hydrate mismatched.
+   * That server/client split is exactly the case `set-state-in-effect` cannot
+   * see, and there is no render-time read that fixes it — the first client
+   * render must match the server's empty one before the draft can land.
+   */
+  useEffect(() => {
+    const draft = readDraft();
+    if (!draft) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- restoring a client-only sessionStorage draft; a render-time read would break hydration
+    setSurname(draft.surname);
+    setGiven(draft.givenName);
+    setMiddle(draft.middleInitial);
+    setWebmail(draft.webmail);
+    setRole(draft.roleLabel);
+    setCampus(draft.campus);
+    setCollege(draft.college);
+    setPosition(draft.position);
+  }, []);
 
   const isProgramRep = role === ACADEMIC_PROGRAM_LABEL;
   const showCollege = isProgramRep && campus === MAIN_CAMPUS;
@@ -120,7 +144,7 @@ export default function RegisterForm() {
   }
 
   return (
-    <AuthShell align="center">
+    <AuthShell align="center" topRight={<BackLink href="/login" />}>
       <AuthCard variant="register" title="CREATE AN ACCOUNT">
         <form
           onSubmit={handleSubmit}

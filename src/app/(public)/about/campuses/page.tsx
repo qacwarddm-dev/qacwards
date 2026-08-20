@@ -176,6 +176,7 @@ const CAMPUSES: Campus[] = [
 export default function CampusesPage() {
   return (
     <div>
+      <h1 className="sr-only">Campuses</h1>
       <Image
         src="/assets/imagery/campuses.png"
         alt="Polytechnic University of the Philippines — Campuses"

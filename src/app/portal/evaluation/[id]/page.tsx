@@ -34,11 +34,14 @@ export default async function EvaluationDetailPage({
   const evaluation = await getEvaluation(id);
 
   return (
-    <InternalAccreditorEvaluationDetail
-      state={state}
-      detail={detail}
-      items={evaluation?.evaluation_items ?? []}
-      score={scoreDisplay(evaluation ?? null)}
-    />
+    <>
+      <h1 className="sr-only">Evaluation Detail</h1>
+      <InternalAccreditorEvaluationDetail
+        state={state}
+        detail={detail}
+        items={evaluation?.evaluation_items ?? []}
+        score={scoreDisplay(evaluation ?? null)}
+      />
+    </>
   );
 }

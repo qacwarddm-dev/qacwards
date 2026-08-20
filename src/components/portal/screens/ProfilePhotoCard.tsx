@@ -4,7 +4,7 @@ import { CircleUserRound, SquarePen, Trash2, Upload } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import { Button, Card, SectionHeading } from "@/components/portal/kit";
+import { Button, Card, ConfirmDialog, SectionHeading } from "@/components/portal/kit";
 import { createClient } from "@/lib/supabase/browser";
 import { BUCKETS, avatarPath, removeFile, signedUrl, uploadFile } from "@/lib/storage";
 
@@ -39,6 +39,7 @@ export default function ProfilePhotoCard({
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState(false);
 
   async function handleFile(file: File | undefined) {
     if (!file) return;
@@ -89,6 +90,7 @@ export default function ProfilePhotoCard({
   }
 
   async function handleRemove() {
+    setConfirmRemove(false);
     setError(null);
     setBusy(true);
     const supabase = createClient();
@@ -164,11 +166,21 @@ export default function ProfilePhotoCard({
         size="md"
         icon={Trash2}
         className="mt-[8px] w-full"
-        onClick={handleRemove}
+        onClick={() => setConfirmRemove(true)}
         disabled={busy || !hasAvatar}
       >
         Remove Photo
       </Button>
+
+      <ConfirmDialog
+        open={confirmRemove}
+        onOpenChange={setConfirmRemove}
+        title="Remove profile photo"
+        description="Your profile photo will be removed and the placeholder avatar will show instead. You can upload a new photo any time."
+        confirmLabel="Remove photo"
+        tone="danger"
+        onConfirm={handleRemove}
+      />
 
       {error ? (
         <p className="mt-[9px] text-center text-regular leading-tight text-maroon">

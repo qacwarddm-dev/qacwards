@@ -18,7 +18,7 @@ import { useState } from "react";
  *  boxes individually, and callers set text-black (input) or text-gray (a select
  *  showing its placeholder) without a same-specificity clash against the shell. */
 export const AUTH_FIELD_SHELL =
-  "h-[40px] rounded-[10px] border-2 border-maroon bg-white px-[14px] text-subheading leading-none outline-none placeholder:text-gray/25";
+  "h-[40px] rounded-[10px] border-2 border-maroon bg-white px-[14px] text-subheading leading-none outline-none placeholder:text-gray/25 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon";
 
 /** Maroon field label above an input. */
 export function AuthLabel({ children }: { children: React.ReactNode }) {

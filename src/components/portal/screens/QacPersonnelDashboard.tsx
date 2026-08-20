@@ -17,8 +17,8 @@ export default function QacPersonnelDashboard({
   data: { stats: Stat[]; copcSeries: number[] };
 }) {
   return (
-    <div className="px-[57px] pt-[45px] pb-[45px]">
-      <section className="h-[180px] rounded-lg bg-maroon px-[26px] pt-[20px] text-white shadow-card">
+    <div className="px-[var(--page-gutter)] pb-[45px] pt-[45px] lg:px-[57px]">
+      <section className="rounded-lg bg-maroon px-[26px] py-[20px] text-white shadow-card sm:h-[180px]">
         <h1 className="text-banner font-semibold leading-[36px]">
           Welcome to the QAC Dashboard!
         </h1>

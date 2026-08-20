@@ -8,5 +8,10 @@ import { getMyEvaluationAssignments } from "@/lib/assignments";
  */
 export default async function EvaluationPage() {
   const rows = await getMyEvaluationAssignments();
-  return <InternalAccreditorEvaluation rows={rows} />;
+  return (
+    <>
+      <h1 className="sr-only">Evaluation</h1>
+      <InternalAccreditorEvaluation rows={rows} />
+    </>
+  );
 }

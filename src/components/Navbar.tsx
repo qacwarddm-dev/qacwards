@@ -44,11 +44,14 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Route change closes whatever the previous page left open.
-  useEffect(() => {
+  // Route change closes whatever the previous page left open. Reset during
+  // render (not an effect) so the closed state is what the same commit paints.
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname);
     setOpenDropdown(null);
     setMobileOpen(false);
-  }, [pathname]);
+  }
 
   useEffect(() => {
     function onPointerDown(event: MouseEvent) {
@@ -99,12 +102,27 @@ export default function Navbar() {
                 );
               }
 
+              const menuId = `nav-menu-${link.label}`;
+              const isOpen = openDropdown === link.label;
               return (
                 <div key={link.href} className="relative">
                   <button
                     type="button"
-                    aria-expanded={openDropdown === link.label}
+                    aria-expanded={isOpen}
                     aria-haspopup="menu"
+                    aria-controls={menuId}
+                    onKeyDown={(e) => {
+                      if (e.key === "ArrowDown") {
+                        e.preventDefault();
+                        setOpenDropdown(link.label);
+                        requestAnimationFrame(() =>
+                          document
+                            .getElementById(menuId)
+                            ?.querySelector<HTMLElement>("[role=menuitem]")
+                            ?.focus(),
+                        );
+                      }
+                    }}
                     onClick={() =>
                       setOpenDropdown((open) =>
                         open === link.label ? null : link.label,
@@ -114,15 +132,30 @@ export default function Navbar() {
                   >
                     {link.label}
                     <ChevronDown
-                      className={`h-4 w-4 transition-transform ${
-                        openDropdown === link.label ? "rotate-180" : ""
-                      }`}
+                      className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`}
                     />
                   </button>
 
-                  {openDropdown === link.label && (
+                  {isOpen && (
                     <div
+                      id={menuId}
                       role="menu"
+                      aria-label={link.label}
+                      onKeyDown={(e) => {
+                        const items = Array.from(
+                          e.currentTarget.querySelectorAll<HTMLElement>("[role=menuitem]"),
+                        );
+                        const idx = items.indexOf(document.activeElement as HTMLElement);
+                        if (e.key === "ArrowDown") {
+                          e.preventDefault();
+                          items[(idx + 1) % items.length]?.focus();
+                        } else if (e.key === "ArrowUp") {
+                          e.preventDefault();
+                          items[(idx - 1 + items.length) % items.length]?.focus();
+                        } else if (e.key === "Tab") {
+                          setOpenDropdown(null);
+                        }
+                      }}
                       className="absolute left-0 top-full mt-2 w-[254px] rounded-[20px] bg-white p-[10px] shadow-lg"
                     >
                       {link.children.map((child) => (
@@ -159,6 +192,7 @@ export default function Navbar() {
               type="button"
               aria-label="Toggle navigation"
               aria-expanded={mobileOpen}
+              aria-controls="mobile-nav-menu"
               onClick={() => setMobileOpen((open) => !open)}
               className="rounded-full p-1 text-maroon/60 transition-colors hover:text-maroon lg:hidden"
             >
@@ -173,7 +207,7 @@ export default function Navbar() {
       </nav>
 
       {mobileOpen && (
-        <div className="border-t border-gray/20 bg-white px-4 pb-4 sm:px-6 lg:hidden">
+        <div id="mobile-nav-menu" className="border-t border-gray/20 bg-white px-4 pb-4 sm:px-6 lg:hidden">
           {NAV_LINKS.map((link) => (
             <div key={link.href} className="py-1">
               <Link

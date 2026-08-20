@@ -33,6 +33,7 @@ export default async function ActivityPage({
 
   return (
     <div className="px-[81px] pt-[19px] pb-[16px]">
+      <h1 className="sr-only">Activity</h1>
       <Card className="px-[28px] pt-[19px] pb-[22px]">
         <SectionHeading icon={History}>
           {isAdmin ? "SYSTEM ACTIVITY" : "MY ACTIVITY"}

@@ -24,6 +24,7 @@ export default async function CyclesSettingsPage() {
 
   return (
     <>
+      <h1 className="sr-only">Cycle Settings</h1>
       <Card className="px-[28px] pt-[19px] pb-[22px]">
         <SectionHeading icon={CalendarRange}>ACCREDITATION CYCLES</SectionHeading>
 

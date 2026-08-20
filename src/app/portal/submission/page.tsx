@@ -61,29 +61,32 @@ export default async function SubmissionPage({
   ]);
 
   return (
-    <ProgramRepSubmissions
-      program={program}
-      programId={programId ?? undefined}
-      view={view}
-      phase={Number.isInteger(phase) && phase >= 1 && phase <= 4 ? phase : undefined}
-      modal={params.modal === "add" ? "add" : undefined}
-      levelId={levelId ?? undefined}
-      areaId={typeof params.area === "string" ? params.area : undefined}
-      data={{
-        programs: programs.map((p) => ({ slug: p.slug, label: p.label })),
-        levels: levels.map((l) => ({
-          levelId: l.levelId,
-          label: l.label,
-          code: l.code,
-          percent: l.percent,
-          requiredCount: l.requiredCount,
-          uploadedCount: l.uploadedCount,
-          submissionId: l.submissionId,
-        })),
-        phases,
-        areas,
-        openCycleName: cycle?.name ?? null,
-      }}
-    />
+    <>
+      <h1 className="sr-only">Submission</h1>
+      <ProgramRepSubmissions
+        program={program}
+        programId={programId ?? undefined}
+        view={view}
+        phase={Number.isInteger(phase) && phase >= 1 && phase <= 4 ? phase : undefined}
+        modal={params.modal === "add" ? "add" : undefined}
+        levelId={levelId ?? undefined}
+        areaId={typeof params.area === "string" ? params.area : undefined}
+        data={{
+          programs: programs.map((p) => ({ slug: p.slug, label: p.label })),
+          levels: levels.map((l) => ({
+            levelId: l.levelId,
+            label: l.label,
+            code: l.code,
+            percent: l.percent,
+            requiredCount: l.requiredCount,
+            uploadedCount: l.uploadedCount,
+            submissionId: l.submissionId,
+          })),
+          phases,
+          areas,
+          openCycleName: cycle?.name ?? null,
+        }}
+      />
+    </>
   );
 }

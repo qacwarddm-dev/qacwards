@@ -55,8 +55,8 @@ export default function ProgramRepDashboard({
   }));
 
   return (
-    <div className="pt-[41px] pr-[53px] pb-[47px] pl-[61px]">
-      <section className="h-[180px] rounded-lg bg-maroon px-[26px] pt-[20px] text-white shadow-card">
+    <div className="px-[var(--page-gutter)] pb-[47px] pt-[41px] lg:pr-[53px] lg:pl-[61px]">
+      <section className="rounded-lg bg-maroon px-[26px] py-[20px] text-white shadow-card sm:h-[180px]">
         <h1 className="text-banner font-semibold leading-[36px]">
           Welcome to the QAC-WARDS Dashboard!
         </h1>
@@ -70,17 +70,16 @@ export default function ProgramRepDashboard({
         <StatRow stats={data.stats} />
       </div>
 
-      {/* Left column flexes, right column stays at the frame's 450 — so the pair
-          fills the content box and the right card's edge lands on the same line
-          as the stat row and banner above it, at any window width. The frame's
-          605 is what flex-1 resolves to at exactly 1440. */}
-      <div className="mt-[20px] flex gap-[21px]">
+      {/* Left column flexes, right column stays at the frame's 450 at `lg+` —
+          below that both stack full width instead of clipping (09-ui-refactor
+          §D.1: 1 column below md, up to 3 at xl). */}
+      <div className="mt-[20px] flex flex-col gap-[21px] lg:flex-row">
         <Card className="h-[294px] min-w-0 flex-1 overflow-hidden">
           <CardTitleBar title="Document Status Distribution" divider />
           <StatusBarChart bars={data.docStatus} max={data.docStatusMax} />
         </Card>
 
-        <Card className="flex h-[294px] w-[450px] flex-col overflow-hidden">
+        <Card className="flex h-[294px] w-full flex-col overflow-hidden lg:w-[450px]">
           <CardTitleBar
             title="Recent Uploads"
             divider
@@ -98,12 +97,17 @@ export default function ProgramRepDashboard({
         </Card>
       </div>
 
-      <div className="mt-[20px] flex gap-[21px]">
+      <div className="mt-[20px] flex flex-col gap-[21px] lg:flex-row">
         <Card className="h-[294px] min-w-0 flex-1">
           <CardTitleBar title="On-Going Program Accreditation" />
           {/* Header is 54; the frame puts the table's grey band at 58. */}
           <div className="mt-[4px] px-[25px]">
-            <DataTable columns={COLUMNS} rows={rows} variant="outlined" />
+            <DataTable
+              caption="Ongoing program accreditation"
+              columns={COLUMNS}
+              rows={rows}
+              variant="outlined"
+            />
           </div>
         </Card>
 

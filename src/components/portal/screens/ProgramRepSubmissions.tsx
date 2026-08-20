@@ -1,5 +1,5 @@
 import { PR_PHASE_STEPS } from "../data";
-import { BackLink, Breadcrumb, Button, Panel, ProgressRow, RowList, SplitStat, Stepper } from "../kit";
+import { Alert, Breadcrumb, Button, Panel, ProgressRow, RowList, SplitStat, Stepper } from "../kit";
 import SubmissionUploadModal, { type UploadSlot } from "./SubmissionUploadModal";
 
 /**
@@ -193,7 +193,7 @@ function PhasesPanel({
   return (
     <Panel
       title="Pre-Accreditation Phases"
-      action={<BackLink href={`/portal/submission?program=${program}`} to="Levels" />}
+      back={{ href: `/portal/submission?program=${program}`, to: "Levels" }}
       footer={
         <Button
           variant={allPhasesComplete ? "solid" : "muted"}
@@ -249,12 +249,10 @@ function RequirementsPanel({
   return (
     <Panel
       title="Accreditation Requirements"
-      action={
-        <BackLink
-          href={`/portal/submission?program=${program}&view=phases${levelParam}`}
-          to="Phases"
-        />
-      }
+      back={{
+        href: `/portal/submission?program=${program}&view=phases${levelParam}`,
+        to: "Phases",
+      }}
       footer={
         <Button variant="muted" size="lg">
           Submit
@@ -308,7 +306,7 @@ export default function ProgramRepSubmissions({
 }) {
   if (!program) {
     return (
-      <div className="pb-[61px] pl-[58px] pr-[55px] pt-[26px]">
+      <div className="px-[var(--page-gutter)] pb-[61px] pt-[26px] lg:pl-[58px] lg:pr-[55px]">
         <ProgramsPanel programs={data.programs} />
       </div>
     );
@@ -331,12 +329,14 @@ export default function ProgramRepSubmissions({
         : [{ label: "Levels" }];
 
   return (
-    <div className="pb-[61px] pl-[58px] pr-[55px] pt-[26px]">
+    <div className="px-[var(--page-gutter)] pb-[61px] pt-[26px] lg:pl-[58px] lg:pr-[55px]">
       {data.openCycleName === null && (
-        <p className="mb-[18px] rounded-[10px] bg-white px-[21px] py-[12px] text-regular text-maroon shadow-card">
-          No accreditation cycle is open. Documents cannot be uploaded until the
-          Quality Assurance Center opens one.
-        </p>
+        <div className="mb-[18px]">
+          <Alert tone="warning" title="No accreditation cycle is open.">
+            Documents cannot be uploaded until the Quality Assurance Center opens
+            one. Everything below is read-only until then.
+          </Alert>
+        </div>
       )}
 
       <ReadinessPanel levels={data.levels} />

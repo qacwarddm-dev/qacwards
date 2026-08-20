@@ -1,6 +1,8 @@
 import Image from "next/image";
-import Link from "next/link";
 import BrandLockup from "@/components/BrandLockup";
+import CommandPaletteTrigger from "./CommandPaletteTrigger";
+import IdentityMenu from "./IdentityMenu";
+import { MobileNavTrigger } from "./PortalSidebar";
 import NotificationBell from "./NotificationBell";
 import { getNotifications } from "@/lib/notifications";
 import type { PortalUser } from "./portal-nav";
@@ -18,8 +20,10 @@ import type { PortalUser } from "./portal-nav";
  * public navbar; left inside the shell it would draw 80 x scale on any window
  * wider than 1440 and the two would drift apart again.
  *
- * The dev user switcher that used to sit in the bar's empty middle was deleted in
- * B2 along with the rest of the fake-identity seam.
+ * The mobile menu trigger (`< md`) opens `PortalSidebar`'s `Drawer`; the
+ * identity block is now a `Popover` menu (`IdentityMenu`) rather than a bare
+ * link, so Log Out lives there instead of competing with navigation in the
+ * rail (09-ui-refactor §5.1).
  */
 export default async function PortalTopBar({ user }: { user: PortalUser }) {
   // The bar is already a server component, so the bell's rows are fetched here
@@ -29,7 +33,9 @@ export default async function PortalTopBar({ user }: { user: PortalUser }) {
   const { items, unread } = await getNotifications();
 
   return (
-    <header className="relative flex h-[80px] shrink-0 items-center bg-maroon pl-[25px] pr-[25px] text-white">
+    <header className="on-maroon relative flex h-[80px] shrink-0 items-center gap-[12px] bg-maroon pl-[16px] pr-[16px] text-white md:pl-[25px] md:pr-[25px]">
+      <MobileNavTrigger user={user} />
+
       {/* Same `.brand-lockup` wrapper as the public navbar. Now that this bar is
           outside the shell, the lockup no longer picks up --portal-scale by
           inheritance, and the class is what puts both bars back on one factor. */}
@@ -37,22 +43,14 @@ export default async function PortalTopBar({ user }: { user: PortalUser }) {
         <BrandLockup tone="white" />
       </span>
 
-      <div className="ml-auto flex items-center">
+      <div className="ml-auto flex items-center gap-[12px]">
+        <CommandPaletteTrigger />
         <NotificationBell count={unread} items={items} />
-
-        <Link
-          href="/portal/profile"
-          className="ml-[14px] flex items-center transition-opacity hover:opacity-85"
-        >
-          <span className="flex flex-col text-right">
-            <span className="text-subheading font-semibold leading-[17px]">
-              {user.name}
-            </span>
-            <span className="text-subheading leading-[17px]">
-              {user.position}
-            </span>
+        <IdentityMenu user={user}>
+          <span className="hidden flex-col text-right sm:flex">
+            <span className="text-subheading font-semibold leading-[17px]">{user.name}</span>
+            <span className="text-subheading leading-[17px]">{user.position}</span>
           </span>
-
           <Image
             src={user.avatar}
             alt=""
@@ -60,7 +58,7 @@ export default async function PortalTopBar({ user }: { user: PortalUser }) {
             height={80}
             className="ml-[14px] h-[40px] w-[40px] rounded-full object-cover"
           />
-        </Link>
+        </IdentityMenu>
       </div>
     </header>
   );

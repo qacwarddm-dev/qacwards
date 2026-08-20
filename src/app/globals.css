@@ -50,6 +50,99 @@
 
   --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.1);
   --shadow-sidebar: 2px 0 8px rgba(0, 0, 0, 0.1);
+
+  /* --- Spacing. 4px base. Every value below is the nearest step to a cluster
+     of measured px already in the codebase — [10px]x57 -> 12, [16px]x51 -> 16,
+     [20px]x48 -> 20, [18px]x36 -> 16, [14px]x36 -> 16, [22px]x26 -> 24. The
+     mapping table is in design/figma-tokens.md so the snap is on the record. */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+  --space-10: 56px;
+  --space-11: 64px;
+  --space-12: 80px;
+
+  /* --- Radius. Collapses rounded-[5|10|14|16|20]px + rounded-lg to four. */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* --- Elevation. --shadow-card stays (it is a signed-off token) and becomes
+     --elev-2's value, so no existing call site changes meaning. */
+  --elev-0: none;
+  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --elev-2: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --elev-3: 0 12px 32px rgba(0, 0, 0, 0.16);
+
+  /* --- Motion. */
+  --motion-fast: 120ms;
+  --motion-base: 180ms;
+  --motion-slow: 260ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-inout: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* --- Layout. */
+  --page-max: 1440px;
+  --content-max: 1180px;
+  --prose-max: 68ch;
+  --rail-w: 250px;
+  --rail-w-collapsed: 72px;
+  --bar-h: 80px;
+  --focus-ring: 2px;
+  --focus-offset: 2px;
+
+  /* --- Surface alphas. Derived from frozen tokens only — no new hex. */
+  --hairline: color-mix(in srgb, var(--color-gray) 25%, transparent);
+  --hairline-strong: color-mix(in srgb, var(--color-gray) 45%, transparent);
+  --tint-maroon: color-mix(in srgb, var(--color-maroon) 8%, white);
+  --tint-yellow: color-mix(in srgb, var(--color-yellow) 14%, white);
+  --tint-approved: color-mix(in srgb, var(--color-approved) 12%, white);
+}
+
+:root {
+  --page-gutter: clamp(16px, 4vw, 64px);
+  --panel-pad: var(--space-6);
+  /* Auth panel content zoom. See the note beside the removed `--auth-scale`
+     below: every measurement inside the auth panel is a fixed px read off the
+     1440 frame, so above that width the panel grows and the card does not,
+     which the owner reported as the card reading far too small (2026-08-20).
+     Unlike `--auth-scale` this scales only the panel's *contents* — the
+     photo/panel split stays at its measured 922px, so the hero crop is
+     untouched — and it is capped, so a 2560 monitor gets a readable card
+     rather than a magnified one. Stepped rather than continuous because
+     `calc(100vw / 1440px)` (length/length -> number) is not reliably
+     supported. */
+  --auth-zoom: 1;
+}
+@media (min-width: 1024px) {
+  :root {
+    --panel-pad: var(--space-7);
+  }
+}
+@media (min-width: 1440px) {
+  :root {
+    --auth-zoom: 1.12;
+  }
+}
+@media (min-width: 1680px) {
+  :root {
+    --auth-zoom: 1.25;
+  }
+}
+@media (min-width: 1920px) {
+  :root {
+    --auth-zoom: 1.4;
+  }
 }
 
 body {
@@ -58,93 +151,188 @@ body {
   font-family: var(--font-main);
 }
 
-/* Portal frame scale.
-
-   Every measurement in src/components/portal is a literal px value read off a
-   1440x810 Figma frame, so on a wider window the UI holds its absolute size and
-   shrinks proportionally against the frame — a 250px sidebar is 17% of 1440 but
-   only 13% of 1920. Scaling the shell by viewport/frame width restores the
-   frame's proportions at any width without editing a single measured value.
-
-   `tan(atan2(a, b))` is the CSS idiom for a length ratio as a <number>; the
-   @property registration is what makes it compute here on :root, where zoom is
-   still 1, rather than re-evaluating inside the zoomed subtree and feeding back
-   on itself. Floor 1 so a sub-1440 window is never shrunk further than the
-   design; cap 2 (2880px — the export's own resolution) so an ultrawide does not
-   blow the UI up past usable. At 1440 and below the scale is 1, so the
-   pixel-diff verify loop in design/prototype-notes.md is unaffected.
-
-   The 0.9 is the tuning knob, and the one deliberate step away from the frame:
-   a strict frame-width scale read a touch large to the owner, so it is damped
-   10%. Raise it toward 1 for a stricter match, lower it for a roomier UI. */
-@property --portal-scale {
-  syntax: "<number>";
-  inherits: true;
-  initial-value: 1;
+/* Phase 0 (F5): the product had zero focus-visible treatment anywhere, failing
+   WCAG 2.4.7. One ring, applied at the base layer so every interactive element
+   gets it without a per-component opt-in. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-maroon);
+  outline-offset: 2px;
+  border-radius: inherit;
 }
 
-:root {
-  --portal-scale: clamp(1, tan(atan2(100vw, 1440px)) * 0.9, 2);
+/* Maroon-on-maroon surfaces (sidebar, top bar, banners) invert the ring so it
+   stays visible against the same colour it would otherwise vanish into. */
+.on-maroon :where(a, button, [tabindex]):focus-visible {
+  outline-color: var(--color-yellow);
 }
 
-/* The height belongs to this utility, not a `h-screen` beside it: `zoom` does
-   not rescale viewport units, so inside the scaled subtree `100dvh` is still
-   the window in *unscaled* px and lays out `scale` times too tall. Dividing it
-   back out is what keeps the shell exactly one window high, so `main` stays the
-   scroller instead of the document.
-
-   The 80px is the portal top bar, which sits outside this scale so it stays the
-   same height as the public navbar — same reason auth-scale subtracts the same
-   80. Subtract before dividing: the bar is unscaled px, the shell is not. */
-@utility portal-scale {
-  zoom: var(--portal-scale);
-  height: calc((100dvh - 80px) / var(--portal-scale));
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
-/* Auth (login/register) frame scale. Same idea as --portal-scale, but *not*
-   damped: the login frame is a full-bleed hero + panel, and the owner's read of
-   "too small" is a card that stayed 1440-sized inside a much wider window. The
-   undamped ratio holds the frame's proportions exactly at any width — the photo,
-   the 922px panel seam and the 382px card all grow together. Clamped to 1 at and
-   below 1440, so the pixel-diff verify loop (measured at 1440) is unaffected.
-
-   The 80px is the public navbar, which is not scaled (it is the shared site
-   navbar); the auth body fills the window below it. */
-@property --auth-scale {
-  syntax: "<number>";
-  inherits: true;
-  initial-value: 1;
+::selection {
+  background: var(--tint-yellow);
 }
 
-:root {
-  --auth-scale: clamp(1, tan(atan2(100vw, 1440px)), 2);
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-@utility auth-scale {
-  zoom: var(--auth-scale);
-  height: calc((100dvh - 80px) / var(--auth-scale));
+@keyframes drawer-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 
-/* Brand lockup scale — worn by both navbars.
+/* Print (09a §E.7): this is an office that prints evaluation sheets,
+   submission summaries and reports. Chrome (nav, sidebar, top bar, toasts,
+   overlays) has no place on paper; content should read as a plain document
+   at the browser's default margins. */
+@media print {
+  .portal-scale,
+  header,
+  nav[aria-label="Portal"],
+  [role="dialog"],
+  [role="menu"],
+  [role="status"],
+  [role="region"][aria-label="Notifications"] {
+    display: none !important;
+  }
+  main {
+    overflow: visible !important;
+    height: auto !important;
+  }
+  body {
+    background: white;
+  }
+  a[href]::after {
+    content: none !important;
+  }
+}
 
-   BrandLockup is one component rendered by both bars, and this class is the one
-   place its width factor is applied. It used to be public-only: the portal top
-   bar sat inside the shell and picked up --portal-scale by inheritance, so the
-   *same* lockup drew larger there on any wide window — measured on the client's
-   1854px screen, the wordmark came out 337px in the portal against 292px in the
-   public bar, which is the size difference they kept reporting. Everything at
-   1440 and below matched, which is exactly why it did not show up in the verify
-   loop. The top bar is now outside the shell (both bars are 80px of unscaled
-   chrome), so both wear this class and there is no inherited factor left to
-   diverge.
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+html {
+  scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
 
-   Capped at 1.6 so the 45px lockup never outgrows the 80px both bars are pinned
-   to (45 x 1.6 = 72, still centred with air); --portal-scale's own ceiling is 2,
-   which would overflow.
+/* --- Type ramp (09b §2). Bakes size + weight + leading + tracking into one
+   utility per role so headings stop needing a hand-written leading-[1.2] at
+   every call site — Tailwind v4's default 1.5 line-height was the single
+   largest source of vertical drift in the codebase before this. */
+@utility t-display {
+  font-size: var(--text-title);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+@utility t-banner {
+  font-size: var(--text-banner);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+@utility t-h1 {
+  font-size: var(--text-heading);
+  font-weight: 700;
+  line-height: 1.25;
+}
+@utility t-h2 {
+  font-size: var(--text-subheading);
+  font-weight: 700;
+  line-height: 1.3;
+}
+@utility t-h3 {
+  font-size: var(--text-regular);
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+}
+@utility t-eyebrow {
+  font-size: var(--text-regular);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+@utility t-body {
+  font-size: var(--text-subheading);
+  font-weight: 400;
+  line-height: 1.55;
+}
+@utility t-body-strong {
+  font-size: var(--text-subheading);
+  font-weight: 600;
+  line-height: 1.55;
+}
+@utility t-sm {
+  font-size: var(--text-regular);
+  font-weight: 400;
+  line-height: 1.45;
+}
+@utility t-meta {
+  font-size: var(--text-small);
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+}
+/* Non-essential only — gridline numerals. Never for text a user must read: it
+   fails the AA contrast floor for body text (09b §2). */
+@utility t-micro {
+  font-size: var(--text-micro);
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+}
 
-   Below 640 it steps down instead — at full size the lockup is 364px wide and
-   will not fit a phone beside the nav icons. `zoom`, not `scale`, so the shrink
-   comes out of the flex row's layout and nothing overflows. */
+/* Portal + auth frame scale — REMOVED (Phase 6, 09-ui-refactor §F4/§12).
+   `--portal-scale` and `--auth-scale` zoomed the whole shell by
+   viewport/1440 so a wide monitor read the same proportions as the 1440
+   Figma export; both floored at 1 below 1440, so nothing below that width
+   ever depended on them — the portal's three responsive rail modes (Phase 3)
+   and the auth shell's `lg:` breakpoints (below) are what carry narrow
+   widths, unchanged by this removal. Above 1440 the shell now renders at its
+   native measured size instead of growing — a monitor gets more layout
+   (wider content columns, more visible rail), not larger chrome, which is
+   the standard responsive behaviour the fixed-frame zoom hack was standing
+   in for. Deleted together, per the plan's own risk note that the three
+   layers (this pair plus `.brand-lockup`'s coupling below) only ever agreed
+   at exactly 1440 and must not be split across separate changes. */
+
+/* Brand lockup — worn by both navbars. Below 640 it still steps down (at
+   full size the lockup is 364px wide and will not fit a phone beside the nav
+   icons); at 640 and up it now renders at native size instead of picking up
+   the deleted `--portal-scale` factor. */
 .brand-lockup {
   zoom: 0.55;
 }
@@ -157,6 +345,6 @@ body {
 
 @media (min-width: 640px) {
   .brand-lockup {
-    zoom: min(var(--portal-scale), 1.6);
+    zoom: 1;
   }
 }

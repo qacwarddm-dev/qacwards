@@ -56,6 +56,9 @@ export default async function CollegeFolderPage({
         { label: folder.name },
       ]}
     >
+      <h1 className="sr-only">
+        Documents — {college.name} — {folder.name}
+      </h1>
       <DocFileGrid
         files={files.map((f) => ({
           id: f.id,

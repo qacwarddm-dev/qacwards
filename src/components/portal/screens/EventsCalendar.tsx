@@ -59,11 +59,11 @@ export default function EventsCalendar({
   }
 
   return (
-    <div className="px-[57px] pt-[45px] pb-[45px]">
-      <Card className="flex gap-[32px] px-[32px] pb-[52px] pt-[52px]">
-        <div className="w-[175px] shrink-0">
+    <div className="px-[var(--page-gutter)] pb-[45px] pt-[45px] lg:px-[57px]">
+      <Card className="flex flex-col gap-[32px] px-[20px] py-[32px] sm:px-[32px] lg:flex-row lg:pb-[52px] lg:pt-[52px]">
+        <div className="shrink-0 lg:w-[175px]">
           <h1 className="text-heading font-semibold leading-none text-black">Events</h1>
-          <div className="mt-[56px]">
+          <div className="mt-[16px] lg:mt-[56px]">
             <CalendarLegend />
           </div>
         </div>

@@ -25,19 +25,27 @@ export default async function AssignmentPage({
 
   if (user.role === "internal_accreditor") {
     return (
-      <InternalAccreditorAssignment
-        confirm={confirm}
-        assignments={assignments.map((a) => ({
-          id: a.id,
-          campus: a.campus,
-          college: a.college,
-          program: a.program,
-          level: a.level,
-          status: a.status.replace(/_/g, " "),
-          myResponse: a.myResponse,
-        }))}
-      />
+      <>
+        <h1 className="sr-only">Assignment</h1>
+        <InternalAccreditorAssignment
+          confirm={confirm}
+          assignments={assignments.map((a) => ({
+            id: a.id,
+            campus: a.campus,
+            college: a.college,
+            program: a.program,
+            level: a.level,
+            status: a.status.replace(/_/g, " "),
+            myResponse: a.myResponse,
+          }))}
+        />
+      </>
     );
   }
-  return <QacPersonnelAssignment assignments={assignments} />;
+  return (
+    <>
+      <h1 className="sr-only">Assignment</h1>
+      <QacPersonnelAssignment assignments={assignments} />
+    </>
+  );
 }

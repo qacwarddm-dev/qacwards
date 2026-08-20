@@ -52,19 +52,23 @@ export default async function DocumentsPage({
     }
 
     return (
-      <ProgramRepDocuments
-        tab={activeTab}
-        level={level}
-        ndaSigned={ndaSigned}
-        folder={folder}
-        commonDocuments={commonDocuments.map((d) => ({ id: d.id, title: d.title }))}
-        repositoryFiles={repositoryFiles}
-      />
+      <>
+        <h1 className="sr-only">Documents</h1>
+        <ProgramRepDocuments
+          tab={activeTab}
+          level={level}
+          ndaSigned={ndaSigned}
+          folder={folder}
+          commonDocuments={commonDocuments.map((d) => ({ id: d.id, title: d.title }))}
+          repositoryFiles={repositoryFiles}
+        />
+      </>
     );
   }
 
   return (
     <div className="pt-[118px] pb-[45px] pl-[203.5px] pr-[74px]">
+      <h1 className="sr-only">Documents</h1>
       <p className="w-[851px] text-center text-subheading leading-none text-gray">
         Click the <strong className="font-bold text-maroon">Campus</strong> to see
         all the document files.

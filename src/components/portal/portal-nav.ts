@@ -1,6 +1,5 @@
 import {
   Calendar,
-  ChartLine,
   ClipboardList,
   FileChartColumn,
   FilePenLine,
@@ -31,6 +30,15 @@ export type PortalNavItem = {
    * solid dashboard mark) needs a larger size to read at the measured ink.
    */
   size?: number;
+  /**
+   * Section label for roles whose rail exceeds 5 items (09-ui-refactor §5.2) —
+   * `qac_personnel`/`qac_admin` only. Omitted rails render flat.
+   */
+  group?: "Work" | "Library" | "Schedule" | "Admin";
+  /** Pending-work count rendered as a `Badge` beside the label. Wired to real
+   *  counts once B8-class queries exist for each nav item; 0/undefined renders
+   *  no badge. */
+  badgeCount?: number;
 };
 
 /**
@@ -55,7 +63,6 @@ export const PORTAL_NAV: Partial<Record<PortalRole, PortalNavItem[]>> = {
     },
     { label: "Documents", href: "/portal/documents", icon: Folder },
     { label: "Assignment", href: "/portal/assignment", icon: ClipboardList },
-    { label: "Performance", href: "/portal/performance", icon: ChartLine },
     { label: "Reports", href: "/portal/reports", icon: FileChartColumn },
     { label: "Events", href: "/portal/events", icon: Calendar },
   ],
@@ -102,10 +109,21 @@ export const PORTAL_NAV: Partial<Record<PortalRole, PortalNavItem[]>> = {
  * the one place a new item is a policy choice rather than a design change; the
  * other roles reach `/portal/activity` from their profile page instead.
  */
+const ADMIN_GROUP: Record<string, PortalNavItem["group"]> = {
+  Dashboard: "Work",
+  Assignment: "Work",
+  Documents: "Library",
+  Reports: "Library",
+  Events: "Schedule",
+};
+
 PORTAL_NAV.qac_admin = [
-  ...(PORTAL_NAV.qac_personnel ?? []),
-  { label: "Activity", href: "/portal/activity", icon: History },
-  { label: "Settings", href: "/portal/settings", icon: Settings },
+  ...(PORTAL_NAV.qac_personnel ?? []).map((item) => ({
+    ...item,
+    group: ADMIN_GROUP[item.label],
+  })),
+  { label: "Activity", href: "/portal/activity", icon: History, group: "Admin" },
+  { label: "Settings", href: "/portal/settings", icon: Settings, group: "Admin" },
 ];
 
 /**

@@ -135,6 +135,7 @@ export default function InternalAccreditorEvaluationDetail({
     <div className="pb-[50px] pl-[54px] pr-[52px] pt-[50px]">
       <Panel
         title="Document Evaluation"
+        back={{ href: "/portal/evaluation", to: "Evaluation" }}
         action={
           <button
             type="button"
@@ -155,13 +156,22 @@ export default function InternalAccreditorEvaluationDetail({
               Ready for SV
             </Button>
           ) : (
-            <span className="flex gap-[16px]">
-              <Button variant="outline" size="lg" disabled>
-                Return
-              </Button>
-              <Button variant="solid" size="lg" disabled>
-                Evaluate
-              </Button>
+            <span className="flex flex-col items-start gap-[8px]">
+              <span className="flex gap-[16px]">
+                <Button variant="outline" size="lg" disabled>
+                  Return
+                </Button>
+                <Button variant="solid" size="lg" disabled>
+                  Evaluate
+                </Button>
+              </span>
+              {/* U-7 default (09-ui-refactor §11): keep disabled with an explanation
+                  rather than wiring a scoring form this phase — a disabled button
+                  with no reason reads as a bug, not a decision. */}
+              <span className="t-sm text-gray">
+                Scoring for this evaluation isn&apos;t available yet — it&apos;s coming in a
+                later update.
+              </span>
             </span>
           )
         }

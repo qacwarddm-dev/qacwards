@@ -94,8 +94,8 @@ export default function InternalAccreditorDashboard({
   }));
 
   return (
-    <div className="pb-[86px] pl-[61px] pr-[52px] pt-[38px]">
-      <section className="h-[180px] rounded-lg bg-maroon px-[26px] pt-[20px] text-white shadow-card">
+    <div className="px-[var(--page-gutter)] pb-[86px] pt-[38px] lg:pl-[61px] lg:pr-[52px]">
+      <section className="rounded-lg bg-maroon px-[26px] py-[20px] text-white shadow-card sm:h-[180px]">
         <h1 className="text-banner font-semibold leading-[36px]">
           Welcome to the QAC Dashboard!
         </h1>
@@ -112,22 +112,33 @@ export default function InternalAccreditorDashboard({
       <Card className="mt-[18px] min-h-[180px] w-full">
         <CardTitleBar title="Assigned Program Evaluations" />
         <div className="mt-[4px] px-[25px] pb-[25px]">
-          <DataTable columns={EVALUATION_COLUMNS} rows={evaluationRows} variant="outlined" />
+          <DataTable
+            caption="Assigned program evaluations"
+            columns={EVALUATION_COLUMNS}
+            rows={evaluationRows}
+            variant="outlined"
+          />
         </div>
       </Card>
 
       <Card className="mt-[20px] min-h-[180px] w-full">
         <CardTitleBar title="Evaluation Progress" />
         <div className="mt-[4px] px-[25px] pb-[25px]">
-          <DataTable columns={PROGRESS_COLUMNS} rows={progressRows} variant="outlined" />
+          <DataTable
+            caption="Evaluation progress"
+            columns={PROGRESS_COLUMNS}
+            rows={progressRows}
+            variant="outlined"
+          />
         </div>
       </Card>
 
-      <div className="mt-[20px] flex gap-[21px]">
+      <div className="mt-[20px] flex flex-col gap-[21px] lg:flex-row">
         <Card className="min-h-[294px] min-w-0 flex-1">
           <CardTitleBar title="Upcoming Schedule" />
           <div className="mt-[4px] px-[25px] pb-[25px]">
             <DataTable
+              caption="Upcoming schedule"
               columns={SCHEDULE_COLUMNS}
               rows={scheduleRows}
               variant="outlined"

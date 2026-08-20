@@ -79,6 +79,30 @@ quoted at 2.82%, is now **2.70%**. Part of that floor was always this snap.
 **Login screen, second flag:** the copyright line measures **~7.5px**. `--text-micro` (9px) is the
 smallest token, so that line ships ~20% wider than the prototype. No token can serve it exactly.
 
+### Phase 1 additions (09-ui-refactor / 09b-design-system, 2026-08-20) — pending client sign-off
+
+Spacing, radius, elevation, motion and layout scales added for the UI refactor. None invents a
+colour, font or type size — the four frozen sizes and five frozen colours are unchanged. Spacing is
+a 4px-base scale snapped to the nearest step from measured px clusters already in the codebase
+(`[10px]x57 → 12, [16px]x51 → 16, [20px]x48 → 20, [18px]x36 → 16, [14px]x36 → 16, [22px]x26 → 24`);
+radius collapses `rounded-[5|10|14|16|20]px` + `rounded-lg` to four steps; elevation keeps
+`--shadow-card` as the signed-off value for `--elev-2` so no existing call site changes meaning.
+
+```
+--space-1: 4px    --space-5: 20px   --space-9:  48px    --radius-sm: 6px    --elev-0: none
+--space-2: 8px    --space-6: 24px   --space-10: 56px    --radius-md: 10px   --elev-1: 0 1px 2px rgba(0,0,0,.06)
+--space-3: 12px   --space-7: 32px   --space-11: 64px    --radius-lg: 16px   --elev-2: 0 2px 8px rgba(0,0,0,.10)
+--space-4: 16px   --space-8: 40px   --space-12: 80px    --radius-xl: 24px   --elev-3: 0 12px 32px rgba(0,0,0,.16)
+```
+
+Motion: `--motion-fast 120ms / --motion-base 180ms / --motion-slow 260ms`, `--ease-out
+cubic-bezier(.2,.8,.2,1)`, `--ease-in cubic-bezier(.4,0,1,1)`. Layout: `--page-max 1440px,
+--content-max 1180px, --prose-max 68ch, --rail-w 250px, --rail-w-collapsed 72px, --bar-h 80px`.
+Surface alphas (`--hairline`, `--tint-maroon`, `--tint-yellow`, `--tint-approved`) are
+`color-mix()` of the frozen colours only — no new hex.
+
+Full derivation and CSS: `plans/09b-design-system.md` §1. Values live in `src/app/globals.css`.
+
 ## Deliberately exempt — the dev role switcher
 
 `src/components/portal/DevUserSwitcher.tsx` is the one piece of UI in the repo that does **not**

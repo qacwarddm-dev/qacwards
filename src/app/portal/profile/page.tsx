@@ -55,6 +55,7 @@ export default async function ProfilePage() {
   if (!profile) {
     return (
       <div className="px-[81px] pt-[19px] pb-[16px]">
+        <h1 className="sr-only">Profile</h1>
         <Card className="px-[28px] py-[22px]">
           <p className="text-subheading text-gray">
             We could not load your profile. Try signing in again.
@@ -66,6 +67,7 @@ export default async function ProfilePage() {
 
   return (
     <div className="px-[81px] pt-[19px] pb-[16px]">
+      <h1 className="sr-only">Profile</h1>
       <div className="flex items-stretch gap-[15px]">
         <ProfilePhotoCard
           profileId={user.id}

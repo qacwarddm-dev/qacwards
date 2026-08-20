@@ -1,33 +1,77 @@
 import Image from "next/image";
+import AuthFootnote from "./AuthFootnote";
 
 /**
  * Page frame shared by every screen in assets/FIGMA/login (and, later,
  * register): campus photo on the left, near-white panel on the right, PUP
  * services footnote pinned to the bottom of that panel.
  *
- * Geometry is measured off the 1440x810 frame. The panel starts at x=922 and
- * its top-left corner is rounded by 100px, which is what lets the photo run on
- * underneath it; the photo's own bottom-right corner is rounded by the same
+ * Geometry is measured off the 1440x810 frame: the panel starts at x=922 and the
+ * photo layer runs to 1022, 100px further, so the photo passes under the panel's
+ * arc. Its top-left corner is rounded by 100px, which is what lets the photo run
+ * on underneath; the photo's own bottom-right corner is rounded by the same
  * 100px. Those two arcs share no box, so the photo layer is a plain rectangle
- * wide enough to fill the panel's arc (1022 = 922 + 100) and the bottom-right
- * corner is carved back out with a radial mask.
+ * wide enough to fill the panel's arc and the bottom-right corner is carved back
+ * out with a radial mask.
  *
- * Below `lg` there is no room for a 922px photo, so the panel takes the whole
+ * **Those two edges are ratios of the frame width, not fixed px** — 922/1440 and
+ * 1022/1440. Held at fixed px they only read correctly at exactly 1440: the panel
+ * is a fixed 518px slice of the frame (36%), but on a 1854px monitor a fixed
+ * 922px offset left it 932px wide, half the screen, which the owner reported as
+ * far too much white (2026-08-20). As percentages the split holds its measured
+ * proportion at every width, and at 1440 it resolves back to exactly 922/1022.
+ *
+ * This also repairs a range that was simply broken: between `lg` (1024) and about
+ * 1350, a fixed 922px offset left a panel 102-430px wide with a 330px card and a
+ * ~436px footnote inside it. Proportionally the panel is never narrower than 36%
+ * of the viewport, so the card always has room.
+ *
+ * The 100px corner radius stays fixed rather than scaling — it is a corner
+ * treatment, not a layout dimension, and a radius that balloons on a wide monitor
+ * reads as a different shape. The photo/panel overlap does scale, so above 1440
+ * more of the photo sits under the panel than the arc strictly needs. That is
+ * invisible: the panel is opaque.
+ *
+ * Below `lg` there is no room for the split at all, so the panel takes the whole
  * width and the photo drops out.
  *
- * The panel is `bg-white/90` on the client's instruction (2026-07-26). Be aware
- * it currently has no visible effect, and that is not a bug to go chasing:
- * everything behind the panel is white, so 90% white lands on 254 against 255.
- * Behind it is the page's own white plus the asset's — login-hero.jpg is
- * 2044x1498 but only its first 1844px are photograph, the frame's rounded corner
- * being baked in as a #F5F5F5 band down the right edge, so the picture stops
- * dead at exactly x=922 where the panel begins.
+ * The panel is opaque `bg-white`. It was `bg-white/90` on the client's
+ * instruction (2026-07-26), on the understanding — written into this comment —
+ * that the translucency had no visible effect because everything behind the
+ * panel was white: login-hero.jpg is 2044x1498 but only its first 1844px are
+ * photograph, the frame's rounded corner being baked in as a #F5F5F5 band down
+ * the right edge, which was assumed to sit under the panel's 100px overlap.
+ *
+ * **That assumption only holds at the frame's aspect ratio.** The photo box is a
+ * fixed 1022px wide, so `object-cover` scales the asset to fill the height and
+ * crops horizontally — and the taller the viewport, the more it eats from the
+ * sides. At the 1440x810 frame, source columns 77-1967 are visible and 123px of
+ * the band survives behind the panel. At 1854x927 the visible range is 196-1848:
+ * just 4px of band, leaving ~158 source columns of real photograph under the
+ * panel, which 90% white rendered as a washed strip down the arc (owner spotted
+ * it, 2026-08-20).
+ *
+ * So the fill is now opaque, which is what the client actually saw when they
+ * approved the translucency. If frosted glass is ever wanted deliberately, it
+ * needs an asset with more photographic width — not a lower alpha.
  *
  * Running the photo full-bleed behind the panel was tried, and it did make the
  * translucency read as frosted glass. It was reverted (client, 2026-07-26):
  * covering the full width forces the crop from 0.5 to 0.781 and the campus came
  * out visibly stretched//zoomed against the frame. This asset has no more
  * photographic width to give — a wider hero image is the only way to have both.
+ *
+ * `--auth-scale` (the whole-shell zoom this used before Phase 6) is gone —
+ * see globals.css. It floored at 1 below 1440, so the `lg:hidden` photo /
+ * full-width-panel fallback below already carried every width narrower than
+ * that unchanged; above 1440 the shell now renders at its measured size
+ * instead of growing, which only affects wide monitors.
+ *
+ * Its removal did leave the card stranded at 382px in a panel that keeps
+ * growing, which read as far too small (owner, 2026-08-20). `--auth-zoom`
+ * is the bounded replacement, applied to the panel's contents only — the
+ * geometry above (photo width, panel offset, both arcs) stays measured and
+ * unscaled, so none of the crop trade-offs described above come back.
  */
 
 /** White everywhere except within 100px of the box's top-left corner — the
@@ -69,10 +113,10 @@ export default function AuthShell({
     );
 
   return (
-    <div className="auth-scale relative w-full overflow-hidden bg-white">
+    <div className="relative w-full flex-1 overflow-hidden bg-white">
       {/* object-top so the panel's arc always meets the same image row,
           whatever height the viewport leaves us. */}
-      <div className="absolute inset-y-0 left-0 hidden w-[1022px] lg:block">
+      <div className="absolute inset-y-0 left-0 hidden w-[70.972%] lg:block">
         <Image
           src="/assets/imagery/login-hero.jpg"
           alt=""
@@ -84,58 +128,29 @@ export default function AuthShell({
       </div>
 
       <div
-        className="absolute bottom-0 left-[822px] hidden h-[100px] w-[100px] bg-white lg:block"
+        className="absolute bottom-0 left-[calc(64.028%-100px)] hidden h-[100px] w-[100px] bg-white lg:block"
         style={{ maskImage: CARVE_MASK, WebkitMaskImage: CARVE_MASK }}
         aria-hidden
       />
 
-      <div className="absolute inset-y-0 right-0 left-0 flex flex-col items-center bg-white/90 lg:left-[922px] lg:rounded-tl-[100px]">
-        {top}
-        {body}
-        <AuthFootnote />
+      <div className="absolute inset-y-0 right-0 left-0 bg-white lg:left-[64.028%] lg:rounded-tl-[100px]">
+        {/* The zoom sits on this inner box, not on the panel itself: the panel
+            is positioned by `left-[922px]`, and zooming it would scale that
+            offset and pull it off the photo's arc. Everything inside is a fixed
+            px measured off the 1440 frame, so one factor keeps every proportion
+            while making the card legible on a wide monitor — see --auth-zoom in
+            globals.css, and `useFitToRoom` in AuthCard, which already divides
+            this factor back out when it fits the register card to the room. */}
+        <div
+          className="absolute inset-0 flex flex-col items-center"
+          style={{ zoom: "var(--auth-zoom)" }}
+        >
+          {top}
+          {body}
+          <AuthFootnote />
+        </div>
       </div>
     </div>
   );
 }
 
-const SERVICES = ["For other PUP Services, kindly visit our site ", "www.pup.edu.ph"];
-const TERMS =
-  "By using this service, you understood and agree to the PUP Online Service";
-const COPYRIGHT =
-  "© 2025 Polytechnic University of the Philippines. All Rights Reserved.";
-
-/**
- * The two login exports disagree: the block sits 14px higher on LoginForm.png
- * than on MainLogin.png even though both frames are 809 tall and the internal
- * spacing is identical. Owner's call (2026-07-23) was to normalise on
- * MainLogin's placement rather than carry a variant into `register/`.
- */
-function AuthFootnote() {
-  return (
-    <div className="mt-auto mb-[8px] px-4 text-center text-gray">
-      {/* Sizes are the token that renders closest, not the one cap height alone
-          implies: the prototype's small text is set tighter than Inter's default
-          tracking, so cap height reads ~5% larger than the ink run does. r1
-          measures 10.8-11.4px between the two and ships at --text-small. */}
-      <p className="text-small leading-none">
-        {SERVICES[0]}
-        <a href="https://www.pup.edu.ph" className="text-yellow underline">
-          {SERVICES[1]}
-        </a>
-      </p>
-      <p className="mt-[8px] text-micro leading-none">{TERMS}</p>
-      <p className="mt-[8px] text-micro leading-none">
-        <a href="#" className="text-yellow underline">
-          Terms of Use
-        </a>
-        <span> and </span>
-        <a href="#" className="text-yellow underline">
-          Privacy Statement
-        </a>
-      </p>
-      {/* Measures ~7.5px in the frame; --text-micro (9px) is the smallest token,
-          so this line ships ~20% wider than the prototype. Flagged. */}
-      <p className="mt-[41px] text-micro leading-none">{COPYRIGHT}</p>
-    </div>
-  );
-}

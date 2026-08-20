@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Button, DataTable } from "@/components/portal/kit";
+import { Button, ConfirmDialog, DataTable } from "@/components/portal/kit";
 import { searchUsers, setUserActive, setUserRole } from "@/lib/admin";
-import { ROLE_LABELS } from "@/lib/current-user";
+import { ROLE_LABELS } from "@/lib/role-labels";
 import type { UserRole } from "@/lib/database.types";
 
 /**
@@ -54,6 +54,7 @@ export default function UserAdmin({
   // this page's first load, not the whole table, once the roster outgrows it.
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<User[] | null>(null);
+  const [confirmDeactivate, setConfirmDeactivate] = useState<User | null>(null);
 
   useEffect(() => {
     const q = query.trim();
@@ -70,9 +71,13 @@ export default function UserAdmin({
 
   function toggleActive(user: User) {
     setError(null);
-    startTransition(async () => {
-      const result = await setUserActive(user.id, !user.isActive);
-      if (!result.ok) setError(result.error);
+    return new Promise<void>((resolve) => {
+      startTransition(async () => {
+        const result = await setUserActive(user.id, !user.isActive);
+        if (!result.ok) setError(result.error);
+        setConfirmDeactivate(null);
+        resolve();
+      });
     });
   }
 
@@ -130,7 +135,7 @@ export default function UserAdmin({
               variant={user.isActive ? "outline" : "solid"}
               size="md"
               disabled={pending || (isSelf && user.isActive)}
-              onClick={() => toggleActive(user)}
+              onClick={() => (user.isActive ? setConfirmDeactivate(user) : toggleActive(user))}
             >
               {user.isActive ? "Deactivate" : "Reactivate"}
             </Button>
@@ -153,6 +158,7 @@ export default function UserAdmin({
 
       <div className="mt-[18px]">
         <DataTable
+          caption="User accounts"
           columns={COLUMNS}
           rows={rows}
           search={{
@@ -163,6 +169,18 @@ export default function UserAdmin({
           }}
         />
       </div>
+
+      <ConfirmDialog
+        open={confirmDeactivate !== null}
+        onOpenChange={(v) => !v && setConfirmDeactivate(null)}
+        title="Deactivate this account"
+        tone="danger"
+        confirmLabel="Deactivate account"
+        description={`"${confirmDeactivate?.name}" will be locked out on their next request. You can reactivate the account at any time.`}
+        onConfirm={() => {
+          if (confirmDeactivate) return toggleActive(confirmDeactivate);
+        }}
+      />
     </>
   );
 }

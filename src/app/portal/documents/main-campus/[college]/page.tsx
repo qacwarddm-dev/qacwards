@@ -33,6 +33,7 @@ export default async function CollegePage({
         { label: localCollege.name },
       ]}
     >
+      <h1 className="sr-only">Documents — {localCollege.name}</h1>
       <FolderGrid
         entries={DOCUMENT_FOLDERS}
         hrefFor={(f) => `/portal/documents/main-campus/${localCollege.slug}/${f.slug}`}

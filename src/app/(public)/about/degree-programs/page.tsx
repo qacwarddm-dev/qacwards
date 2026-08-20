@@ -20,7 +20,8 @@ export default function DegreeProgramsPage() {
       />
 
       <section className="px-4 py-20 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-[1140px] space-y-8 text-center text-subheading leading-loose">
+        <div className="mx-auto max-w-[var(--prose-max)] space-y-8 text-center text-subheading leading-loose">
+          <h1 className="t-h1 text-maroon">Degree Programs</h1>
           <p>
             The{" "}
             <strong className="font-bold">

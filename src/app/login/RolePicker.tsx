@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { AuthButton, AuthCard, AuthShell } from "@/components/auth";
+import { AuthButton, AuthCard, AuthShell, BackLink } from "@/components/auth";
 
 /**
  * Role picker — assets/FIGMA/login/MainLogin.png. Static UI only: the buttons
@@ -20,7 +20,11 @@ const HEADING = ["Welcome to", "QAC Website"];
 
 export default function RolePicker() {
   return (
-    <AuthShell>
+    // Back leaves the auth area entirely: this frame is the only way in from the
+    // marketing site (Navbar -> /login), so without it the browser's own Back is
+    // the sole way out. The frame does not draw one — deliberate deviation,
+    // owner 2026-08-20.
+    <AuthShell topRight={<BackLink href="/" />}>
       <AuthCard>
         <Image
           src="/assets/logos/pup.png"

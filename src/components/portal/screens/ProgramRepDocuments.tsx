@@ -1,4 +1,4 @@
-import { ArrowDownUp, CircleArrowLeft, Monitor } from "lucide-react";
+import { ArrowDownUp, CircleArrowLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import {

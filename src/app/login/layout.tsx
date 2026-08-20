@@ -8,8 +8,14 @@
  * its own footnote inside the panel, and the site footer would push the card into
  * a scroll.
  */
+import { ToastProvider } from "@/components/portal/kit";
+
 export default function LoginLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  return <main className="flex flex-1 flex-col">{children}</main>;
+  return (
+    <ToastProvider>
+      <main className="flex flex-1 flex-col">{children}</main>
+    </ToastProvider>
+  );
 }

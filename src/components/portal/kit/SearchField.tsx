@@ -39,7 +39,7 @@ export default function SearchField({
         placeholder={placeholder}
         aria-label={label}
         {...(value !== undefined ? { value, onChange } : {})}
-        className="min-w-0 flex-1 bg-transparent text-subheading leading-none text-black outline-none placeholder:text-gray"
+        className="min-w-0 flex-1 bg-transparent text-subheading leading-none text-black outline-none placeholder:text-gray focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon"
       />
     </div>
   );

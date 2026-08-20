@@ -30,6 +30,7 @@ export default async function RepsSettingsPage() {
 
   return (
     <Card className="px-[28px] pt-[19px] pb-[22px]">
+      <h1 className="sr-only">Representative Mapping</h1>
       <SectionHeading icon={UsersRound}>PROGRAM REPRESENTATIVES</SectionHeading>
       <RepMapper
         reps={(reps ?? []).map((r) => ({

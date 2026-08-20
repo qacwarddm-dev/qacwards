@@ -23,6 +23,7 @@ export default async function CampusesPage() {
 
   return (
     <DocumentBrowser backHref="/portal/documents" crumbs={[{ label: "Campuses" }]}>
+      <h1 className="sr-only">Documents — Campuses</h1>
       <FolderGrid
         entries={entries}
         hrefFor={(c) => `/portal/documents/campuses/${c.slug}`}

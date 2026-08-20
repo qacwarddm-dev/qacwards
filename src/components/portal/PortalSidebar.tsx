@@ -1,9 +1,10 @@
 "use client";
 
-import { LogOut } from "lucide-react";
+import { Menu } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/browser";
+import { usePathname } from "next/navigation";
+import { Fragment, useState } from "react";
+import { Drawer } from "./kit";
 import {
   PORTAL_NAV,
   type PortalNavItem,
@@ -14,90 +15,163 @@ import {
  * Portal sidebar. Geometry measured off assets/FIGMA/qac_personnel: 250px wide,
  * 60px rows, icons centred on x=57.5, labels at x=87.
  *
- * Icons are absolutely positioned so their size can vary without moving the
- * labels — the prototype's icon set has less internal padding than Lucide's.
+ * Three responsive modes (09-ui-refactor §5.2 / 09b §3): a `lg+` full rail (this
+ * file's original geometry, unchanged), a `md`-only 72px icon rail with a
+ * `title` tooltip (no separate Tooltip primitive needed for one word), and a
+ * `< md` off-canvas `Drawer` triggered from the top bar's hamburger.
  *
- * The active row carries three marks in the prototype: a heavier label, a 2px
- * maroon bar at x=28, and a triangular notch bitten out of the sidebar's right
- * edge by the content background.
+ * The active row's clip-path notch is gone (09-ui-refactor §5.2): a Figma
+ * artifact that cost a `drop-shadow` filter per row and read as a rendering
+ * glitch at non-integer zoom. The 2px maroon bar carries the active mark alone
+ * now. Log Out moved to the top bar's identity menu; the rail foot is empty
+ * (a collapse toggle is a `xl+`-only nicety, not built this phase).
  */
 const ROW = "relative flex h-[60px] items-center pl-[87px] text-maroon";
+const ROW_ICON_ONLY = "relative flex h-[60px] w-full items-center justify-center text-maroon";
 const ICON = "absolute left-[57.5px] -translate-x-1/2";
 const ICON_SIZE = 29;
 const ICON_STROKE = 1.25;
 
-function NavRow({ item, active }: { item: PortalNavItem; active: boolean }) {
+function NavRow({
+  item,
+  active,
+  iconOnly = false,
+  onNavigate,
+}: {
+  item: PortalNavItem;
+  active: boolean;
+  iconOnly?: boolean;
+  onNavigate?: () => void;
+}) {
   const Icon = item.icon;
 
   return (
     <Link
       href={item.href}
       aria-current={active ? "page" : undefined}
-      className={ROW}
+      title={iconOnly ? item.label : undefined}
+      onClick={onNavigate}
+      className={iconOnly ? ROW_ICON_ONLY : ROW}
     >
       {active && (
         <span
           aria-hidden
-          className="absolute left-[28px] top-1/2 h-[42px] w-[2px] -translate-y-1/2 bg-maroon"
+          className={`absolute top-1/2 h-[42px] w-[2px] -translate-y-1/2 bg-maroon ${iconOnly ? "left-[6px]" : "left-[28px]"}`}
         />
       )}
 
       <Icon
-        className={ICON}
+        className={iconOnly ? undefined : ICON}
         size={item.size ?? ICON_SIZE}
         strokeWidth={ICON_STROKE}
         fill={item.filled && active ? "currentColor" : "none"}
       />
-      <span
-        className={`text-subheading leading-none ${active ? "font-semibold" : ""}`}
-      >
-        {item.label}
-      </span>
-
-      {active && (
-        <span
-          aria-hidden
-          className="absolute right-0 top-1/2 h-[27px] w-[23px] -translate-y-1/2 bg-surface"
-          style={{
-            clipPath: "polygon(100% 0, 0 50%, 100% 100%)",
-            filter: "drop-shadow(-2px 0 3px rgba(0,0,0,0.06))",
-          }}
-        />
+      {!iconOnly && (
+        <span className={`text-subheading leading-none ${active ? "font-semibold" : ""}`}>
+          {item.label}
+        </span>
       )}
+      {iconOnly && <span className="sr-only">{item.label}</span>}
     </Link>
+  );
+}
+
+function NavList({
+  items,
+  pathname,
+  iconOnly = false,
+  onNavigate,
+}: {
+  items: PortalNavItem[];
+  pathname: string;
+  iconOnly?: boolean;
+  onNavigate?: () => void;
+}) {
+  const grouped = items.some((i) => i.group);
+  const isActive = (item: PortalNavItem) =>
+    pathname === item.href || pathname.startsWith(`${item.href}/`);
+
+  if (!grouped) {
+    return (
+      <>
+        {items.map((item) => (
+          <NavRow
+            key={item.href}
+            item={item}
+            active={isActive(item)}
+            iconOnly={iconOnly}
+            onNavigate={onNavigate}
+          />
+        ))}
+      </>
+    );
+  }
+
+  const groups = Array.from(new Set(items.map((i) => i.group)));
+  return (
+    <>
+      {groups.map((group) => (
+        <Fragment key={group}>
+          {!iconOnly && (
+            <p className="t-eyebrow mb-[4px] mt-[16px] px-[24px] text-gray first:mt-0">{group}</p>
+          )}
+          {items
+            .filter((i) => i.group === group)
+            .map((item) => (
+              <NavRow
+                key={item.href}
+                item={item}
+                active={isActive(item)}
+                iconOnly={iconOnly}
+                onNavigate={onNavigate}
+              />
+            ))}
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
+export function MobileNavTrigger({ user }: { user: PortalUser }) {
+  const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  const items = PORTAL_NAV[user.role] ?? [];
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label="Open menu"
+        className="flex h-[36px] w-[36px] items-center justify-center rounded-full text-white md:hidden"
+      >
+        <Menu className="h-[22px] w-[22px]" strokeWidth={2} aria-hidden />
+      </button>
+      <Drawer open={open} onOpenChange={setOpen} title="Portal navigation">
+        <nav aria-label="Portal" className="flex flex-col py-[16px]">
+          <NavList items={items} pathname={pathname} onNavigate={() => setOpen(false)} />
+        </nav>
+      </Drawer>
+    </>
   );
 }
 
 export default function PortalSidebar({ user }: { user: PortalUser }) {
   const pathname = usePathname();
-  const router = useRouter();
   // Empty until a role's frames land — PORTAL_NAV is deliberately not guessed.
   const items = PORTAL_NAV[user.role] ?? [];
 
-  // Real sign-out: end the Supabase session, then refresh so the server
-  // re-renders without a user and middleware sends the next request to /login.
-  // `refresh()` matters — without it the client keeps the already-rendered
-  // authenticated tree on screen after the session is gone.
-  async function handleLogOut() {
-    await createClient().auth.signOut();
-    router.push("/login");
-    router.refresh();
-  }
-
   return (
-    <nav className="flex w-[250px] shrink-0 flex-col bg-white pt-[16px] pb-[35px] shadow-sidebar">
-      {items.map((item) => (
-        <NavRow
-          key={item.href}
-          item={item}
-          active={pathname === item.href || pathname.startsWith(`${item.href}/`)}
-        />
-      ))}
-
-      <button type="button" onClick={handleLogOut} className={`mt-auto ${ROW}`}>
-        <LogOut className={ICON} size={ICON_SIZE} strokeWidth={ICON_STROKE} />
-        <span className="text-subheading leading-none">Log Out</span>
-      </button>
+    <nav
+      aria-label="Portal"
+      className="hidden w-[72px] shrink-0 flex-col bg-white pt-[16px] pb-[35px] shadow-sidebar md:flex lg:w-[250px]"
+    >
+      <div className="md:hidden lg:contents">
+        <NavList items={items} pathname={pathname} />
+      </div>
+      <div className="hidden md:contents lg:hidden">
+        <NavList items={items} pathname={pathname} iconOnly />
+      </div>
     </nav>
   );
 }

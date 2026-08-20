@@ -27,6 +27,7 @@ export default async function CampusPage({
         { label: campus.name },
       ]}
     >
+      <h1 className="sr-only">Documents — {campus.name}</h1>
       <FolderGrid
         entries={DOCUMENT_FOLDERS}
         hrefFor={(f) => `/portal/documents/campuses/${campus.slug}/${f.slug}`}

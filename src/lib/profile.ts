@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { ROLE_LABELS } from "@/lib/current-user";
+import { ROLE_LABELS } from "@/lib/role-labels";
 import type { PortalRole } from "@/components/portal/portal-nav";
 
 /**

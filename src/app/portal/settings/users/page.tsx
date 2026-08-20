@@ -22,6 +22,7 @@ export default async function UsersSettingsPage() {
 
   return (
     <Card className="px-[28px] pt-[19px] pb-[22px]">
+      <h1 className="sr-only">User Administration</h1>
       <SectionHeading icon={IdCard}>USERS</SectionHeading>
       <UserAdmin
         currentUserId={me.id}

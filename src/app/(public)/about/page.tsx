@@ -250,6 +250,7 @@ export default function AboutPage() {
       </section>
 
       <section
+        id="officials"
         className={`border-y-[5px] px-4 pb-[29px] pt-[33px] sm:px-6 lg:px-8 ${BAND_BG} ${BAND_RULE}`}
       >
         <h2 className="text-center text-title font-black leading-[1.2] text-maroon">

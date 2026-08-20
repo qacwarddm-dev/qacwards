@@ -33,16 +33,19 @@ export default async function NewAssignmentPage() {
     ]);
 
   return (
-    <QacPersonnelCreateAssignment
-      campuses={campuses ?? []}
-      colleges={colleges ?? []}
-      programs={(programs ?? []).map((p) => ({
-        id: p.id,
-        name: p.name,
-        campusId: p.campus_id,
-        collegeId: p.college_id,
-      }))}
-      levels={levels ?? []}
-    />
+    <>
+      <h1 className="sr-only">New Assignment</h1>
+      <QacPersonnelCreateAssignment
+        campuses={campuses ?? []}
+        colleges={colleges ?? []}
+        programs={(programs ?? []).map((p) => ({
+          id: p.id,
+          name: p.name,
+          campusId: p.campus_id,
+          collegeId: p.college_id,
+        }))}
+        levels={levels ?? []}
+      />
+    </>
   );
 }

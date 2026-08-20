@@ -2,8 +2,9 @@
 
 import { Bell } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import type { PortalNotification } from "./data";
 import {
   markAllNotificationsRead,
@@ -33,6 +34,15 @@ export default function NotificationBell({
   const router = useRouter();
 
   const visible = tab === "unread" ? items.filter((n) => n.unread) : items;
+
+  useEffect(() => {
+    if (!open) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open]);
 
   function openRow(n: PortalNotification) {
     startTransition(async () => {
@@ -119,7 +129,7 @@ export default function NotificationBell({
               const rows = visible.filter((n) => n.section === section);
               if (!rows.length) return null;
               return (
-                <div key={section} className="mt-[20px]">
+                <div key={section} role="log" aria-label={section} className="mt-[20px]">
                   <h3 className="text-regular font-bold leading-none text-black">
                     {section === "new" ? "New" : "Earlier"}
                   </h3>
@@ -158,6 +168,14 @@ export default function NotificationBell({
                 </div>
               );
             })}
+
+            <Link
+              href="/portal/notifications"
+              onClick={() => setOpen(false)}
+              className="mt-[18px] block text-center text-regular font-semibold leading-none text-maroon transition-opacity hover:opacity-70"
+            >
+              See all
+            </Link>
           </div>
         </>
       )}

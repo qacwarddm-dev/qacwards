@@ -14,10 +14,11 @@ export default async function ReportsPage() {
   const stats = await getReportsStats();
 
   return (
-    <div className="px-[57px] pt-[45px] pb-[45px]">
+    <div className="px-[var(--page-gutter)] pb-[45px] pt-[45px] lg:px-[57px]">
+      <h1 className="sr-only">Reports</h1>
       <StatRow stats={stats} />
 
-      <Card className="mt-[45px] px-[44.5px] pb-[42px] pt-[47px]">
+      <Card className="mt-[45px] px-[24px] py-[32px] sm:px-[44.5px] sm:pb-[42px] sm:pt-[47px]">
         <PanelHeader
           title="Report Generation"
           action={
@@ -26,8 +27,15 @@ export default async function ReportsPage() {
             </Button>
           }
         />
+        {/* Decision 18 (O-7): honest "not available yet" rather than a dead
+            button with no reason (09-ui-refactor §11 U-6 default: keep the
+            generator visible with an explanation). */}
+        <p className="t-sm mt-[10px] text-gray">
+          A custom report builder isn&apos;t available yet. The KPIs above are
+          drawn from live data in the meantime.
+        </p>
         <div className="mt-[26px]">
-          <EmptyState message="No reports generated yet." />
+          <EmptyState variant="empty" title="No reports generated yet." />
         </div>
       </Card>
     </div>

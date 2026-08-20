@@ -8,6 +8,7 @@ export default function MainCampusPage() {
       backHref="/portal/documents"
       crumbs={[{ label: "Main Campus" }]}
     >
+      <h1 className="sr-only">Documents — Main Campus</h1>
       <FolderGrid
         entries={COLLEGES}
         hrefFor={(c) => `/portal/documents/main-campus/${c.slug}`}

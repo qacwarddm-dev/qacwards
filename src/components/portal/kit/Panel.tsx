@@ -1,3 +1,4 @@
+import BackLink from "./BackLink";
 import Card from "./Card";
 
 /**
@@ -12,11 +13,20 @@ import Card from "./Card";
 export default function Panel({
   title,
   action,
+  back,
   footer,
   children,
 }: {
   title: string;
   action?: React.ReactNode;
+  /**
+   * Back affordance in the title row, drawn to the right of `action`. A prop
+   * rather than "pass a `BackLink` as `action`", which is how the Submissions
+   * screens used to do it: the evaluation sheet needs a back link *and* its
+   * Download action, and one slot cannot hold both without the page inventing
+   * its own flex row — which is the call-site styling the kit rules forbid.
+   */
+  back?: { href: string; to?: string };
   /** Right-aligned button under the body. Tightens the panel's bottom padding
    *  to 20, as the Phases and Requirements frames do. */
   footer?: React.ReactNode;
@@ -28,7 +38,12 @@ export default function Panel({
         <h1 className="text-heading font-bold leading-none text-black">
           {title}
         </h1>
-        {action}
+        {(action || back) && (
+          <div className="flex items-center gap-[24px]">
+            {action}
+            {back && <BackLink href={back.href} to={back.to} />}
+          </div>
+        )}
       </div>
       <div className="mt-[24px]">{children}</div>
       {footer && <div className="mt-[20px] flex justify-end">{footer}</div>}

@@ -1,4 +1,5 @@
 import DocCard from "./DocCard";
+import EmptyState from "./EmptyState";
 
 export type DocFile = { id: string; title: string };
 
@@ -8,18 +9,18 @@ export type DocFile = { id: string; title: string };
  * QAC campus/college repository tree — both are the same `repository_files`
  * read (`getRepositoryFiles`, src/lib/documents.ts), just scoped to a
  * different set of programmes.
+ *
+ * The grid was a fixed `grid-cols-4` tuned for the 1440px frame (09-ui-refactor
+ * §6.3/D.2) — `auto-fit` gives the same 4-up at that width while adapting down
+ * to one column on a phone instead of clipping.
  */
 export default function DocFileGrid({ files }: { files: DocFile[] }) {
   if (files.length === 0) {
-    return (
-      <p className="mt-[60px] text-center text-subheading text-gray">
-        This folder is empty.
-      </p>
-    );
+    return <EmptyState variant="empty" title="This folder is empty." />;
   }
 
   return (
-    <div className="mt-[16px] grid grid-cols-4 gap-x-[27px] gap-y-[27px]">
+    <div className="mt-[16px] grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-x-[27px] gap-y-[27px]">
       {files.map((f) => (
         <DocCard
           key={f.id}

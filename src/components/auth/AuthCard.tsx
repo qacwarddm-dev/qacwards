@@ -30,17 +30,27 @@ import { useLayoutEffect, useRef, useState } from "react";
  * The picker's top gap was 84px in the frame; the owner asked (2026-07-24) to
  * lift it a little, so it is 54px — a deliberate step away from the frame.
  *
- * `register` also reads too large to the owner at frame size (2026-07-25), so the
- * whole card is zoomed to 0.85 — one factor keeps every measured proportion
- * intact while shrinking it, rather than re-tuning each field (which the login
- * frames share and must stay frame-accurate). Raise toward 1 to enlarge.
+ * `register` was zoomed to 0.85 because it read too large to the owner at frame
+ * size (2026-07-25) — one factor keeps every measured proportion intact while
+ * shrinking it, rather than re-tuning each field (which the login frames share
+ * and must stay frame-accurate).
+ *
+ * That ceiling is now 1 (owner, 2026-08-20). 0.85 was set when the card's only
+ * other scaling was `--auth-scale`, and it survived that factor's removal into a
+ * regime where `--auth-zoom` (globals.css) is the single knob for wide monitors:
+ * the two multiplied out to 1.06 on a 1680 screen while the login card next door
+ * sat at 1.25, so register read visibly smaller than the picker it follows. At 1
+ * the two agree, and `--auth-zoom` alone decides how big the auth panel renders.
+ * This is a ceiling, not a size — `useFitToRoom` below still shrinks past it
+ * whenever the room is genuinely tight, which is what kept the tall Program
+ * Representative state off the footnote and still does.
  */
-const REGISTER_ZOOM = 0.85;
+const REGISTER_ZOOM = 1;
 
 /**
- * 0.85 is a ceiling, not a constant: the card shrinks further whenever it would
- * not otherwise fit the room above the footnote (owner, 2026-07-26 — the tall
- * Program Representative state was still running past it).
+ * REGISTER_ZOOM is a ceiling, not a constant: the card shrinks further whenever
+ * it would not otherwise fit the room above the footnote (owner, 2026-07-26 —
+ * the tall Program Representative state was still running past it).
  *
  * Centring alone could not fix that, because the panel magnifies rather than
  * reflows. `auth-scale` (globals.css) zooms the whole panel by viewport-width/1440
@@ -104,7 +114,34 @@ function useFitToRoom(max: number) {
   return [ref, zoom] as const;
 }
 
-const SHELL = "flex w-[382px] max-w-[calc(100%-32px)] flex-col rounded-[20px] shadow-card";
+const SHELL = "flex max-w-[calc(100%-32px)] flex-col rounded-[20px] shadow-card";
+
+/**
+ * Card width, per variant. All three frames draw 382, but that number is doing
+ * very different work in each.
+ *
+ * The two login frames are **not** width-constrained by their own content. The
+ * widest ink on the picker is the tagline at 268.7px, and the form's body is a
+ * fixed 250px column — so 382 left the 208px role buttons floating in 87px
+ * gutters, a button block only 54% of the card. That is what read as squat
+ * (owner, 2026-08-20): a tall stack of short controls in a wide box.
+ *
+ * 330 is picked off the content, not by eye: it clears the tagline by ~31px a
+ * side (the same order as the 28px the register body uses) and tightens the
+ * buttons to 61px gutters. It also puts the picker card at 330x498, within a
+ * pixel of a 2:3 portrait — the proportion the tall heading and stacked buttons
+ * already imply.
+ *
+ * `register` stays at its measured 382 because there the width *is* load-bearing:
+ * the body is 290px of content inside 44px padding, and the Full Name row alone
+ * needs 99 + 59 of fixed fields plus a legible Given Name between them. Narrowing
+ * it would truncate real form content rather than trim empty margin.
+ */
+const WIDTH = {
+  picker: "w-[330px]",
+  form: "w-[330px]",
+  register: "w-[382px]",
+} as const;
 
 export default function AuthCard({
   variant = "picker",
@@ -129,7 +166,11 @@ export default function AuthCard({
 
   if (variant === "register") {
     return (
-      <div ref={cardRef} style={{ zoom: registerZoom }} className={`${SHELL} bg-surface`}>
+      <div
+        ref={cardRef}
+        style={{ zoom: registerZoom }}
+        className={`${SHELL} ${WIDTH.register} bg-surface`}
+      >
         {/* Height and padding are both measured: h-63 is the band, pt-25 lands
             the cap-top at the frame's 26.5px. Centring the 20px line box in the
             band instead puts the caps ~3.5px high, because the font's ascent
@@ -153,5 +194,5 @@ export default function AuthCard({
     form: "mt-[58.5px] px-[2px] pt-[23.75px]",
   }[variant];
 
-  return <div className={`${SHELL} bg-surface ${pad}`}>{children}</div>;
+  return <div className={`${SHELL} ${WIDTH[variant]} bg-surface ${pad}`}>{children}</div>;
 }

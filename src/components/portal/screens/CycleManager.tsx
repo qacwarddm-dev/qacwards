@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Button, DataTable, FieldLabel, TextInput } from "@/components/portal/kit";
+import { Button, ConfirmDialog, DataTable, FieldLabel, TextInput } from "@/components/portal/kit";
 import { createCycle, setCycleStatus } from "@/lib/admin";
 import type { CycleStatus } from "@/lib/database.types";
 
@@ -51,6 +51,8 @@ export default function CycleManager({ cycles }: { cycles: Cycle[] }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState<Cycle | null>(null);
+  const [confirmAction, setConfirmAction] = useState<"open" | "closed" | null>(null);
 
   function submit(formData: FormData) {
     setError(null);
@@ -63,10 +65,24 @@ export default function CycleManager({ cycles }: { cycles: Cycle[] }) {
 
   function changeStatus(id: string, status: CycleStatus) {
     setError(null);
-    startTransition(async () => {
-      const result = await setCycleStatus(id, status);
-      if (!result.ok) setError(result.error);
+    return new Promise<void>((resolve) => {
+      startTransition(async () => {
+        const result = await setCycleStatus(id, status);
+        if (!result.ok) setError(result.error);
+        setConfirmTarget(null);
+        setConfirmAction(null);
+        resolve();
+      });
     });
+  }
+
+  function askOpen(cycle: Cycle) {
+    setConfirmTarget(cycle);
+    setConfirmAction("open");
+  }
+  function askClose(cycle: Cycle) {
+    setConfirmTarget(cycle);
+    setConfirmAction("closed");
   }
 
   const rows = cycles.map((cycle) => ({
@@ -99,7 +115,7 @@ export default function CycleManager({ cycles }: { cycles: Cycle[] }) {
               variant="solid"
               size="md"
               disabled={pending}
-              onClick={() => changeStatus(cycle.id, "open")}
+              onClick={() => askOpen(cycle)}
             >
               Open
             </Button>
@@ -109,7 +125,7 @@ export default function CycleManager({ cycles }: { cycles: Cycle[] }) {
               variant="outline"
               size="md"
               disabled={pending}
-              onClick={() => changeStatus(cycle.id, "closed")}
+              onClick={() => askClose(cycle)}
             >
               Close
             </Button>
@@ -192,9 +208,30 @@ export default function CycleManager({ cycles }: { cycles: Cycle[] }) {
 
       {cycles.length > 0 && (
         <div className="mt-[18px]">
-          <DataTable columns={COLUMNS} rows={rows} />
+          <DataTable caption="Accreditation cycles" columns={COLUMNS} rows={rows} />
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmTarget !== null && confirmAction !== null}
+        onOpenChange={(v) => {
+          if (!v) {
+            setConfirmTarget(null);
+            setConfirmAction(null);
+          }
+        }}
+        title={confirmAction === "open" ? "Open this cycle" : "Close this cycle"}
+        tone={confirmAction === "closed" ? "danger" : "default"}
+        confirmLabel={confirmAction === "open" ? "Open cycle" : "Close cycle"}
+        description={
+          confirmAction === "open"
+            ? `Opening "${confirmTarget?.name}" makes it the one cycle representatives can file into. Only one cycle may be open at a time.`
+            : `Closing "${confirmTarget?.name}" freezes every submission filed under it as read-only history. Representatives will no longer be able to upload against it. This cannot be undone from here.`
+        }
+        onConfirm={() => {
+          if (confirmTarget && confirmAction) return changeStatus(confirmTarget.id, confirmAction);
+        }}
+      />
     </>
   );
 }

@@ -2,6 +2,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { PortalRole, PortalUser } from "@/components/portal/portal-nav";
+import { ROLE_LABELS } from "@/lib/role-labels";
 
 /**
  * The identity seam. Everything that needs to know who is signed in goes through
@@ -78,18 +79,6 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     notifications: 0,
   };
 });
-
-/**
- * How each role is named in the UI. `program_representative` reads "Academic
- * Program" per `docs/OtherContext.txt` while the enum keeps its original value
- * (open item O-4).
- */
-export const ROLE_LABELS: Record<PortalRole, string> = {
-  program_representative: "Academic Program",
-  internal_accreditor: "Internal Accreditor",
-  qac_personnel: "QAC Personnel",
-  qac_admin: "QAC Admin",
-};
 
 /**
  * For layouts and pages that cannot render without a user. Middleware already

@@ -2,7 +2,7 @@
 
 import { X } from "lucide-react";
 import { useState, useTransition } from "react";
-import { Button } from "../kit";
+import { Button, ConfirmDialog } from "../kit";
 import { respondToAssignment } from "@/lib/assignment-actions";
 
 /**
@@ -26,15 +26,17 @@ export default function AssignmentResponse({
 }) {
   const [pending, startTransition] = useTransition();
   const [asking, setAsking] = useState(false);
-  const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   function respond(response: "accepted" | "rejected", rejectionNote?: string) {
     setError(null);
-    startTransition(async () => {
-      const result = await respondToAssignment(assignmentId, response, rejectionNote);
-      if (!result.ok) setError(result.error);
-      else setAsking(false);
+    return new Promise<void>((resolve) => {
+      startTransition(async () => {
+        const result = await respondToAssignment(assignmentId, response, rejectionNote);
+        if (!result.ok) setError(result.error);
+        else setAsking(false);
+        resolve();
+      });
     });
   }
 
@@ -55,36 +57,27 @@ export default function AssignmentResponse({
     );
   }
 
-  if (asking) {
-    return (
-      <span className="flex items-center gap-[6px]">
-        <input
-          aria-label="Reason for declining"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="Reason"
-          className="h-[24px] w-[120px] rounded-[6px] border border-[color:var(--color-gray)]/50 px-[6px] text-regular"
-        />
-        <Button
-          variant="outline"
-          size="md"
-          disabled={pending || note.trim() === ""}
-          onClick={() => respond("rejected", note)}
-        >
-          Send
-        </Button>
-      </span>
-    );
-  }
-
   return (
-    <button
-      type="button"
-      aria-label="Decline assignment"
-      onClick={() => setAsking(true)}
-      className="flex h-[24px] w-[24px] items-center justify-center rounded-[6px] bg-[color:var(--color-maroon)]/25"
-    >
-      <X className="h-[16px] w-[16px] text-white" strokeWidth={3} aria-hidden />
-    </button>
+    <>
+      <button
+        type="button"
+        aria-label="Decline assignment"
+        onClick={() => setAsking(true)}
+        className="flex h-[24px] w-[24px] items-center justify-center rounded-[6px] bg-[color:var(--color-maroon)]/25"
+      >
+        <X className="h-[16px] w-[16px] text-white" strokeWidth={3} aria-hidden />
+      </button>
+      <ConfirmDialog
+        open={asking}
+        onOpenChange={setAsking}
+        title="Decline this assignment"
+        description="QAC Personnel will see your reason. This cannot be undone from here — an assignment you decline has to be reassigned."
+        confirmLabel="Decline assignment"
+        tone="danger"
+        requireReason
+        onConfirm={(reason) => respond("rejected", reason)}
+      />
+      {error && <p className="mt-[8px] text-regular leading-tight text-maroon">{error}</p>}
+    </>
   );
 }

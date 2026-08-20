@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Award } from "lucide-react";
 import Image from "next/image";
 
 export const metadata: Metadata = {
@@ -7,17 +8,13 @@ export const metadata: Metadata = {
     "Government recognitions and certifications awarded to the Polytechnic University of the Philippines.",
 };
 
-// Placeholder content — the prototype ships literal "Date" / "TITLE OF CERTIFICATION"
-// placeholders in all nine cards. Swap for client-provided recognitions (or a DB
-// query) once the real content exists; each entry will bring its own image too.
-const RECOGNITIONS = Array.from({ length: 9 }, (_, index) => ({
-  id: index + 1,
-  date: "Date",
-  title: "TITLE OF CERTIFICATION",
-  facebookUrl: "https://www.facebook.com/share/p/189wu",
-  image: "/assets/imagery/gov-certification.jpg",
-}));
-
+/**
+ * UPGRADE (09a §A.6): the prototype shipped nine cards of literal "Date" /
+ * "TITLE OF CERTIFICATION" placeholders. Nine fake entries reads as content;
+ * one honest empty state reads as "we haven't published these yet," which is
+ * the truth — swap this for a real `RECOGNITIONS` array (or a DB query) once
+ * the client supplies actual citations.
+ */
 export default function GovRecognitionsPage() {
   return (
     <div>
@@ -31,41 +28,21 @@ export default function GovRecognitionsPage() {
       />
 
       <section className="px-4 py-20 sm:px-6 lg:px-8">
-        <div className="mx-auto grid max-w-[1270px] grid-cols-1 gap-x-[35px] gap-y-[86px] sm:grid-cols-2 lg:grid-cols-3">
-          {RECOGNITIONS.map((item) => (
-            <article
-              key={item.id}
-              className="rounded-2xl border border-black bg-white p-5 shadow-lg"
-            >
-              <div className="relative aspect-[358/323] w-full overflow-hidden">
-                <Image
-                  src={item.image}
-                  alt=""
-                  fill
-                  sizes="(min-width: 1024px) 358px, (min-width: 640px) 50vw, 100vw"
-                  className="object-cover"
-                />
-              </div>
-
-              <p className="mt-1 text-regular italic text-gray">{item.date}</p>
-
-              <h2 className="mt-5 text-center text-heading font-bold text-maroon">
-                {item.title}
-              </h2>
-
-              <p className="mt-5 truncate text-regular">
-                <span className="font-bold">Facebook: </span>
-                <a
-                  href={item.facebookUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline transition-colors hover:text-maroon"
-                >
-                  {item.facebookUrl}
-                </a>
-              </p>
-            </article>
-          ))}
+        <h1 className="t-h1 text-center text-maroon">Government Recognitions</h1>
+        <div className="mx-auto mt-10 flex max-w-[var(--prose-max)] flex-col items-center gap-3 text-center">
+          <span className="flex h-[64px] w-[64px] items-center justify-center rounded-full bg-[color:var(--color-gray)]/10 text-maroon">
+            <Award className="h-[28px] w-[28px]" strokeWidth={1.75} aria-hidden />
+          </span>
+          <p className="t-h2 text-black">Recognitions are being catalogued.</p>
+          <p className="t-body text-gray">
+            This page will list the government recognitions and certifications
+            held by the university. In the meantime, reach the Quality
+            Assurance Center directly at{" "}
+            <a href="mailto:qac@pup.edu.ph" className="text-maroon underline">
+              qac@pup.edu.ph
+            </a>
+            .
+          </p>
         </div>
       </section>
     </div>
