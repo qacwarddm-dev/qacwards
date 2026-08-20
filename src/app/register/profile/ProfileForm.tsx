@@ -2,9 +2,13 @@
 
 import { Monitor, UserRound } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { AuthButton, AuthCard, AuthShell } from "@/components/auth";
+import { createClient } from "@/lib/supabase/browser";
+import { BUCKETS, avatarPath, uploadFile } from "@/lib/storage";
 import { REGISTER_STEPS } from "../register-options";
+import { clearDraft } from "../registration-draft";
 
 /**
  * Step 4 of register — assets/FIGMA/register/upload-profile.png, titled PROFILE.
@@ -15,23 +19,73 @@ import { REGISTER_STEPS } from "../register-options";
  * token carries; --color-gray at 55% renders 182 against the card's white and is
  * the nearest token-derived match to the measured 183.
  *
- * The picker is real (drag-and-drop or file dialog) but purely local: it shows an
- * object URL so the screen is not inert, and nothing is uploaded — storage lands
- * with Supabase in 3b. Skip and Next therefore go to the same place; the frame
- * offers both because only one of them implies a picture was chosen.
+ * Wired in B2. The picker still previews locally, but Next now uploads the chosen
+ * file to the private `avatars` bucket and writes `profiles.avatar_path`. The
+ * account already exists by this point (it was created when the OTP was
+ * verified), so **Skip is a real ending, not an abandonment** — that is why the
+ * frame offers both and why only Next implies a picture was chosen.
  */
+const MAX_BYTES = 2 * 1024 * 1024;
 export default function ProfileForm() {
+  const router = useRouter();
   const [preview, setPreview] = useState<string | null>(null);
+  const [chosen, setChosen] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const accept = (file: File | undefined) => {
     if (!file?.type.startsWith("image/")) return;
+    if (file.size > MAX_BYTES) {
+      setError("That photo is larger than 2 MB.");
+      return;
+    }
+    setError(null);
+    setChosen(file);
     setPreview((old) => {
       if (old) URL.revokeObjectURL(old);
       return URL.createObjectURL(file);
     });
   };
+
+  function finish() {
+    clearDraft();
+    router.push(REGISTER_STEPS.done);
+  }
+
+  async function handleNext() {
+    if (!chosen) return finish();
+
+    setError(null);
+    setPending(true);
+    const supabase = createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setError("That registration expired. Start again from Create an Account.");
+      setPending(false);
+      return;
+    }
+
+    const path = avatarPath(user.id, chosen.name);
+    const upload = await uploadFile(supabase, BUCKETS.avatars, path, chosen, {
+      contentType: chosen.type,
+      upsert: true,
+    });
+
+    if (upload.error) {
+      setError(upload.error);
+      setPending(false);
+      return;
+    }
+
+    await supabase.from("profiles").update({ avatar_path: path }).eq("id", user.id);
+    finish();
+  }
 
   return (
     <AuthShell align="center">
@@ -103,12 +157,24 @@ export default function ProfileForm() {
           </span>
         </div>
 
+        {error && (
+          <p className="mt-[14px] text-center text-regular leading-tight text-maroon">
+            {error}
+          </p>
+        )}
+
         <div className="mt-[50px] mb-[11.5px] flex flex-col items-center">
-          <AuthButton tone="maroon" size="pill-sm" href={REGISTER_STEPS.done}>
-            Next
+          <AuthButton
+            tone="maroon"
+            size="pill-sm"
+            onClick={handleNext}
+            disabled={pending}
+          >
+            {pending ? "Saving…" : "Next"}
           </AuthButton>
           <Link
             href={REGISTER_STEPS.done}
+            onClick={clearDraft}
             className="mt-[19px] text-regular leading-[12px] text-maroon"
           >
             Skip

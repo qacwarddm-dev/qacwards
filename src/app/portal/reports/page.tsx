@@ -1,46 +1,33 @@
 import { Plus } from "lucide-react";
-import { REPORT_STATS, REPORTS } from "@/components/portal/data";
-import {
-  Button,
-  Card,
-  type Column,
-  DataTable,
-  PanelHeader,
-  StatRow,
-} from "@/components/portal/kit";
+import { Button, Card, EmptyState, PanelHeader, StatRow } from "@/components/portal/kit";
+import { getReportsStats } from "@/lib/dashboards";
 
-/** assets/FIGMA/qac_personnel/05-Reports.png */
-const COLUMNS: Column[] = [
-  { key: "type", header: "Type of Report", width: "flex-1" },
-  { key: "modifiedBy", header: "Modified by", width: "w-[420px]" },
-  { key: "generated", header: "Date Generated", width: "w-[330px]" },
-];
-
-export default function ReportsPage() {
-  const rows = REPORTS.map((r) => ({
-    id: r.id,
-    cells: {
-      type: <span className="text-gray">{r.type}</span>,
-      modifiedBy: <span className="text-gray">{r.modifiedBy}</span>,
-      generated: <span className="text-gray">{r.generated}</span>,
-    },
-  }));
+/**
+ * assets/FIGMA/qac_personnel/05-Reports.png
+ *
+ * Decision 18 (O-7): reports are KPI-derived for now, and there is no
+ * generator or `reports` table behind this list yet — "New" stays disabled
+ * rather than pretending to work, same treatment already used for the
+ * evaluation sheet's un-backed "Evaluate"/"Return" buttons.
+ */
+export default async function ReportsPage() {
+  const stats = await getReportsStats();
 
   return (
     <div className="px-[57px] pt-[45px] pb-[45px]">
-      <StatRow stats={REPORT_STATS} />
+      <StatRow stats={stats} />
 
       <Card className="mt-[45px] px-[44.5px] pb-[42px] pt-[47px]">
         <PanelHeader
           title="Report Generation"
           action={
-            <Button variant="solid" icon={Plus}>
+            <Button variant="solid" icon={Plus} disabled>
               New
             </Button>
           }
         />
         <div className="mt-[26px]">
-          <DataTable columns={COLUMNS} rows={rows} />
+          <EmptyState message="No reports generated yet." />
         </div>
       </Card>
     </div>

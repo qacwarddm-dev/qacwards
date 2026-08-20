@@ -1,0 +1,571 @@
+Data Dictionary.
+
+Table 30
+Data Dictionary for Users
+
+Users
+Data Name Data Type Constraints Description
+id integer pk, auto_increment Unique internal
+identifier for each user
+account.
+
+role_id integer pk References roles.id
+to define system
+access permissions
+(e.g., Admin, QAC
+Personnel, Accreditor,
+Representative).
+email varchar(100) unique, not null The user's primary
+email address is
+utilized as the unique
+login credential.
+password_hash varchar(225) not null Secured, encrypted
+string representation of
+the account password.
+first_name varchar(50) not null Given name of the
+account owner.
+last_name varchar(50) not null Family name/surname
+of the account owner.
+Is_active boolean not null Status flag (true or
+false) indicating
+whether the user is
+permitted to log in or if
+the account is
+deactivated.
+created_at timestamp not null Date and time when
+the user profile was
+initially registered in
+the system.
+
+144
+
+Table 31
+Data Dictionary for Roles
+
+Roles
+Data Name Data Type Constraints Description
+id integer pk, auto-increment Unique internal
+identifier for each
+defined system role.
+role_name varchar(50) not null The official designation
+of the role (e.g., Admin,
+QAC Personnel,
+Internal Accreditor,
+Program Rep).
+
+Table 32
+
+Data Dictionary for Academic Programs
+
+academic_programs
+Data Name Data Type Constraints Description
+id integer pk, auto-increment Unique internal
+identifier for each
+registered academic
+program profile.
+user_id integer unique References
+
+users.id. Enforces a
+1:1 relationship,
+ensuring an account
+acts uniquely as a
+Program
+Representative.
+program code varchar(20) unique, null The official institutional
+acronym or shorthand
+code for the program
+(e.g., BSIT, BSOA).
+Can be null if
+unassigned.
+
+145
+
+Continuation of Table 32
+Data Name Data Type Constraints Description
+program_name varchar(150) not null The full, descriptive
+title of the academic
+program.
+department varchar(100) not null The college or
+institutional department
+hosting the academic
+program.
+
+Table 33
+
+Data Dictionary for Accreditors
+
+accreditors
+Data Name Data Type Constraints Description
+id integer pk, auto-increment Unique internal
+identifier for each
+registered accreditor
+profile.
+user_id integer unique, not null References
+users.id. Links the
+profile directly to a
+specific user
+authentication account.
+specialization varchar(100) not null The specific field of
+expertise or academic
+focus of the accreditor
+(e.g., Information
+Technology,
+Engineering).
+accreditation_body varchar(50) not null The organization or
+council regulating the
+accreditation standard
+(e.g., AACCUP).
+
+146
+
+Table 34
+
+Data Dictionary for Documents
+
+documents
+Data Name Data Type Constraints Description
+id integer pk, auto-increment Unique internal
+identifier for each root
+accreditation document
+entry.
+program_id integer not null References
+
+academic_programs
+.id to identify which
+program owns the
+submission.
+title varchar(255) not null The formal name or
+naming convention of
+the submitted
+accreditation
+document.
+description text not null A comprehensive
+summary detailing the
+contents or scope of
+the document context.
+status varchar(50) not null The current review
+stage of the document
+(e.g., Pending, Under
+Review, Compliant,
+Needs Revision).
+is_archived boolean not null A soft-delete flag
+(true or false)
+stating whether the
+folder is archived or
+hidden from the active
+workspace.
+creqted_at timestamp not null System timestamp
+recording when the
+base document profile
+was initially initialized.
+
+147
+
+Table 35
+
+Data Dictionary for Documents Versions
+
+document_versions
+Data Name Data Type Constraints Description
+id integer pk, auto-increment Unique internal
+identifier for each
+specific file version
+entry.
+document_id integer not null References
+documents.id.
+Identifies the parent
+document record this
+specific version
+belongs to.
+version_number varchar(10) not null The tracking iteration
+identifier assigned to
+the file.
+
+file_path varchar(255) not null The server directory
+location or URL string
+where the physical
+document file is stored.
+
+uploaded_by integer not null References
+users.id. Identifies
+the account holder who
+uploaded this particular
+version.
+
+uploaded_at timestamp not null System timestamp
+capturing the exact
+date and time the file
+was successfully
+committed.
+
+148
+
+Table 36
+
+Data Dictionary for Accreditation Cycles
+
+accreditation_cycles
+Data Name Data Type Constraints Description
+id integer pk, auto_increment Unique internal
+identifier for each
+scheduled
+accreditation period.
+cycle_name varchar(100) not null The formal name of the
+evaluation cycle (e.g.,
+"AACCUP 3rd Survey
+Visit 2026").
+
+description text not null A summary explaining
+the objectives, scope,
+or specific criteria
+involved in this cycle.
+start_date date not null The official calendar
+activation date for the
+accreditation workflow.
+end_date date not null The official expiration
+or closing deadline
+date for the designated
+cycle.
+
+status varchar(30) not null The current lifecycle
+state of the entire cycle
+
+Table 37
+
+Data Dictionary for Assignments
+
+assignments
+Data Name Data Type Constraints Description
+id integer pk, auto_increment Unique internal
+identifier for each
+generated evaluation
+
+149
+
+Continuation of Table 37
+Data Name Data Type Constraints Description
+assignment record.
+cycle_id integer not null References
+
+accreditation_cycle
+s.id. Connects the task
+to its respective
+institutional scheduling
+window.
+accreditor_id integer not null References
+accreditors.id.
+Identifies the quality
+assurance auditor
+responsible for
+completing the
+evaluation.
+document_id integer not null References
+
+documents.id. Links
+the assignment to the
+master document profile
+targeted for review.
+assigned_by integer not null References
+
+users.id. Tracks the
+specific QAC
+Personnel account that
+initiated and authorized
+the assignment.
+assignment_status varchar(50) not null Represents the current
+operational phase of
+the task (e.g.,
+Assigned, In Progress,
+Reviewed).
+
+due_date timestamp not null The strict deadline by
+which the assigned
+evaluator must submit
+their feedback.
+created_at timestamp not null System timestamp
+records exactly when
+the assignment
+instance was issued.
+
+150
+
+Table 38
+
+Data Dictionary for Extension Requests
+
+extension_requests
+Data Name Data Type Constraints Description
+id integer pk, auto_increment Unique internal
+identifier for each
+structured extension
+ticket submission.
+assignment_id integer not null References
+assignments.id.
+PINs the extension
+context to its parent
+workspace task.
+requested_by integer not null References
+users.id. Identifies
+the account holder
+requesting more
+operational time.
+original_due_date timestamp not null A snapshot copy of the
+assignment's active
+due_date before any
+adjustment processing.
+proposed_due_date timestamp not null The newly requested
+timeline limit proposed
+by the applicant.
+reason text not null Detailed justification
+text provided by the
+applicant explaining
+the necessity of the
+extension.
+status varchar(50) not null The administrative
+state of the ticket (e.g.,
+Pending, Approved,
+Rejected).
+processed_by integer not null References
+
+users.id. Tracks the
+
+151
+
+Continuation of Table 38
+Data Name Data Type Constraints Description
+QAC Personnel Admin
+account is responsible
+for deciding on the
+request.
+
+processed_at timestamp not null Date and time detailing
+exactly when the ticket
+decision was made by
+management.
+created_at timestamp not null The automated system
+timestamp captures
+when the application
+was originally
+generated.
+
+Table 39
+
+Data Dictionary for Feedbacks
+
+feedbacks
+Data Name Data Type Constraints Description
+id integer pk, auto_increment Unique internal
+identifier for each
+submitted feedback
+entry.
+document_id integer not null References
+
+documents.id. Links
+the evaluation remarks
+directly to the target
+document profile.
+submitted_by integer not null References
+
+users.id. Tracks the
+identity of the account
+holder who created the
+feedback note.
+feedback_text text not null The actual textual
+
+152
+
+Continuation of Table 39
+Data Name Data Type Constraints Description
+content containing the
+review findings,
+remarks, or revision
+instructions.
+created_at timestamp not null System timestamp
+records exactly when
+the feedback entry was
+committed.
+
+Table 40
+
+Data Dictionary for Evaluations
+
+evaluations
+Data Name Data Type Constraints Description
+id integer pk, auto_increment Unique internal
+identifier for each
+evaluation record.
+assignement_id integer unique assignments.id.
+Enforces a strict 1:1
+relationship, ensuring
+each assignment
+receives exactly one
+formal evaluation.
+score decimals(5, 2) not null The numeric rating or
+point value awarded to
+the document during
+review
+
+compliance_status varchar(50) not null The official compliance
+rating resulting from
+the review
+remarks text not null Comprehensive
+narrative notes,
+observations, or
+synthesis remarks
+
+153
+
+Continuation of Table 40
+Data Name Data Type Constraints Description
+explaining the
+evaluation outcome.
+evaluated_at timestamp not null System timestamp
+tracking the exact date
+and time when the
+evaluation was
+finalized and
+submitted.
+
+Table 41
+
+Data Dictionary for Activity Logs
+
+activity_logs
+Data Name Data Type Constraints Description
+id integer pk, auto_increment Unique internal
+identifier for each
+historical audit log
+entry.
+
+user_id integer not null users.id. Identifies
+the account holder who
+initiated the system
+action.
+
+action_type varchar(50) not null The classification of
+the performed
+operation (e.g., LOGIN,
+CREATE_USER,
+FILE_UPLOAD,
+BACKUP).
+target_table varchar(50) not null The name of the
+specific database table
+modified or impacted
+by the transaction.
+target_id integer not null The primary key value
+(id) of the row inside
+
+154
+
+Continuation of Table 41
+Data Name Data Type Constraints Description
+the affected target
+table.
+
+old_value text not null A snapshot of the
+original row data
+before the modification
+took place.
+new_value text not null A snapshot of the
+updated row data after
+the transaction was
+successfully
+committed.
+ip_address varchar(45) not null The IPv4 or IPv6
+network address of the
+hardware client utilized
+to make the request.
+timestamp timestamp not null System timestamp
+captures the exact
+execution time of the
+logged transaction.
+
+Table 42
+Data Dictionary for Events
+
+events
+Data Name Data Type Constraints Description
+id integer pk, auto_increment Unique internal
+identifier for each
+calendar event entry.
+title varchar(225) not null The summary name or
+heading of the
+scheduled event.
+description text text Comprehensive
+details, contextual
+explanations, or
+
+155
+
+Continuation of Table 42
+Data Name Data Type Constraints Description
+meeting agendas are
+linked to the event.
+start_time timestamp not null The scheduled date
+and time marking when
+the event session
+officially activates.
+end_time timestamp not null The scheduled date
+and time marking when
+the event session
+concludes.
+target_role_id integer not null References
+roles.id. Filters
+visibility so only users
+holding the designated
+role can view the
+milestone on their
+dashboard.
+created_by integer not null References
+
+users.id. Tracks the
+identity of the system
+user who created and
+published the event
+post.
+
+Table 43
+
+Data Dictionary for System Backups
+
+system_backups
+Data Name Data Type Constraints Description
+id integer primary key,
+increment
+
+Unique internal
+identifier for each
+system backup routine
+logged.
+backup_name varchar(255) not null The file name or
+
+156
+
+Continuation of Table 43
+Data Name Data Type Constraints Description
+naming convention
+pattern assigned to the
+archived backup file.
+file_path varchar(255) not null The secure absolute
+directory path or cloud
+storage bucket URL
+where the physical
+backup file archive is
+located.
+triggered_by integer not null References
+users.id. Identifies
+the administrative user
+account that initiated
+the file backup
+procedure.
+status varchar(50) not null The operational
+outcome of the backup
+transaction (e.g.,
+Successful, Failed, In
+Progress).
+
+created_at timestamp not null The system timestamp
+records exactly when
+the backup file
+generation was
+completed.

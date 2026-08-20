@@ -1,8 +1,11 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AuthButton, AuthCard, AuthShell, AuthTextField } from "@/components/auth";
+import { createClient } from "@/lib/supabase/browser";
 import { REGISTER_STEPS } from "../register-options";
+import { draftToAuthMetadata, readDraft } from "../registration-draft";
 
 /**
  * Step 2 of register — assets/FIGMA/register/verify-webmail.png.
@@ -12,17 +15,24 @@ import { REGISTER_STEPS } from "../register-options";
  * body width, "Resend code in 59s" right-aligned 10.5 under it, Verify OTP 63
  * below that.
  *
- * The countdown is the frame's own "59s". It ticks because a frozen 59 reads as
- * a broken timer, and it is the one piece of state this screen can honestly own
- * without a backend — at zero the text becomes a resend control that restarts
- * it. No code is sent: phase 3a has no mail.
+ * The countdown is the frame's own "59s". At zero the text becomes a resend
+ * control, which now really re-sends.
+ *
+ * Wired in B2. Verifying the code is what **creates the account**: `verifyOtp`
+ * inserts the auth.users row, which fires the @pup.edu.ph trigger and
+ * `handle_new_user` (writing the profile and mirroring the role into
+ * app_metadata), and signs the user in — so the next step has a session to set a
+ * password on.
  */
 const OTP_LENGTH = 6;
 const RESEND_SECONDS = 59;
 
 export default function VerifyWebmailForm() {
+  const router = useRouter();
   const [otp, setOtp] = useState("");
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
 
   useEffect(() => {
     if (secondsLeft === 0) return;
@@ -31,6 +41,45 @@ export default function VerifyWebmailForm() {
   }, [secondsLeft]);
 
   const canProceed = otp.length === OTP_LENGTH;
+
+  async function handleVerify() {
+    const draft = readDraft();
+    if (!draft) {
+      setError("That registration expired. Start again from Create an Account.");
+      return;
+    }
+
+    setError(null);
+    setPending(true);
+
+    const { error: verifyError } = await createClient().auth.verifyOtp({
+      email: draft.webmail,
+      token: otp,
+      type: "email",
+    });
+
+    if (verifyError) {
+      setError("That code is not valid or has expired.");
+      setPending(false);
+      return;
+    }
+
+    router.push(REGISTER_STEPS.password);
+  }
+
+  async function handleResend() {
+    const draft = readDraft();
+    if (!draft) {
+      setError("That registration expired. Start again from Create an Account.");
+      return;
+    }
+    setError(null);
+    setSecondsLeft(RESEND_SECONDS);
+    await createClient().auth.signInWithOtp({
+      email: draft.webmail,
+      options: { shouldCreateUser: true, data: draftToAuthMetadata(draft) },
+    });
+  }
 
   return (
     <AuthShell align="center">
@@ -59,7 +108,7 @@ export default function VerifyWebmailForm() {
           ) : (
             <button
               type="button"
-              onClick={() => setSecondsLeft(RESEND_SECONDS)}
+              onClick={handleResend}
               className="not-italic underline transition-opacity hover:opacity-70"
             >
               Resend code
@@ -67,14 +116,20 @@ export default function VerifyWebmailForm() {
           )}
         </div>
 
+        {error && (
+          <p className="mt-[11px] text-center text-regular leading-tight text-maroon">
+            {error}
+          </p>
+        )}
+
         <div className="mt-[62px] mb-[7.5px] flex flex-col items-center">
           <AuthButton
             tone="maroon"
             size="pill"
-            disabled={!canProceed}
-            href={canProceed ? REGISTER_STEPS.password : undefined}
+            disabled={!canProceed || pending}
+            onClick={handleVerify}
           >
-            Verify OTP
+            {pending ? "Verifying…" : "Verify OTP"}
           </AuthButton>
         </div>
       </AuthCard>

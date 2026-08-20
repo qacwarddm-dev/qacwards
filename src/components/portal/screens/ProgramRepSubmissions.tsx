@@ -1,62 +1,142 @@
-import {
-  PR_ACCREDITATION_LEVELS,
-  PR_LEVEL_STEPS,
-  PR_PHASES,
-  PR_READINESS,
-  PR_REQUIREMENTS,
-} from "../data";
-import {
-  BackLink,
-  Breadcrumb,
-  Button,
-  Panel,
-  ProgressRow,
-  RowList,
-  SplitStat,
-  Stepper,
-} from "../kit";
+import { PR_PHASE_STEPS } from "../data";
+import { BackLink, Breadcrumb, Button, Panel, ProgressRow, RowList, SplitStat, Stepper } from "../kit";
+import SubmissionUploadModal, { type UploadSlot } from "./SubmissionUploadModal";
 
 /**
- * Program Representative → Submission. Five frames, one screen, one URL:
+ * Program Representative → Submission. One screen, query-param states:
  *
  * | Frame | URL |
  * |---|---|
- * | `07-Submissions.png`            | `/portal/submission` |
- * | `08-Submissions(LevelsAcred.png`| `?level=1` |
- * | `08-Submissions(Levels).png`    | `?panel=levels` |
- * | `07-Submissions(Phases).png`    | `?view=phases` |
- * | `07-Submissions(PhasesReqs).png`| `?view=requirements` |
+ * | `07-Submission-Main.png`                          | `/portal/submission` |
+ * | `07.1-Submissions-Levels.png`                     | `?program=<slug>` |
+ * | `07.2Submission-LevelsDropdown.png`                | same as above — visually identical export, not modelled separately |
+ * | `07.3Submission-Levels-Phases.png`                | `?program=<slug>&view=phases` |
+ * | `07.4-Submissions-Levels-Phases-DropDown.png`     | `?program=<slug>&view=phases&phase=1` |
+ * | `07.5-Submissions-Levels-Phases-Requirements.png` | `?program=<slug>&view=requirements` |
+ * | `07.6-Requirements-modal.png`                     | `?program=<slug>&view=requirements&modal=add`, or `&view=phases&phase=<n>&modal=add` |
  *
- * Content padding is 58 left / 55 right / 26 top, and the panels are 1077 wide —
- * measured, and different again from the dashboard's 61/53. Every panel here
- * shares the 41px padding and 24px title gap that `Panel` owns.
+ * The frame set adds a Programs picker ahead of the old Levels root — every
+ * later state is scoped to a `program` slug from `data.programs`, so a page
+ * with no `program` always renders that picker regardless of the other params.
  *
- * `?panel=levels` reproduces `08-Submissions(Levels).png`, which is very likely
- * a stale export: same state as `?level=1` but with the Readiness card dropped
- * and the panel retitled, on a card 5px wider than every other frame in the set.
- * Built at its own URL and flagged rather than guessed away.
+ * The Levels list no longer expands a stepper inline (compare the old asset
+ * set's `08-Submissions(LevelsAcred.png`, now deleted) — the drill-down moved
+ * one level in, onto the Phases row, which is what `phase` toggles.
  *
- * A known, deliberate divergence: `08-Submissions(LevelsAcred` draws the levels
- * box's bottom border above Levels III and IV, because the expanded stepper
- * overflowed a fixed-height Figma frame. The box here grows to contain them,
- * which is what `08-Submissions(Levels).png` does.
+ * On the Phases row, the commit marker and the rest of the row are two
+ * separate targets (`ProgressRow`'s `markerHref` vs `href`): the marker
+ * toggles `phase` in place; the rest of the row — label, bar, chevron — opens
+ * `PhaseDocumentModal`, that phase's own Add Document dialog (distinct from
+ * `AddDocumentModal` on Requirements — see both for why). Advancing the
+ * breadcrumb stage is the Panel's own "Next" / "Back to …" affordances, plus
+ * the trail itself: `Breadcrumb`'s non-final crumbs (Levels, Phases) are
+ * links back to those views.
  */
 export type SubmissionView = "levels" | "phases" | "requirements";
 
-function ReadinessPanel() {
+/**
+ * Real data, passed in.
+ *
+ * The screen was built against `PR_*` constants in `data.ts`; B4 replaced those
+ * with these props and changed nothing about the layout. That was the point of
+ * keeping the screen presentational — the swap is a page-level change, and every
+ * measured piece of geometry here is untouched by it.
+ */
+export type SubmissionProgram = { slug: string; label: string };
+
+export type SubmissionLevel = {
+  levelId: string;
+  label: string;
+  code: string;
+  percent: number;
+  requiredCount: number;
+  uploadedCount: number;
+  submissionId: string | null;
+};
+
+export type SubmissionPhase = {
+  ordinal: number;
+  label: string;
+  percent: number;
+  documents: { id: string; name: string; isOptional: boolean; uploaded: boolean }[];
+};
+
+export type SubmissionArea = {
+  id: string;
+  name: string;
+  isOptional: boolean;
+  chosen: boolean;
+  uploaded: boolean;
+};
+
+export type SubmissionData = {
+  programs: SubmissionProgram[];
+  levels: SubmissionLevel[];
+  phases: SubmissionPhase[];
+  areas: SubmissionArea[];
+  /** Null when QAC has not opened a cycle — nothing can be filed into. */
+  openCycleName: string | null;
+};
+
+function ProgramsPanel({ programs }: { programs: SubmissionProgram[] }) {
+  if (programs.length === 0) {
+    return (
+      <Panel title="Programs">
+        <p className="px-[43px] py-[24px] text-subheading text-gray">
+          You do not represent any programmes yet. The Quality Assurance Center
+          assigns them.
+        </p>
+      </Panel>
+    );
+  }
+
+  return (
+    <Panel title="Programs">
+      <RowList>
+        {programs.map((p) => (
+          <ProgressRow
+            key={p.slug}
+            label={p.label}
+            marker={false}
+            href={`/portal/submission?program=${p.slug}`}
+          />
+        ))}
+      </RowList>
+    </Panel>
+  );
+}
+
+/**
+ * OtherContext.txt gives 0 / 1-25 / 51-75 / 76-99 / 100 and skips 26-50 outright.
+ * Open item O-2 assumes 1-50 is "Partially Ready" until corrected — the same
+ * split `readiness_band()` uses in SQL, so the tile and any query agree.
+ */
+function readinessBand(percent: number): string {
+  if (percent === 0) return "Not Started";
+  if (percent <= 50) return "Partially\nReady";
+  if (percent <= 75) return "Moderately\nReady";
+  if (percent <= 99) return "Nearly\nReady";
+  return "Ready for\nEvaluation";
+}
+
+function ReadinessPanel({ levels }: { levels: SubmissionLevel[] }) {
   return (
     <Panel title="Readiness Scores">
       <div className="flex gap-[25px]">
-        {PR_READINESS.map((r) => (
-          <div key={r.level} className="flex flex-1 flex-col">
+        {levels.map((r) => (
+          <div key={r.levelId} className="flex flex-1 flex-col">
             <span className="text-center text-regular font-semibold leading-none text-gray">
-              {r.level}
+              {r.code === "PSV" ? "PSV" : `LEVEL ${r.code}`}
             </span>
             <div className="mt-[14px] flex">
               <SplitStat
-                left={{ value: `${r.percent}%`, caption: r.status, tone: "maroon" }}
+                left={{
+                  value: `${r.percent}%`,
+                  caption: readinessBand(r.percent),
+                  tone: "maroon",
+                }}
                 right={{
-                  value: `${r.missing}`,
+                  value: `${Math.max(0, r.requiredCount - r.uploadedCount)}`,
                   caption: "Missing\nDocuments",
                   tone: "yellow",
                 }}
@@ -69,26 +149,77 @@ function ReadinessPanel() {
   );
 }
 
-function LevelsPanel({ title, expanded }: { title: string; expanded: number | null }) {
+function LevelsPanel({
+  program,
+  levels,
+}: {
+  program: string;
+  levels: SubmissionLevel[];
+}) {
   return (
-    <Panel title={title}>
+    <Panel title="Accreditation Levels">
       <RowList>
-        {PR_ACCREDITATION_LEVELS.map((level, i) => {
-          const open = expanded === i + 1;
+        {levels.map((level) => (
+          <ProgressRow
+            key={level.levelId}
+            label={level.label}
+            percent={level.percent}
+            href={`/portal/submission?program=${program}&view=phases&level=${level.levelId}`}
+          />
+        ))}
+      </RowList>
+    </Panel>
+  );
+}
+
+function PhasesPanel({
+  program,
+  phase,
+  phases,
+  levelId,
+}: {
+  program: string;
+  phase: number | null;
+  phases: SubmissionPhase[];
+  levelId: string | null;
+}) {
+  // Client call: "Next" stays clickable regardless, but only takes its full
+  // maroon once every phase reads 100%. Muted is the button's own
+  // resting/incomplete look everywhere else in the kit, so this is a state
+  // switch, not a new variant.
+  const allPhasesComplete = phases.length > 0 && phases.every((p) => p.percent === 100);
+  const levelParam = levelId ? `&level=${levelId}` : "";
+
+  return (
+    <Panel
+      title="Pre-Accreditation Phases"
+      action={<BackLink href={`/portal/submission?program=${program}`} to="Levels" />}
+      footer={
+        <Button
+          variant={allPhasesComplete ? "solid" : "muted"}
+          size="lg"
+          href={`/portal/submission?program=${program}&view=requirements${levelParam}`}
+        >
+          Next
+        </Button>
+      }
+    >
+      <RowList>
+        {phases.map((p) => {
+          const n = p.ordinal;
+          const open = phase === n;
+          const base = `/portal/submission?program=${program}&view=phases${levelParam}`;
           return (
-            <div key={level.label}>
+            <div key={p.label}>
               <ProgressRow
-                label={level.label}
-                percent={level.percent}
-                href={
-                  open
-                    ? "/portal/submission?view=phases"
-                    : `/portal/submission?level=${i + 1}`
-                }
+                label={p.label}
+                percent={p.percent}
+                href={`${base}&phase=${n}&modal=add`}
+                markerHref={open ? base : `${base}&phase=${n}`}
               />
               {open && (
                 <div className="pl-[43px] pr-[58px]">
-                  <Stepper steps={PR_LEVEL_STEPS} variant="levels" />
+                  <Stepper steps={PR_PHASE_STEPS} variant="levels" />
                 </div>
               )}
             </div>
@@ -99,83 +230,177 @@ function LevelsPanel({ title, expanded }: { title: string; expanded: number | nu
   );
 }
 
-export default function ProgramRepSubmissions({
-  view = "levels",
-  level,
-  panel,
+function RequirementsPanel({
+  program,
+  areas,
+  levelId,
 }: {
-  view?: SubmissionView;
-  /** 1-based level to expand onto its stepper. */
-  level?: number;
-  /** `levels` drops the Readiness card and retitles the panel. */
-  panel?: "levels";
+  program: string;
+  areas: SubmissionArea[];
+  levelId: string | null;
 }) {
-  const bare = panel === "levels";
+  const half = Math.ceil(areas.length / 2);
+  const left = areas.slice(0, half);
+  const right = areas.slice(half);
+  const levelParam = levelId ? `&level=${levelId}` : "";
+  const addHref = (areaId: string) =>
+    `/portal/submission?program=${program}&view=requirements${levelParam}&modal=add&area=${areaId}`;
 
-  const trail: { label: string }[] =
+  return (
+    <Panel
+      title="Accreditation Requirements"
+      action={
+        <BackLink
+          href={`/portal/submission?program=${program}&view=phases${levelParam}`}
+          to="Phases"
+        />
+      }
+      footer={
+        <Button variant="muted" size="lg">
+          Submit
+        </Button>
+      }
+    >
+      <div className="flex gap-[24px]">
+        {[left, right].map((col, i) => (
+          <div key={i} className="flex-1">
+            <RowList>
+              {col.map((area) => (
+                <ProgressRow
+                  key={area.id}
+                  label={area.isOptional && !area.chosen ? `${area.name} (optional)` : area.name}
+                  marker={false}
+                  percent={area.uploaded ? 100 : undefined}
+                  href={addHref(area.id)}
+                />
+              ))}
+            </RowList>
+          </div>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
+export default function ProgramRepSubmissions({
+  program,
+  programId,
+  view = "levels",
+  phase,
+  modal,
+  levelId,
+  areaId,
+  data,
+}: {
+  program?: string;
+  /** UUID behind `program`'s slug — needed to create a submission on first
+   *  upload (D-14: lazy creation, not pre-seeded). */
+  programId?: string;
+  view?: SubmissionView;
+  /** 1-based phase to expand its inline stepper. */
+  phase?: number;
+  modal?: "add";
+  levelId?: string;
+  /** Which requirement area's row opened the modal — carried in the URL
+   *  since the Requirements grid has no other per-row state. */
+  areaId?: string;
+  data: SubmissionData;
+}) {
+  if (!program) {
+    return (
+      <div className="pb-[61px] pl-[58px] pr-[55px] pt-[26px]">
+        <ProgramsPanel programs={data.programs} />
+      </div>
+    );
+  }
+
+  const currentLevel = data.levels.find((l) => l.levelId === levelId);
+  const levelParam = levelId ? `&level=${levelId}` : "";
+  const levelsHref = `/portal/submission?program=${program}`;
+  const phasesHref = `/portal/submission?program=${program}&view=phases${levelParam}`;
+
+  const trail =
     view === "phases"
-      ? [{ label: "Levels" }, { label: "Phases" }]
+      ? [{ label: "Levels", href: levelsHref }, { label: "Phases" }]
       : view === "requirements"
-        ? [{ label: "Levels" }, { label: "Phases" }, { label: "Requirements" }]
+        ? [
+            { label: "Levels", href: levelsHref },
+            { label: "Phases", href: phasesHref },
+            { label: "Requirements" },
+          ]
         : [{ label: "Levels" }];
 
   return (
     <div className="pb-[61px] pl-[58px] pr-[55px] pt-[26px]">
-      {!bare && <ReadinessPanel />}
+      {data.openCycleName === null && (
+        <p className="mb-[18px] rounded-[10px] bg-white px-[21px] py-[12px] text-regular text-maroon shadow-card">
+          No accreditation cycle is open. Documents cannot be uploaded until the
+          Quality Assurance Center opens one.
+        </p>
+      )}
 
-      <div className={`pl-[17px] ${bare ? "" : "mt-[30px]"}`}>
+      <ReadinessPanel levels={data.levels} />
+
+      <div className="mt-[30px] pl-[17px]">
         <Breadcrumb items={trail} variant="trail" />
       </div>
 
       <div className="mt-[9px]">
-        {view === "levels" && (
-          <LevelsPanel
-            title={bare ? "Levels" : "Accreditation Levels"}
-            expanded={bare ? 1 : (level ?? null)}
+        {view === "levels" && <LevelsPanel program={program} levels={data.levels} />}
+        {view === "phases" && (
+          <PhasesPanel
+            program={program}
+            phase={phase ?? null}
+            phases={data.phases}
+            levelId={levelId ?? null}
           />
         )}
-
-        {view === "phases" && (
-          <Panel
-            title="Pre-Accreditation Phases"
-            action={<BackLink href="/portal/submission" to="Levels" />}
-            footer={
-              <Button variant="muted" size="lg">
-                Next
-              </Button>
-            }
-          >
-            <RowList>
-              {PR_PHASES.map((phase) => (
-                <ProgressRow
-                  key={phase.label}
-                  label={phase.label}
-                  percent={phase.percent}
-                  href="/portal/submission?view=requirements"
-                />
-              ))}
-            </RowList>
-          </Panel>
-        )}
-
         {view === "requirements" && (
-          <Panel
-            title="Accreditation Requirements"
-            action={<BackLink href="/portal/submission?view=phases" to="Phases" />}
-            footer={
-              <Button variant="muted" size="lg">
-                Submit
-              </Button>
-            }
-          >
-            <RowList>
-              {PR_REQUIREMENTS.map((label) => (
-                <ProgressRow key={label} label={label} marker={false} />
-              ))}
-            </RowList>
-          </Panel>
+          <RequirementsPanel
+            program={program}
+            areas={data.areas}
+            levelId={levelId ?? null}
+          />
         )}
       </div>
+
+      {modal === "add" && view === "phases" && programId && levelId && (
+        <SubmissionUploadModal
+          title="Add Document"
+          submitLabel="Save"
+          scrollBox
+          programId={programId}
+          levelId={levelId}
+          submissionId={currentLevel?.submissionId ?? null}
+          slots={(data.phases.find((p) => p.ordinal === (phase ?? 1))?.documents ?? []).map(
+            (d): UploadSlot => ({
+              key: d.id,
+              label: d.name,
+              required: true,
+              phaseDocumentId: d.id,
+            }),
+          )}
+          closeHref={`/portal/submission?program=${program}&view=phases${levelParam}${phase ? `&phase=${phase}` : ""}`}
+        />
+      )}
+      {modal === "add" && view === "requirements" && areaId && programId && levelId && (
+        <SubmissionUploadModal
+          title="Add Document"
+          submitLabel="Upload"
+          programId={programId}
+          levelId={levelId}
+          submissionId={currentLevel?.submissionId ?? null}
+          slots={[
+            { key: "document", label: "Document", required: true, requirementAreaId: areaId },
+            {
+              key: "additional",
+              label: "Additional Document (Optional)",
+              requirementAreaId: areaId,
+            },
+          ]}
+          closeHref={`/portal/submission?program=${program}&view=requirements${levelParam}`}
+        />
+      )}
     </div>
   );
 }

@@ -34,6 +34,10 @@ export type CalendarMonth = {
   marks: Record<number, DayMark>;
   /** Event titles keyed by day-of-month; a day with one is clickable. */
   events?: Record<number, string>;
+  /** Fires when Prev/Next moves the grid to a different month, so a caller
+   *  backed by real data can fetch that month's marks/events — `marks`/
+   *  `events` are a single month's data, not a lookahead cache. */
+  onMonthChange?: (year: number, month: number) => void;
 };
 
 function monthLabel(d: Date) {
@@ -45,7 +49,7 @@ function monthLabel(d: Date) {
  * six weeks of cells. Each cell shows its date top-right and a status dot
  * bottom-left. Days outside the month are greyed and carry no dot.
  */
-export default function MonthCalendar({ month, marks, events = {} }: CalendarMonth) {
+export default function MonthCalendar({ month, marks, events = {}, onMonthChange }: CalendarMonth) {
   const [cursor, setCursor] = useState(month);
   const [open, setOpen] = useState<number | null>(null);
 
@@ -65,7 +69,9 @@ export default function MonthCalendar({ month, marks, events = {} }: CalendarMon
   const sameMonth = cursor.getMonth() === month.getMonth() && cursor.getFullYear() === month.getFullYear();
   const step = (delta: number) => {
     setOpen(null);
-    setCursor(new Date(year, m + delta, 1));
+    const next = new Date(year, m + delta, 1);
+    setCursor(next);
+    onMonthChange?.(next.getFullYear(), next.getMonth() + 1);
   };
 
   const arrow = "flex h-[34px] w-[34px] items-center justify-center text-black transition-opacity hover:opacity-60";

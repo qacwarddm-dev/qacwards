@@ -1,9 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import BrandLockup from "@/components/BrandLockup";
-import DevUserSwitcher from "./DevUserSwitcher";
 import NotificationBell from "./NotificationBell";
-import { NOTIFICATIONS } from "./data";
+import { getNotifications } from "@/lib/notifications";
 import type { PortalUser } from "./portal-nav";
 
 /**
@@ -19,11 +18,16 @@ import type { PortalUser } from "./portal-nav";
  * public navbar; left inside the shell it would draw 80 x scale on any window
  * wider than 1440 and the two would drift apart again.
  *
- * `relative` carries the dev switcher only; it is absolutely positioned in the
- * bar's empty middle so it contributes no layout and the measured geometry of
- * the confirmed screens is untouched.
+ * The dev user switcher that used to sit in the bar's empty middle was deleted in
+ * B2 along with the rest of the fake-identity seam.
  */
-export default function PortalTopBar({ user }: { user: PortalUser }) {
+export default async function PortalTopBar({ user }: { user: PortalUser }) {
+  // The bar is already a server component, so the bell's rows are fetched here
+  // rather than threaded through the layout. `user.notifications` is no longer
+  // the count — that comes back with the list, so the badge and the rows can
+  // never disagree.
+  const { items, unread } = await getNotifications();
+
   return (
     <header className="relative flex h-[80px] shrink-0 items-center bg-maroon pl-[25px] pr-[25px] text-white">
       {/* Same `.brand-lockup` wrapper as the public navbar. Now that this bar is
@@ -33,10 +37,8 @@ export default function PortalTopBar({ user }: { user: PortalUser }) {
         <BrandLockup tone="white" />
       </span>
 
-      <DevUserSwitcher user={user} />
-
       <div className="ml-auto flex items-center">
-        <NotificationBell count={user.notifications} items={NOTIFICATIONS} />
+        <NotificationBell count={unread} items={items} />
 
         <Link
           href="/portal/profile"

@@ -1,13 +1,5 @@
-import {
-  IA_ASSIGNED_EVALUATIONS,
-  IA_DASHBOARD_STATS,
-  IA_EVALUATION_PROGRESS,
-  IA_UPCOMING_SCHEDULE,
-  PR_CALENDAR_MARKS,
-  PR_CALENDAR_MONTH,
-  PR_CALENDAR_TODAY,
-} from "../data";
-import { Card, CardTitleBar, type Column, DataTable, MiniCalendar, StatRow } from "../kit";
+import type { IaDashboard } from "@/lib/dashboards";
+import { Card, CardTitleBar, type Column, DataTable, MiniCalendar, type MeetingKind, StatRow } from "../kit";
 
 /**
  * Internal Accreditor dashboard — client revision (2026-07), replacing the
@@ -29,8 +21,9 @@ const EVALUATION_COLUMNS: Column[] = [
   { key: "status", header: "Status", width: "w-[100px]" },
 ];
 
-// The header literally repeats "Program" in the client's frame — see the note
-// on IA_EVALUATION_PROGRESS in data.ts.
+// The header literally repeats "Program" in the client's frame — the first
+// column's data is a campus, so this is almost certainly a client-side label
+// slip (meant "Campus"). Reproduced verbatim per house rule.
 const PROGRESS_COLUMNS: Column[] = [
   { key: "campus", header: "Program", width: "w-[180px]" },
   { key: "program", header: "Program", width: "flex-1" },
@@ -44,8 +37,16 @@ const SCHEDULE_COLUMNS: Column[] = [
   { key: "program", header: "Program", width: "flex-1", align: "left" },
 ];
 
-export default function InternalAccreditorDashboard() {
-  const evaluationRows = IA_ASSIGNED_EVALUATIONS.map((a) => ({
+export default function InternalAccreditorDashboard({
+  data,
+  schedule,
+  calendar,
+}: {
+  data: IaDashboard;
+  schedule: { id: string; date: string; title: string; program: string; collegeCampus: string }[];
+  calendar: { month: Date; today: number; marks: Record<number, MeetingKind> };
+}) {
+  const evaluationRows = data.assignedEvaluations.map((a) => ({
     id: a.id,
     cells: {
       campus: a.campus,
@@ -56,7 +57,7 @@ export default function InternalAccreditorDashboard() {
     },
   }));
 
-  const progressRows = IA_EVALUATION_PROGRESS.map((p) => ({
+  const progressRows = data.evaluationProgress.map((p) => ({
     id: p.id,
     cells: {
       campus: p.campus,
@@ -76,7 +77,7 @@ export default function InternalAccreditorDashboard() {
     },
   }));
 
-  const scheduleRows = IA_UPCOMING_SCHEDULE.map((s) => ({
+  const scheduleRows = schedule.map((s) => ({
     id: s.id,
     cells: {
       date: s.date,
@@ -105,7 +106,7 @@ export default function InternalAccreditorDashboard() {
       </section>
 
       <div className="mt-[25px]">
-        <StatRow stats={IA_DASHBOARD_STATS} />
+        <StatRow stats={data.stats} />
       </div>
 
       <Card className="mt-[18px] min-h-[180px] w-full">
@@ -135,11 +136,7 @@ export default function InternalAccreditorDashboard() {
           </div>
         </Card>
 
-        <MiniCalendar
-          month={PR_CALENDAR_MONTH}
-          today={PR_CALENDAR_TODAY}
-          marks={PR_CALENDAR_MARKS}
-        />
+        <MiniCalendar month={calendar.month} today={calendar.today} marks={calendar.marks} />
       </div>
     </div>
   );

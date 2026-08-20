@@ -3,19 +3,16 @@
  * assets/FIGMA/qac_personnel/01-Dashboard.png.
  *
  * Plain SVG rather than a chart library: phase 3a adds no dependencies, and the
- * prototype's curve is reproduced exactly by sampling it. SERIES is the swap
- * point when real data arrives — counts on the 0–300 axis, one sample per
- * 1/16th across the plot.
+ * prototype's curve is reproduced exactly by sampling it.
+ *
+ * B9 swapped the seventeen hand-sampled fake points for the four real level
+ * counts (`getQacDashboard().copcSeries`, from `current_program_level`) — the
+ * same Catmull-Rom smoothing draws a curve through four points as readily as
+ * seventeen, and four is what the data actually has one of per level.
  *
  * Absolutely positioned inside the chart card so the plot lands at the measured
  * offset (220px from the card's left edge, 37px from its top).
  */
-const SERIES = [
-  13.5, 23.9, 34.7, 60.4, 91.9, 106.3, 112.3, 115.8, 130.8, 158.1, 184.8, 193.7,
-  192.5, 191.8, 217.0, 241.1, 247.8,
-];
-
-const Y_MAX = 300;
 const X_LABELS = ["I", "II", "III", "IV"];
 
 // Plot box in CSS px at the 1440 design width.
@@ -25,10 +22,10 @@ const COLS = 8;
 const ROWS = 4;
 
 /** Catmull-Rom through the samples, emitted as cubic beziers. */
-function smoothPath(values: number[]) {
+function smoothPath(values: number[], yMax: number) {
   const pts = values.map((v, i) => ({
     x: (i * W) / (values.length - 1),
-    y: H - (v / Y_MAX) * H,
+    y: H - (v / yMax) * H,
   }));
 
   let d = `M ${pts[0].x} ${pts[0].y}`;
@@ -45,12 +42,19 @@ function smoothPath(values: number[]) {
   return d;
 }
 
-export default function CopcChart() {
+export default function CopcChart({ series }: { series: number[] }) {
+  // Round the axis top up to a clean step above the tallest bucket, so a
+  // handful of real programmes does not draw a flat line pinned to the old
+  // fake range's 300.
+  const peak = Math.max(...series, 0);
+  const step = peak <= 10 ? 5 : peak <= 50 ? 10 : peak <= 200 ? 25 : 50;
+  const yMax = Math.max(step, Math.ceil((peak || 1) / step) * step);
+
   return (
     <div className="absolute inset-x-0 top-[37px] pl-[220px] pr-[95px]">
       {/* y axis, right-aligned into the gutter left of the plot */}
       <span className="absolute left-0 top-0 w-[212px] -translate-y-1/2 text-right text-micro leading-none text-gray">
-        {Y_MAX}
+        {yMax}
       </span>
       <span className="absolute left-0 top-[236px] w-[210px] -translate-y-[85%] text-right text-micro leading-none text-gray">
         0
@@ -87,7 +91,7 @@ export default function CopcChart() {
         </g>
 
         <path
-          d={smoothPath(SERIES)}
+          d={smoothPath(series, yMax)}
           fill="none"
           stroke="var(--color-maroon)"
           strokeWidth={2}

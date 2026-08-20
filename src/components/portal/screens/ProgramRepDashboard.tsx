@@ -1,19 +1,12 @@
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
-import {
-  PR_CALENDAR_MARKS,
-  PR_CALENDAR_MONTH,
-  PR_CALENDAR_TODAY,
-  PR_DASHBOARD_STATS,
-  PR_DOC_STATUS,
-  PR_ONGOING_ACCREDITATION,
-  PR_RECENT_UPLOADS,
-} from "../data";
+import type { RepDashboard } from "@/lib/dashboards";
 import {
   Card,
   CardTitleBar,
   DataTable,
   MiniCalendar,
+  type MeetingKind,
   StatRow,
   StatusBarChart,
   UploadList,
@@ -45,8 +38,14 @@ const COLUMNS = [
   { key: "accreditor", header: "Assigned Accreditor", width: "w-[198px]" },
 ];
 
-export default function ProgramRepDashboard() {
-  const rows = PR_ONGOING_ACCREDITATION.map((a) => ({
+export default function ProgramRepDashboard({
+  data,
+  calendar,
+}: {
+  data: RepDashboard;
+  calendar: { month: Date; today: number; marks: Record<number, MeetingKind> };
+}) {
+  const rows = data.ongoing.map((a) => ({
     id: a.id,
     cells: {
       program: <span className="block truncate">{a.program}</span>,
@@ -68,7 +67,7 @@ export default function ProgramRepDashboard() {
       </section>
 
       <div className="mt-[20px]">
-        <StatRow stats={PR_DASHBOARD_STATS} />
+        <StatRow stats={data.stats} />
       </div>
 
       {/* Left column flexes, right column stays at the frame's 450 — so the pair
@@ -78,7 +77,7 @@ export default function ProgramRepDashboard() {
       <div className="mt-[20px] flex gap-[21px]">
         <Card className="h-[294px] min-w-0 flex-1 overflow-hidden">
           <CardTitleBar title="Document Status Distribution" divider />
-          <StatusBarChart bars={PR_DOC_STATUS} />
+          <StatusBarChart bars={data.docStatus} max={data.docStatusMax} />
         </Card>
 
         <Card className="flex h-[294px] w-[450px] flex-col overflow-hidden">
@@ -95,7 +94,7 @@ export default function ProgramRepDashboard() {
               </Link>
             }
           />
-          <UploadList uploads={PR_RECENT_UPLOADS} />
+          <UploadList uploads={data.recentUploads} />
         </Card>
       </div>
 
@@ -108,11 +107,7 @@ export default function ProgramRepDashboard() {
           </div>
         </Card>
 
-        <MiniCalendar
-          month={PR_CALENDAR_MONTH}
-          today={PR_CALENDAR_TODAY}
-          marks={PR_CALENDAR_MARKS}
-        />
+        <MiniCalendar month={calendar.month} today={calendar.today} marks={calendar.marks} />
       </div>
     </div>
   );

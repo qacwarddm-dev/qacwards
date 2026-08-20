@@ -1,5 +1,6 @@
 import { Download, GitCommitHorizontal } from "lucide-react";
-import { IA_EVALUATION_STEPS, IA_EVALUATIONS } from "../data";
+import { ASSIGNMENT_STEPS } from "../data";
+import type { EvaluationListRow } from "@/lib/assignments";
 import { type Column, DataTable, Panel, Stepper } from "../kit";
 
 /**
@@ -10,6 +11,9 @@ import { type Column, DataTable, Panel, Stepper } from "../kit";
  * with a download action in the panel header and the evaluation stepper
  * expanded under the second row. Rows link to the per-document evaluation sheet
  * (`03.1` / `03.2`), which lives at `/portal/evaluation/[id]`.
+ *
+ * B9/task 2 made this the fetching half: `rows` comes from
+ * `getMyEvaluationAssignments()` (src/lib/assignments.ts).
  */
 const COLUMNS: Column[] = [
   { key: "campus", header: "Campus", width: "w-[150px]" },
@@ -20,8 +24,17 @@ const COLUMNS: Column[] = [
   { key: "score", header: "Score", width: "w-[150px]" },
 ];
 
-export default function InternalAccreditorEvaluation() {
-  const rows = IA_EVALUATIONS.map((e, i) => ({
+/** `assignment_status` in its five-step order — positionally the same order
+ *  `ASSIGNMENT_STEPS`' labels were drawn in. */
+const STATUS_ORDER = ["assigned", "in_progress", "for_psv", "evaluated", "score_returned"];
+
+function stepsForStatus(status: string) {
+  const at = STATUS_ORDER.indexOf(status);
+  return ASSIGNMENT_STEPS.map((step, i) => ({ ...step, done: at >= 0 && i <= at }));
+}
+
+export default function InternalAccreditorEvaluation({ rows: data }: { rows: EvaluationListRow[] }) {
+  const rows = data.map((e, i) => ({
     id: e.id,
     href: `/portal/evaluation/${e.id}`,
     cells: {
@@ -32,11 +45,12 @@ export default function InternalAccreditorEvaluation() {
       accreditor: e.accreditor,
       score: <span className="italic text-gray">{e.score}</span>,
     },
-    // The prototype leaves the second row expanded onto its evaluation track.
+    // The most recently created assignment is the one worth showing expanded
+    // — data is ordered newest-first, so that is the first row, not the last.
     detail:
-      i === IA_EVALUATIONS.length - 1 ? (
+      i === 0 ? (
         <div className="px-[54px] pb-[26px] pt-[10px]">
-          <Stepper steps={IA_EVALUATION_STEPS} />
+          <Stepper steps={stepsForStatus(e.status)} />
         </div>
       ) : undefined,
   }));
@@ -55,17 +69,23 @@ export default function InternalAccreditorEvaluation() {
           </button>
         }
       >
-        <DataTable
-          columns={COLUMNS}
-          rows={rows}
-          leading={() => (
-            <GitCommitHorizontal
-              className="h-[20px] w-[20px] text-maroon"
-              strokeWidth={2}
-              aria-hidden
-            />
-          )}
-        />
+        {rows.length > 0 ? (
+          <DataTable
+            columns={COLUMNS}
+            rows={rows}
+            leading={() => (
+              <GitCommitHorizontal
+                className="h-[20px] w-[20px] text-maroon"
+                strokeWidth={2}
+                aria-hidden
+              />
+            )}
+          />
+        ) : (
+          <p className="px-[54px] py-[30px] text-regular text-gray">
+            No assignments yet. They appear here once QAC assigns you to a submission.
+          </p>
+        )}
       </Panel>
     </div>
   );

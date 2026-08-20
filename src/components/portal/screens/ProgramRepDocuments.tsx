@@ -3,10 +3,17 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   PR_ACCREDITATION_FOLDERS,
-  PR_COMMON_DOCUMENTS,
-  PR_TEMPLATE_SECTIONS,
+  PR_LEVEL_CARDS,
+  PR_LEVEL_TEMPLATES,
 } from "../data";
-import { Button, DocCard, DocTabs, SearchField, ViewToggle } from "../kit";
+import { BackLink, Button, CoverCard, DocCard, DocFileGrid, DocTabs, SearchField, ViewToggle } from "../kit";
+import NdaUpload from "./NdaUpload";
+
+/** One common document, as read from the database. */
+export type CommonDocument = { id: string; title: string };
+
+/** One file inside an AACCUP/COPC repository folder. */
+export type RepositoryFile = { id: string; title: string };
 
 export type DocsTab = "templates" | "common" | "reports";
 
@@ -20,11 +27,13 @@ const TABS = [
 const GRID = "grid grid-cols-4 gap-x-[27px] gap-y-[27px]";
 
 /**
- * Program Representative → Documents. One panel, three tabs, five frames:
+ * Program Representative → Documents. One panel, three tabs:
  *
  * | frame | state |
  * |---|---|
- * | 02-Documents                    | Templates |
+ * | 02-Documents                    | Templates, level selector |
+ * | 02.01-HoverState                | Templates, level card hover panel |
+ * | 02.1-PSV-LVL2 / 02.2-LVL3 / 02.3-LVL4 | Templates, inside a level |
  * | 03-CommonsDocument(NDA)         | Common Documents, NDA not yet signed |
  * | 04-CommonDocuments(NDAFiles)    | Common Documents, unlocked |
  * | 05-AccreditationFiles           | AACCUP & COPC Reports, folder list |
@@ -35,37 +44,66 @@ const GRID = "grid grid-cols-4 gap-x-[27px] gap-y-[27px]";
  */
 export default function ProgramRepDocuments({
   tab = "templates",
+  level,
   ndaSigned = false,
   folder,
+  commonDocuments = [],
+  repositoryFiles = [],
 }: {
   tab?: DocsTab;
-  /** Common Documents is gated behind a signed NDA — frame 03 vs 04. */
+  /** Set ⇒ inside one of the three `PR_LEVEL_TEMPLATES` grids (02.1–02.3). */
+  level?: string;
+  /**
+   * Frame 03 vs 04. This only chooses which panel is drawn — the gate itself is
+   * an RLS policy on `common_documents` plus one on the `common-docs` bucket, so
+   * a user without an NDA gets an empty list and cannot fetch a file whose path
+   * they already know. UI hiding is not access control (§B10).
+   */
   ndaSigned?: boolean;
   /** Set ⇒ inside a folder on the reports tab (frame 06). */
   folder?: string;
+  commonDocuments?: CommonDocument[];
+  repositoryFiles?: RepositoryFile[];
 }) {
   return (
     <div className="pl-[95px] pr-[96px] pt-[20px] pb-[22px]">
       <DocTabs tabs={TABS} active={tab} />
 
-      <div className="h-[659px] w-[1000px] rounded-[20px] bg-white shadow-card">
-        {tab === "templates" && <TemplatesTab />}
-        {tab === "common" && (ndaSigned ? <CommonFilesTab /> : <NdaGate />)}
-        {tab === "reports" && <ReportsTab folder={folder} />}
+      {/* `min-h`, not a fixed `h` — a tall level grid (Level III's 7 cards
+          across two sections) needs to grow the panel rather than spill its
+          last row past the rounded corners. */}
+      <div className="min-h-[659px] w-[1000px] rounded-[20px] bg-white shadow-card">
+        {tab === "templates" && <TemplatesTab level={level} />}
+        {tab === "common" &&
+          (ndaSigned ? <CommonFilesTab documents={commonDocuments} /> : <NdaGate />)}
+        {tab === "reports" && <ReportsTab folder={folder} files={repositoryFiles} />}
       </div>
     </div>
   );
 }
 
-function TemplatesTab() {
+/** Frame 02.1/02.2/02.3 — the document grid inside one accreditation level. */
+function LevelTemplatesTab({ level }: { level: string }) {
+  const entry = PR_LEVEL_TEMPLATES[level];
+  if (!entry) return null;
+
   return (
-    <div className="px-[73px] pt-[43px]">
-      {PR_TEMPLATE_SECTIONS.map((section, i) => (
-        <section key={section.title} className={i ? "mt-[42px]" : ""}>
-          <h2 className="text-subheading font-semibold leading-none text-black">
-            {section.title}
-          </h2>
-          <div className={`mt-[19px] ${GRID}`}>
+    <div className="px-[73px] pb-[43px] pt-[43px]">
+      <div className="relative flex h-[24px] items-center justify-center">
+        <h2 className="text-heading font-bold leading-none text-black">{entry.heading}</h2>
+        <span className="absolute right-0">
+          <BackLink href="/portal/documents" />
+        </span>
+      </div>
+
+      {entry.sections.map((section, i) => (
+        <section key={section.title ?? i} className={i ? "mt-[42px]" : "mt-[34px]"}>
+          {section.title && (
+            <h3 className="text-subheading font-semibold leading-none text-black">
+              {section.title}
+            </h3>
+          )}
+          <div className={`${section.title ? "mt-[19px]" : ""} ${GRID}`}>
             {section.documents.map((d) => (
               <DocCard key={d} title={d} />
             ))}
@@ -76,11 +114,58 @@ function TemplatesTab() {
   );
 }
 
-function CommonFilesTab() {
+function TemplatesTab({ level }: { level?: string }) {
+  if (level) return <LevelTemplatesTab level={level} />;
+
   return (
-    <div className={`px-[73px] pt-[43px] ${GRID}`}>
-      {PR_COMMON_DOCUMENTS.map((d, i) => (
-        <DocCard key={`${d}-${i}`} title={d} />
+    <div className="px-[73px] pb-[43px] pt-[43px]">
+      <p className="text-center text-regular leading-none text-gray">
+        Click the <strong className="font-bold text-maroon">Accreditation Level</strong> to see
+        all the document templates.
+      </p>
+
+      <div className="mt-[45px] flex justify-center gap-[36px]">
+        {PR_LEVEL_CARDS.map((c) => (
+          <CoverCard
+            key={c.key}
+            variant="level"
+            label={c.label}
+            href={`/portal/documents?level=${c.key}`}
+            image="/assets/portal/documents-cover.jpg"
+            ctaLabel="View Templates"
+            preview={
+              <>
+                <span>{c.description}</span>
+                <span className="mt-[14px] block font-bold">{c.total}</span>
+                <span className="mt-[6px] block whitespace-pre-line">{c.breakdown}</span>
+              </>
+            }
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CommonFilesTab({ documents }: { documents: CommonDocument[] }) {
+  if (documents.length === 0) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p className="text-subheading text-gray">
+          No common documents have been published yet.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`px-[73px] pb-[43px] pt-[43px] ${GRID}`}>
+      {documents.map((d) => (
+        <DocCard
+          key={d.id}
+          title={d.title}
+          href={`/api/documents/download?source=common&id=${d.id}`}
+        />
       ))}
     </div>
   );
@@ -104,13 +189,7 @@ function NdaGate() {
         className="mt-[26px] h-[100px] w-auto object-contain"
       />
 
-      <button
-        type="button"
-        className="mt-[30px] flex h-[36px] items-center gap-[10px] rounded-[8px] border border-[color:var(--color-gray)]/40 bg-white px-[20px] text-regular leading-none text-gray shadow-card"
-      >
-        <Monitor className="h-[16px] w-[16px]" strokeWidth={2} aria-hidden />
-        Upload from computer
-      </button>
+      <NdaUpload />
 
       <Link
         href="#"
@@ -126,10 +205,16 @@ function NdaGate() {
 }
 
 /** Frames 05 and 06 — folder list, then the documents inside one. */
-function ReportsTab({ folder }: { folder?: string }) {
+function ReportsTab({
+  folder,
+  files,
+}: {
+  folder?: string;
+  files: RepositoryFile[];
+}) {
   return (
     // Reports uses a 54px inset, not Templates' 73 — measured per tab.
-    <div className="px-[54px] pt-[42px]">
+    <div className="px-[54px] pb-[42px] pt-[42px]">
       <div className="flex h-[43px] items-center">
         <div className="w-[494px]">
           <SearchField />
@@ -153,11 +238,7 @@ function ReportsTab({ folder }: { folder?: string }) {
               Back
             </Link>
           </div>
-          <div className={`mt-[16px] ${GRID}`}>
-            {PR_COMMON_DOCUMENTS.slice(0, 4).map((d, i) => (
-              <DocCard key={`${d}-${i}`} title={d} />
-            ))}
-          </div>
+          <DocFileGrid files={files} />
         </>
       ) : (
         <div className="mt-[78px] flex gap-[36px]">

@@ -1,0 +1,21 @@
+// Standalone build for the seed generator.
+//
+// The generator has to run in plain Node, not Next's bundler. Node 20 cannot
+// execute TypeScript directly (`--experimental-strip-types` landed in 22.6), and
+// adding a TS runner would mean a dependency the plan does not approve — so the
+// already-installed `typescript` compiles the generator and the reference modules
+// to CommonJS in a gitignored folder, and `node` runs that.
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "outDir": "../.seed-build",
+    "rootDir": "..",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "include": ["./gen-seed.ts", "../src/lib/reference/**/*.ts"]
+}

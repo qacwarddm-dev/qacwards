@@ -1,13 +1,21 @@
 import CopcChart from "@/components/portal/CopcChart";
-import { DASHBOARD_STATS } from "@/components/portal/data";
-import { StatRow } from "@/components/portal/kit";
+import { StatRow, type Stat } from "@/components/portal/kit";
 
 /**
  * QAC Personnel dashboard — assets/FIGMA/qac_personnel/01-Dashboard.png.
  * Paddings are back-solved from measured cap-top positions with the formula in
  * design/prototype-notes.md, so they will not look like round design numbers.
+ *
+ * B9 made this the presentational half: `data` comes from
+ * `getQacDashboard()` (`src/lib/dashboards.ts`), read by
+ * `/portal/dashboard/page.tsx`. Also rendered for `qac_admin`, which has no
+ * dashboard frames of its own and shares this one.
  */
-export default function QacPersonnelDashboard() {
+export default function QacPersonnelDashboard({
+  data,
+}: {
+  data: { stats: Stat[]; copcSeries: number[] };
+}) {
   return (
     <div className="px-[57px] pt-[45px] pb-[45px]">
       <section className="h-[180px] rounded-lg bg-maroon px-[26px] pt-[20px] text-white shadow-card">
@@ -21,7 +29,7 @@ export default function QacPersonnelDashboard() {
       </section>
 
       <div className="mt-[25px]">
-        <StatRow stats={DASHBOARD_STATS} />
+        <StatRow stats={data.stats} />
       </div>
 
       <section className="relative mt-[26px] h-[320px] rounded-lg bg-white shadow-card">
@@ -30,7 +38,7 @@ export default function QacPersonnelDashboard() {
           <br />
           With Issued COPCs
         </h2>
-        <CopcChart />
+        <CopcChart series={data.copcSeries} />
       </section>
     </div>
   );

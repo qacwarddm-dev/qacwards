@@ -2,15 +2,23 @@
 
 import { Bell } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 import type { PortalNotification } from "./data";
+import {
+  markAllNotificationsRead,
+  markNotificationRead,
+} from "@/lib/notification-actions";
 
 /**
  * Top-bar bell plus the dropdown it opens
  * (assets/FIGMA/qac_personnel/interactables/overall-notifications-button). The
  * frame is a 2x export, so every measurement here is halved. Split out of
  * PortalTopBar because the panel needs open/close state — the bar stays a server
- * component and passes the fake list down.
+ * component and passes the list down.
+ *
+ * B8 made the list real. Two affordances the frame drew were inert and now
+ * work: "Read All (n)" and the All / Unread tabs. Geometry is unchanged.
  */
 export default function NotificationBell({
   count,
@@ -20,6 +28,27 @@ export default function NotificationBell({
   items: PortalNotification[];
 }) {
   const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState<"all" | "unread">("all");
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+
+  const visible = tab === "unread" ? items.filter((n) => n.unread) : items;
+
+  function openRow(n: PortalNotification) {
+    startTransition(async () => {
+      if (n.unread) await markNotificationRead(n.id);
+      setOpen(false);
+      if (n.href) router.push(n.href);
+      else router.refresh();
+    });
+  }
+
+  function readAll() {
+    startTransition(async () => {
+      await markAllNotificationsRead();
+      router.refresh();
+    });
+  }
 
   return (
     <div className="relative flex items-center">
@@ -35,9 +64,13 @@ export default function NotificationBell({
           fill="currentColor"
           strokeWidth={1.5}
         />
-        <span className="absolute right-[-0.5px] top-[0.5px] flex h-[10px] w-[10px] items-center justify-center rounded-full bg-alert text-[7px] font-bold leading-none text-white">
-          {count}
-        </span>
+        {/* The badge is drawn only when there is something to count. A "0" in a
+            red dot reads as an alert about nothing. */}
+        {count > 0 && (
+          <span className="absolute right-[-0.5px] top-[0.5px] flex h-[10px] w-[10px] items-center justify-center rounded-full bg-alert text-[7px] font-bold leading-none text-white">
+            {count > 9 ? "9+" : count}
+          </span>
+        )}
       </button>
 
       {open && (
@@ -55,19 +88,35 @@ export default function NotificationBell({
               <h2 className="text-heading font-bold leading-none">Notifications</h2>
               <button
                 type="button"
-                className="text-regular font-semibold leading-none text-maroon transition-opacity hover:opacity-70"
+                onClick={readAll}
+                disabled={pending || count === 0}
+                className="text-regular font-semibold leading-none text-maroon transition-opacity hover:opacity-70 disabled:opacity-40"
               >
                 Read All ({count})
               </button>
             </div>
 
             <div className="mt-[18px] flex gap-[24px] text-subheading font-bold leading-none">
-              <span className="text-black">All</span>
-              <span className="text-gray">Unread</span>
+              {(["all", "unread"] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setTab(t)}
+                  className={tab === t ? "text-black" : "text-gray"}
+                >
+                  {t === "all" ? "All" : "Unread"}
+                </button>
+              ))}
             </div>
 
+            {visible.length === 0 && (
+              <p className="mt-[24px] text-subheading leading-none text-gray">
+                {tab === "unread" ? "Nothing unread." : "No notifications yet."}
+              </p>
+            )}
+
             {(["new", "earlier"] as const).map((section) => {
-              const rows = items.filter((n) => n.section === section);
+              const rows = visible.filter((n) => n.section === section);
               if (!rows.length) return null;
               return (
                 <div key={section} className="mt-[20px]">
@@ -76,9 +125,11 @@ export default function NotificationBell({
                   </h3>
                   <div className="mt-[8px] flex flex-col">
                     {rows.map((n) => (
-                      <div
+                      <button
                         key={n.id}
-                        className={`flex items-start gap-[16px] rounded-[16px] px-[20px] py-[14px] ${
+                        type="button"
+                        onClick={() => openRow(n)}
+                        className={`flex items-start gap-[16px] rounded-[16px] px-[20px] py-[14px] text-left transition-opacity hover:opacity-85 ${
                           n.unread ? "bg-highlight" : ""
                         }`}
                       >
@@ -101,7 +152,7 @@ export default function NotificationBell({
                         {n.unread && (
                           <span className="mt-[3px] h-[10px] w-[10px] shrink-0 self-center rounded-full bg-link" />
                         )}
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </div>

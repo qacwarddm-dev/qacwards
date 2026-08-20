@@ -3,7 +3,7 @@
  * Figma frames. This whole file is the swap point when the backend lands —
  * nothing else needs to change (plans/03a-portal-ui-static.md).
  */
-import type { DayMark, MeetingKind, Stat, StatusBar, Step, Upload } from "./kit";
+import type { Step } from "./kit";
 import type { PortalUser } from "./portal-nav";
 
 export const QAC_SEAL = "/assets/logos/qac.png";
@@ -68,34 +68,13 @@ export type PortalNotification = {
   time: string;
   section: "new" | "earlier";
   unread?: boolean;
+  /** Where clicking the row goes. Written by the trigger that raised it. */
+  href?: string;
 };
 
-export const NOTIFICATIONS: PortalNotification[] = [
-  {
-    id: "n1",
-    avatar: "/assets/portal/avatar-notif-1.png",
-    name: "Juan Dela Cruz",
-    body: "is assigned as your program accreditor.",
-    time: "44m",
-    section: "new",
-  },
-  {
-    id: "n2",
-    avatar: "/assets/portal/avatar-notif-2.png",
-    name: "Juan Dela Cruz",
-    body: "is assigned as your program accreditor.",
-    time: "2d",
-    section: "earlier",
-    unread: true,
-  },
-  {
-    id: "n3",
-    avatar: "/assets/portal/avatar-notif-3.png",
-    body: "Webmail is verified successfully.",
-    time: "7d",
-    section: "earlier",
-  },
-];
+/* B8 replaced the fake NOTIFICATIONS list with `getNotifications()`
+ * (src/lib/notifications.ts). The type stays here because it is the bell's prop
+ * shape, which the Figma frame defines and the database does not. */
 
 function slug(name: string) {
   return name
@@ -187,14 +166,6 @@ export const DOCUMENT_FOLDERS = [
   { name: "Other Files", badge: QAC_SEAL },
 ].map((f) => ({ ...f, slug: slug(f.name) }));
 
-/** Files shown inside a populated folder. Every other folder renders empty. */
-export const SAMPLE_FILES = [
-  {
-    name: "Bachelor of Science in Information Technology.pdf",
-    thumbnail: "/assets/portal/doc-thumb-sample.png",
-  },
-];
-
 export const ASSIGNMENT_STEPS: Step[] = [
   { label: "Assigned", done: true },
   { label: "File Uploaded", done: true },
@@ -203,198 +174,125 @@ export const ASSIGNMENT_STEPS: Step[] = [
   { label: "Return Score" },
 ];
 
-export const ASSIGNMENTS = [
-  {
-    id: "a1",
-    campus: "Sta. Mesa, Manila",
-    college: "CCIS",
-    program: "Bachelor of Science in Information Technology",
-    level: "IV",
-    accreditor: "Dela Cruz, Pedro Juan B.",
-    score: "Not yet released",
-  },
-  {
-    id: "a2",
-    campus: "Sta. Mesa, Manila",
-    college: "CCIS",
-    program: "Bachelor of Science in Information Technology",
-    level: "IV",
-    accreditor: "Dela Cruz, Pedro Juan B.",
-    score: "Not yet released",
-  },
-];
+/* This task replaced ASSIGNMENTS — `/portal/assignment`'s QAC Personnel
+ * branch now reads `getAssignments()` (src/lib/assignments.ts), same as the
+ * Internal Accreditor branch already did. */
 
-/**
- * qac_personnel/03.1-Create new assignment.png — the form the "New" button opens.
- * Each field shows one selected value from the frame; the extra options are short
- * fakes so the wired dropdown has alternatives to reveal. `defaultValue` is the
- * frame's shown pick (Level pre-selects "IV", which is not the list's first item).
- */
-export const NEW_ASSIGNMENT_FIELDS = {
-  campus: {
-    label: "Campus",
-    defaultValue: "Sta. Mesa, Manila",
-    options: ["Sta. Mesa, Manila", "Taguig City", "Quezon City", "San Juan City"],
-  },
-  department: {
-    label: "Department",
-    defaultValue: "College of Computer and Information Sciences",
-    options: [
-      "College of Computer and Information Sciences",
-      "College of Engineering",
-      "College of Science",
-      "College of Business Administration",
-    ],
-  },
-  program: {
-    label: "Program",
-    defaultValue: "Bachelor of Science in Information Technology",
-    options: [
-      "Bachelor of Science in Information Technology",
-      "Bachelor of Science in Computer Science",
-      "Bachelor of Science in Information Systems",
-    ],
-  },
-  level: { label: "Level", defaultValue: "IV", options: ["I", "II", "III", "IV"] },
-};
+/* Task 2 replaced NEW_ASSIGNMENT_FIELDS and ELIGIBLE_ACCREDITORS —
+ * `/portal/assignment/new/page.tsx` now loads real campuses/colleges/programs
+ * and `fetchEligibleAccreditors()` (src/lib/assignment-actions.ts). */
 
-/**
- * The "Eligible Accreditors" table on the same frame. Expertise is transcribed
- * verbatim, ellipsis and all, so the centred cells match the prototype exactly
- * (the frame clips the first and third rows).
- */
-export const ELIGIBLE_ACCREDITORS = [
-  {
-    id: "ea1",
-    name: "Santos, Mark Anthony R.",
-    expertise: "Web Development, Cybersecurity, Software Enginee...",
-  },
-  {
-    id: "ea2",
-    name: "Reyes, Christine Joy R.",
-    expertise: "UI/UX Design, Data Analytics, Digital Forensics",
-  },
-  {
-    id: "ea3",
-    name: "Torres, Adrian Kyle D.",
-    expertise: "Network Administration, Cloud Computing, Internet...",
-  },
-];
+/* Task 6 replaced REPORT_STATS with `getReportsStats()` (src/lib/dashboards.ts) — decision 18.
+ * REPORTS had no real backing (there is no `reports` table); `/portal/reports` now shows the
+ * honest empty state instead. */
 
-export const REPORT_STATS: Stat[] = [
-  { label: "ACADEMIC OFFERED", value: "232", note: "As of April 2025" },
-  { label: "MAIN CAMPUS", value: "97", note: "As of April 2025" },
-  { label: "CAMPUSES", value: "135", note: "As of April 2025" },
-  { label: "WITH COPC", value: "212", note: "As of April 2025" },
-  { label: "NOT ACCREDITABLE", value: "30", note: "As of April 2025" },
-];
+/* B9 replaced DASHBOARD_STATS with `getQacDashboard()` (src/lib/dashboards.ts). */
 
-export const REPORTS = [
-  {
-    id: "r1",
-    type: "Target Accreditation Status - 2027",
-    modifiedBy: "Mendoza, Angela Mae D.",
-    generated: "04/15/2026",
-  },
-];
-
-export const DASHBOARD_STATS: Stat[] = [
-  { label: "LEVEL I", value: "22", note: "1.10% Since last month", trend: true },
-  { label: "LEVEL II", value: "42", note: "1.10% Since last month", trend: true },
-  { label: "LEVEL III", value: "48", note: "1.10% Since last month", trend: true },
-  { label: "LEVEL IV", value: "106", note: "1.10% Since last month", trend: true },
-  { label: "OVERALL", value: "218", note: "As of March 2026" },
-];
-
-/** December 2025 as drawn in the prototype: mostly vacant, four holidays. */
-export const EVENT_MONTH = new Date(2025, 11, 1);
-export const EVENT_MARKS: Record<number, DayMark> = (() => {
-  const marks: Record<number, DayMark> = {};
-  for (let d = 1; d <= 31; d++) marks[d] = "vacant";
-  for (const d of [8, 25, 30, 31]) marks[d] = "holiday";
-  return marks;
-})();
-
-/**
- * Titles shown in the day-click popup (qac_personnel/interactables/
- * CalendarEvents-Click). Dec 8 is transcribed verbatim from the frame; the other
- * three are the actual Philippine regular holidays that fall on those December
- * dates, so the popup reads correctly on every marked day rather than only the
- * one the frame happened to open.
- */
-export const EVENT_TITLES: Record<number, string> = {
-  8: "Feast of the Immaculate Conception",
-  25: "Christmas Day",
-  30: "Rizal Day",
-  31: "Last Day of the Year",
-};
+/* Task 2 replaced EVENT_MONTH/EVENT_MARKS/EVENT_TITLES — `/portal/events` now
+ * reads `getMonthEvents()` (src/lib/events.ts) through `EventsCalendar`. The
+ * fake data marked every single day "vacant" (yellow) by default; real events
+ * leave a day unmarked unless it actually carries one, so `CalendarLegend`'s
+ * "Vacant Day" entry is currently unreachable — worth the owner's eye. */
 
 /* ---------------------------------------------------------------------------
  * program_representative — assets/FIGMA/program_representative/01-Dashboard.png
  * ------------------------------------------------------------------------- */
 
-export const PR_DASHBOARD_STATS: Stat[] = [
-  { label: "COMPLETION RATE", value: "0%", note: "As of March 2026" },
-  { label: "LEVEL II", value: "5", note: "As of March 2026" },
-  { label: "LEVEL III", value: "6", note: "As of March 2026" },
-  { label: "LEVEL IV", value: "12", note: "As of March 2026" },
-  { label: "DEPARTMENT PROGRAMS", value: "23", note: "As of March 2026" },
-];
+/* B9 replaced PR_DASHBOARD_STATS, PR_ONGOING_ACCREDITATION, PR_CALENDAR_*,
+ * PR_DOC_STATUS and PR_RECENT_UPLOADS with `getRepDashboard()` and
+ * `getMiniCalendarData()` (src/lib/dashboards.ts). */
 
-export const PR_ONGOING_ACCREDITATION = [
+/**
+ * program_representative/02-Documents.png — the Templates tab's landing state:
+ * three level-selector cards. `total`/`breakdown` are the hover panel's copy
+ * from 02.01-HoverState.png; `key` is the `?level=` slug that opens the
+ * matching entry in `PR_LEVEL_TEMPLATES`.
+ */
+export const PR_LEVEL_CARDS = [
   {
-    id: "a1",
-    // The frame shows this truncated with an ellipsis inside the cell.
-    program: "Bachelor of Science in Information Technology",
-    level: "II",
-    accreditor: "Dela Cruz, Pedro Juan B.",
+    key: "psv-lvl2",
+    label: "PSV - LEVEL II",
+    description:
+      "Template toolkit for Preliminary Survey Visit, Level I, and Level II requirements.",
+    total: "28 REQUIRED TEMPLATE (Each)",
+    breakdown: "18 Pre-Accreditation\n10 Accreditation Requirements",
+  },
+  {
+    key: "level3",
+    label: "LEVEL III",
+    description: "Template toolkit for Level III accreditation requirements.",
+    total: "22 REQUIRED TEMPLATE",
+    breakdown: "18 Pre-Accreditation\n4 Accreditation Requirements",
+  },
+  {
+    key: "level4",
+    label: "LEVEL IV",
+    description: "Template toolkit for Level IV accreditation requirements.",
+    total: "23 REQUIRED TEMPLATE",
+    breakdown: "18 Pre-Accreditation\n5 Accreditation Requirements",
   },
 ];
 
 /**
- * The frame's month is 31 days beginning on a Monday, with 2 circled as today
- * and 19 marked — January 2024 is the month that fits. Only the month name is
- * drawn, so the year is not visible.
+ * Per-level document grids — 02.1-PSV-LVL2.png, 02.2-LVL3.png, 02.3-LVL4.png.
+ * PSV/Level II shares the same ten Areas the Submission Requirements list uses
+ * (`PR_REQUIREMENT_AREAS`); Level III groups its cards under two headings,
+ * Level IV has none.
  */
-export const PR_CALENDAR_MONTH = new Date(2024, 0, 1);
-export const PR_CALENDAR_TODAY = 2;
-export const PR_CALENDAR_MARKS: Record<number, MeetingKind> = { 19: "psv" };
-
-export const PR_DOC_STATUS: StatusBar[] = [
-  { status: "approved", value: 33 },
-  { status: "pending", value: 39 },
-  { status: "disapproved", value: 13 },
-];
-
-export const PR_RECENT_UPLOADS: Upload[] = [
-  {
-    id: "u1",
-    title: "BSIT Level III Re-Accredition Files",
-    uploadedBy: "Juan Dela Cruz",
-    when: "18 hours, 16 mins ago",
-    status: "pending",
-    kind: "link",
-  },
-  { id: "u2", title: "File Name", uploadedBy: "Name", when: "18 hours, 16 mins ago", status: "pending" },
-  { id: "u3", title: "File Name", uploadedBy: "Name", when: "18 hours, 16 mins ago", status: "approved" },
-  // Deliberately overflows the card — the frame clips its fourth row.
-  { id: "u4", title: "File Name", uploadedBy: "Name", when: "18 hours, 16 mins ago", status: "pending" },
-];
-
-/** program_representative/02-Documents.png — the Templates tab. */
-export const PR_TEMPLATE_SECTIONS = [
-  {
-    title: "Narrative Reports",
-    documents: ["EXTENSION", "FACULTY DEVELOPMENT", "INSTRUCTIONS", "LINKAGES & CONSORTIA"],
-  },
-  {
-    title: "Compliance Reports",
-    documents: [
-      "AREA 1", "AREA 2", "AREA 3", "AREA 4",
-      "AREA 5", "AREA 6", "AREA 7", "AREA 8",
+export const PR_LEVEL_TEMPLATES: Record<
+  string,
+  { heading: string; sections: { title?: string; documents: string[] }[] }
+> = {
+  "psv-lvl2": {
+    heading: "PRELIMINARY SURVEY VISIT, LEVEL I, & LEVEL II",
+    sections: [
+      {
+        documents: [
+          "Area I - VMGO",
+          "Area II - Faculty",
+          "Area III - Curriculum & Instruction",
+          "Area IV - Support to Students",
+          "AREA V - Research",
+          "AREA VI - Extension & Community Involvement",
+          "Area VII - Library",
+          "Area VIII - Physical Plant & Facilities",
+          "Area IX - Laboratories",
+          "Area X - Administration",
+        ],
+      },
     ],
   },
-];
+  level3: {
+    heading: "LEVEL III",
+    sections: [
+      { title: "MANDATORY", documents: ["Instruction", "Extension"] },
+      {
+        title: "With Two (2) Program Choices",
+        documents: [
+          "Faculty Development",
+          "Research",
+          "Licensure Exam",
+          "Consortia or Linkages",
+          "Library",
+        ],
+      },
+    ],
+  },
+  level4: {
+    heading: "LEVEL IV",
+    sections: [
+      {
+        documents: [
+          "Research",
+          "Teaching and Learning",
+          "Extension",
+          "Internationalization",
+          "Planning Process",
+        ],
+      },
+    ],
+  },
+};
 
 /** 04-CommonDocuments(NDAFiles).png — twelve placeholder tiles. */
 export const PR_COMMON_DOCUMENTS = Array.from({ length: 12 }, () => "Document Name");
@@ -416,56 +314,13 @@ export const PR_ACCREDITATION_FOLDERS = [
  * internal_accreditor — assets/FIGMA/internal_accreditor/
  * ------------------------------------------------------------------------- */
 
-/** 01-Dashboard.png (client revision, 2026-07) — four tiles, no trend arrow;
- *  same "As of <Month> <Year>" note style as PR_DASHBOARD_STATS. */
-export const IA_DASHBOARD_STATS: Stat[] = [
-  { label: "ASSIGNED", value: "0", note: "As of September 2026" },
-  { label: "PENDING", value: "0", note: "As of September 2026" },
-  { label: "COMPLETED", value: "0", note: "As of September 2026" },
-  { label: "DUE THIS MONTH", value: "0", note: "As of September 2026" },
-];
-
-/** 01-Dashboard.png (revision) — "Assigned Program Evaluations" table. */
-export const IA_ASSIGNED_EVALUATIONS = [
-  {
-    id: "ia1",
-    campus: "Sta. Mesa, Manila",
-    program: "Bachelor of Science in Information Technology",
-    // The frame's Level cell reads "Level III", not just "III".
-    level: "Level III",
-    phase: "Monitoring",
-    status: "Pending",
-  },
-];
-
-/**
- * 01-Dashboard.png (revision) — "Evaluation Progress" table. The frame's own
- * header row reads "Program | Program | Level | Readiness" — the first
- * column's data is a campus, so this is almost certainly a client-side label
- * slip (meant "Campus"). Reproduced verbatim per house rule; flagged for the
- * owner rather than silently corrected.
- */
-export const IA_EVALUATION_PROGRESS = [
-  {
-    id: "ia1",
-    campus: "Sta. Mesa, Manila",
-    program: "Bachelor of Science in Information Technology",
-    level: "Level III",
-    readiness: 15,
-  },
-];
-
-/** 01-Dashboard.png (revision) — "Upcoming Schedule" table, paired with the
- *  same calendar the PR dashboard uses. */
-export const IA_UPCOMING_SCHEDULE = [
-  {
-    id: "ia1",
-    date: "September 28, 2026",
-    title: "Re-Accreditation for Level IV",
-    program: "Bachelor of Science in Information Technology",
-    collegeCampus: "CCIS - Sta. Mesa, Manila",
-  },
-];
+/* B9 replaced IA_DASHBOARD_STATS, IA_ASSIGNED_EVALUATIONS,
+ * IA_EVALUATION_PROGRESS and IA_UPCOMING_SCHEDULE with `getIaDashboard()` and
+ * `getUpcomingSchedule()` (src/lib/dashboards.ts). The frame's own header row
+ * for the Evaluation Progress table reads "Program | Program | Level |
+ * Readiness" — the first column's data is a campus, almost certainly a
+ * client-side label slip (meant "Campus"); reproduced verbatim in
+ * `InternalAccreditorDashboard.tsx` per house rule. */
 
 /** 02-Accreditation.png — one row, accepted, awaiting nothing. */
 export const IA_ASSIGNMENTS = [
@@ -479,55 +334,13 @@ export const IA_ASSIGNMENTS = [
   },
 ];
 
-/** 03-DocumentEvaluation.png — two identical rows, the second one expanded. */
-export const IA_EVALUATIONS = [
-  {
-    id: "ia-e1",
-    campus: "Sta. Mesa, Manila",
-    college: "CCIS",
-    program: "Bachelor of Science in Information Technology",
-    level: "IV",
-    accreditor: "Dela Cruz, Pedro Juan B.",
-    score: "Not yet released",
-  },
-  {
-    id: "ia-e2",
-    campus: "Sta. Mesa, Manila",
-    college: "CCIS",
-    program: "Bachelor of Science in Information Technology",
-    level: "IV",
-    accreditor: "Dela Cruz, Pedro Juan B.",
-    score: "Not yet released",
-  },
-];
-
-/** The evaluation track. Two steps done, so the first segment is yellow. */
-export const IA_EVALUATION_STEPS: Step[] = [
-  { label: "Assigned", done: true },
-  { label: "File Uploaded", done: true },
-  { label: "For Preliminary\nSurvey Visit" },
-  { label: "Program Evaluated" },
-  { label: "Return Score" },
-];
-
-/**
- * 03.1 / 03.2-DocumentEvaluation.png — the per-document review sheet.
- *
- * Both frames were exported at 1x (1440x809) rather than 2x, so unlike every
- * other screen this one is transcribed by eye and cannot be pixel-verified.
- * Flagged to the owner; re-export at 2x before trusting any diff of it.
- */
-export const IA_NARRATIVE_DOCS = [
-  "Extension",
-  "Faculty Development",
-  "Instructions",
-  "Linkages & Consortia",
-];
-
-export const IA_COMPLIANCE_AREAS = Array.from({ length: 10 }, (_, i) => `Area ${i + 1}`);
-
-export const IA_EVALUATION_WEBSITE = "https://www.wixsite.com/CCIS-BSIT";
-export const IA_EVALUATION_WEBSITE_DONE = "https://www.figma.com/design/QAC-WARDS";
+/* Task 2 replaced IA_EVALUATIONS, IA_EVALUATION_STEPS, IA_NARRATIVE_DOCS,
+ * IA_COMPLIANCE_AREAS and IA_EVALUATION_WEBSITE(_DONE) — `/portal/evaluation`
+ * and `/portal/evaluation/[id]` now read `getMyEvaluationAssignments()` /
+ * `getAssignmentDetail()` / `getEvaluation()` (src/lib/assignments.ts). The
+ * "Best Practice" section that IA_NARRATIVE_DOCS partly stood in for is not
+ * reproduced with real data — see the comment on `ensureEvaluationItems`
+ * (src/lib/assignment-actions.ts) for why. */
 
 /* ── Submissions (program_representative/07 + 08 frames) ─────────────────── */
 
@@ -536,50 +349,81 @@ export const IA_EVALUATION_WEBSITE_DONE = "https://www.figma.com/design/QAC-WARD
  * under the percentage; `missing` is the document count beside it.
  */
 export const PR_READINESS = [
-  { level: "LEVEL I", percent: 23, status: "In Progress", missing: 18 },
-  { level: "LEVEL II", percent: 0, status: "Not Started", missing: 25 },
-  { level: "LEVEL III", percent: 0, status: "Not Started", missing: 25 },
-  { level: "LEVEL IV", percent: 0, status: "Not Started", missing: 25 },
+  { level: "PSV", percent: 100, status: "Ready for\nEvaluation", missing: 0 },
+  { level: "LEVEL I", percent: 23, status: "In Progress", missing: 28 },
+  { level: "LEVEL II", percent: 0, status: "Not Started", missing: 28 },
+  { level: "LEVEL III", percent: 0, status: "Not Started", missing: 22 },
+  { level: "LEVEL IV", percent: 0, status: "Not Started", missing: 23 },
 ];
 
 /**
- * The four accreditation levels. A level at 0% renders dimmed, which is exactly
- * how the frames distinguish "not started" rows — so there is no separate flag.
- *
- * The frames draw Level I's bar at ~28% and Phase 1's at 100% while both are
- * labelled 23%; the bar here is derived from `percent` instead of reproducing
- * that. Flagged to the owner rather than encoded.
+ * The five accreditation levels — Preliminary Survey Visit plus Level I–IV. A
+ * level at 0% renders dimmed, which is exactly how the frames distinguish
+ * "not started" rows — so there is no separate flag.
  */
 export const PR_ACCREDITATION_LEVELS = [
+  { label: "Preliminary Survey Visit", percent: 100 },
   { label: "Level I", percent: 23 },
   { label: "Level II", percent: 0 },
   { label: "Level III", percent: 0 },
   { label: "Level IV", percent: 0 },
 ];
 
-/** Track under an expanded level. Line breaks are the prototype's own. */
-export const PR_LEVEL_STEPS: Step[] = [
+/** Track under an expanded phase — 07.4-Submissions-Levels-Phases-DropDown.png. */
+export const PR_PHASE_STEPS: Step[] = [
   { label: "Assigned", done: true },
-  { label: "Phases Completed" },
-  { label: "File Uploaded" },
-  { label: "For Preliminary\nSurvey Visit" },
-  { label: "Program\nEvaluated" },
+  { label: "Documents\nSubmitted" },
+  { label: "Completed" },
 ];
 
-/** 07-Submissions(Phases).png */
+/** 07.3/07.4-Submission-...-Phases.png */
 export const PR_PHASES = [
-  { label: "Phase 1 (Planning)", percent: 23 },
-  { label: "Phase 2 (Implementation)", percent: 45 },
+  { label: "Phase 1 (Planning)", percent: 45 },
+  { label: "Phase 2 (Implementation)", percent: 0 },
   { label: "Phase 3 (Monitoring)", percent: 0 },
   { label: "Phase 4 (Evaluation)", percent: 0 },
 ];
 
-/** 07-Submissions(PhasesReqs).png — label-only rows, no bar. */
-export const PR_REQUIREMENTS = [
-  "Narrative Report",
-  "Best Practices",
-  "Compliance Report",
-  "Website",
+/**
+ * 07.6-Requirements-modal.png, Phases variant — clicking a phase row opens
+ * an Add Document modal scoped to *that* phase's required checklist, not the
+ * generic Document/Additional-Document pair the Requirements Area rows use.
+ * Only Phase 1 (Planning)'s list is confirmed from the frame; Phases 2–4 have
+ * no export yet, so `PhaseDocumentModal` falls back to a single generic
+ * "Document" field for them rather than guessing their checklist.
+ */
+export const PR_PHASE_DOCUMENTS: Record<number, string[]> = {
+  1: [
+    "Notice of Meeting",
+    "Minutes of the Meeting",
+    "Project Proposal",
+    "Action Plan",
+    "Budget Proposal",
+  ],
+};
+
+/**
+ * 07.5-Submissions-Levels-Phases-Requirements.png — label-only rows, no bar,
+ * laid out two columns of five. Same ten Areas as the PSV/Level II template
+ * grid (`PR_LEVEL_TEMPLATES["psv-lvl2"]`).
+ */
+export const PR_REQUIREMENT_AREAS = [
+  "Area I - VMGO",
+  "Area II - Faculty",
+  "Area III - Curriculum & Instruction",
+  "Area IV - Support to Students",
+  "AREA V - Research",
+  "AREA VI - Extension & Community Involvement",
+  "Area VII - Library",
+  "Area VIII - Physical Plant & Facilities",
+  "Area IX - Laboratories",
+  "Area X - Administration",
+];
+
+/** 07-Submission-Main.png — the Submission flow's entry point. */
+export const PR_PROGRAMS = [
+  { slug: "bscs", label: "Bachelor of Science in Computer Science" },
+  { slug: "bsit", label: "Bachelor of Science in Information Technology" },
 ];
 
 /**

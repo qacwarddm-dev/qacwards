@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import {
   AuthButton,
@@ -11,31 +11,65 @@ import {
   AuthTextField,
   BackLink,
 } from "@/components/auth";
-import { DEV_USER_COOKIE } from "@/lib/dev-user";
-import { resolveDemoRole } from "./demo-login";
+import { createClient } from "@/lib/supabase/browser";
+import { safeNextParam } from "@/lib/safe-next";
 
 /**
  * Credentials form — assets/FIGMA/login/LoginForm.png.
  *
- * There is no backend in phase 3a, so Login is a **demo shortcut**, not real
- * auth: type a role name (e.g. "internal accreditor") in both fields and it
- * sets the same dev cookie `/portal/dev/switch` uses, then lands you on that
- * role's dashboard. See demo-login.ts. The Register link goes to /register.
+ * Real Supabase Auth as of B2; the phase-3a demo shortcut (type a role name to
+ * be signed in as it) is gone along with `demo-login.ts` and the dev cookie.
+ *
+ * `?next=` is where middleware parked the page the user was trying to reach. It
+ * is passed through `safeNextParam` rather than used directly — an unchecked
+ * `next` is an open redirect, and a login page that forwards to
+ * `https://evil.example` after authenticating is worth more to an attacker than
+ * most bugs on this screen.
  */
 const REGISTER_PROMPT = "Doesn’t have an Account? ";
 
+/** Supabase returns one deliberately vague message for bad email *and* bad
+ *  password, and repeating it verbatim is right: distinguishing them tells an
+ *  attacker which webmail addresses exist. */
+const INVALID = "That webmail and password do not match an account.";
+
 export default function LoginForm({ as }: { as?: string }) {
+  void as; // the role picker's ?as= is cosmetic now; the account carries the role
   const router = useRouter();
+  const params = useSearchParams();
   const [webmail, setWebmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(
+    params.get("deactivated") === "1"
+      ? "That account has been deactivated. Contact the Quality Assurance Center."
+      : null,
+  );
+  const [pending, setPending] = useState(false);
 
-  function handleSubmit(event: React.FormEvent) {
+  async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    const role = resolveDemoRole(webmail, password, as);
-    if (!role) return; // nothing matched — stay on the form
-    // Readable cookie, no session: this only picks the fake person to draw.
-    document.cookie = `${DEV_USER_COOKIE}=${role}; path=/; SameSite=Lax`;
-    router.push("/portal/dashboard");
+    setError(null);
+    setPending(true);
+
+    const { error: signInError } = await createClient().auth.signInWithPassword({
+      email: webmail.trim(),
+      password,
+    });
+
+    if (signInError) {
+      setError(
+        signInError.message.toLowerCase().includes("email not confirmed")
+          ? "Verify your PUP webmail first — check your inbox for the link."
+          : INVALID,
+      );
+      setPending(false);
+      return;
+    }
+
+    // Deactivation is caught by middleware on the very next request, so a
+    // deactivated user who knows their password still gets no further than this.
+    router.push(safeNextParam(params.get("next")));
+    router.refresh();
   }
 
   return (
@@ -63,17 +97,28 @@ export default function LoginForm({ as }: { as?: string }) {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-            <a
-              href="#"
+            <Link
+              href="/login/forgot"
               className="mt-[11px] block text-right text-regular leading-none text-maroon underline"
             >
               Forgot Password?
-            </a>
+            </Link>
+
+            {error && (
+              <p className="mt-[11px] text-regular leading-tight text-maroon">
+                {error}
+              </p>
+            )}
           </div>
 
           <div className="mt-[60.5px]">
-            <AuthButton type="submit" tone="maroon" size="pill">
-              Login
+            <AuthButton
+              type="submit"
+              tone="maroon"
+              size="pill"
+              disabled={pending || webmail === "" || password === ""}
+            >
+              {pending ? "Logging in…" : "Login"}
             </AuthButton>
           </div>
 

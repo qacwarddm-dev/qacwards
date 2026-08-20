@@ -9,8 +9,15 @@ export { default as Button } from "./Button";
 export { default as Card } from "./Card";
 export { default as CardTitleBar } from "./CardTitleBar";
 export { default as CoverCard } from "./CoverCard";
-export { default as DataTable, type Column, type Row } from "./DataTable";
+export {
+  default as DataTable,
+  type Column,
+  type DataTablePagination,
+  type DataTableSearch,
+  type Row,
+} from "./DataTable";
 export { default as DocCard } from "./DocCard";
+export { default as DocFileGrid, type DocFile } from "./DocFileGrid";
 export { default as DocTabs, type DocTab } from "./DocTabs";
 export { default as DocumentBrowser } from "./DocumentBrowser";
 export { default as EmptyState } from "./EmptyState";
@@ -22,10 +29,10 @@ export {
   SelectInput,
   TextInput,
 } from "./Field";
-export { default as FileCard } from "./FileCard";
 export { default as FolderCard } from "./FolderCard";
 export { default as FolderGrid, type FolderEntry } from "./FolderGrid";
 export { default as MiniCalendar, type MeetingKind } from "./MiniCalendar";
+export { default as Modal } from "./Modal";
 export {
   CalendarLegend,
   default as MonthCalendar,

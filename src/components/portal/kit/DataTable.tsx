@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SearchField from "./SearchField";
 
 export type Column = {
   key: string;
@@ -17,6 +18,25 @@ export type Row = {
   href?: string;
 };
 
+export type DataTableSearch = {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  label?: string;
+};
+
+/** Href-based, matching the rest of this codebase's URL-as-state convention
+ *  (`/portal/submission`, `/portal/activity`) — Prev/Next are links, not a
+ *  client callback, so the page stays a plain server-rendered fetch. Omit a
+ *  side entirely (rather than passing an href) to hide it, and pass a falsy
+ *  href to render it disabled — the two read differently to a keyboard user. */
+export type DataTablePagination = {
+  prevHref?: string;
+  nextHref?: string;
+  prevLabel?: string;
+  nextLabel?: string;
+};
+
 /**
  * Grey-headed table used on Assignment and Reports. Rows are divided by a hair
  * line; a row may carry an expanded `detail` block beneath it.
@@ -25,6 +45,15 @@ export type Row = {
  * is wrapped in a rounded hairline and the rows are shorter (39px rather than
  * 58px). Those two always travel together in the frames, so they are one prop
  * rather than two.
+ *
+ * `search` and `pagination` are §8.2/§8.3: added once here, in B4, so the four
+ * screens that need them (documents, assignments, evaluations, activity —
+ * every list backed by a table that only grows) share one implementation
+ * instead of each hand-rolling its own. Both are presentational only — the
+ * caller owns the actual query (search runs through RLS with a `pg_trgm`
+ * index behind it, never a client-side filter over a full table; pagination
+ * is keyset, `(created_at, id)`, never `OFFSET` — see the migration comment on
+ * `profiles_name_trgm_idx` and `getActivity()` in `src/lib/activity.ts`).
  */
 export default function DataTable({
   columns,
@@ -32,6 +61,8 @@ export default function DataTable({
   leading,
   variant = "plain",
   bodyRowH,
+  search,
+  pagination,
 }: {
   columns: Column[];
   rows: Row[];
@@ -42,6 +73,10 @@ export default function DataTable({
    *  accreditors rows sit tighter than the default `py-[19px]` because each
    *  carries an Assign button. The grey header keeps the default height. */
   bodyRowH?: string;
+  /** Search box above the table. Controlled — DataTable only renders it. */
+  search?: DataTableSearch;
+  /** Prev/Next below the table. */
+  pagination?: DataTablePagination;
 }) {
   const outlined = variant === "outlined";
   const rowH = outlined ? "h-[39px]" : "py-[19px]";
@@ -56,13 +91,26 @@ export default function DataTable({
   // No overflow-hidden here: an expanded row's stepper labels overhang the
   // table's edges by design, and clipping them cut "Assigned" in half.
   return (
-    <div
-      className={
-        outlined
-          ? "overflow-hidden rounded-[10px] border border-[color:var(--color-gray)]/25"
-          : ""
-      }
-    >
+    <div>
+      {search && (
+        <div className="mb-[14px] w-full max-w-[360px]">
+          <SearchField
+            value={search.value}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => search.onChange(e.target.value)}
+            label={search.label ?? "Search"}
+            placeholder={search.placeholder}
+            className="w-full"
+          />
+        </div>
+      )}
+
+      <div
+        className={
+          outlined
+            ? "overflow-hidden rounded-[10px] border border-[color:var(--color-gray)]/25"
+            : ""
+        }
+      >
       <div
         className={`flex items-center bg-[color:var(--color-gray)]/12 leading-none text-gray ${headText} ${rowH} ${
           outlined ? "" : "rounded-lg"
@@ -112,6 +160,38 @@ export default function DataTable({
           {row.detail}
         </div>
       ))}
+      </div>
+
+      {pagination && (pagination.prevHref !== undefined || pagination.nextHref !== undefined) && (
+        <div className="mt-[18px] flex items-center justify-center gap-[24px]">
+          {pagination.prevHref !== undefined &&
+            (pagination.prevHref ? (
+              <Link
+                href={pagination.prevHref}
+                className="text-subheading font-semibold text-maroon transition-opacity hover:opacity-70"
+              >
+                {pagination.prevLabel ?? "Newer"}
+              </Link>
+            ) : (
+              <span className="text-subheading font-semibold text-gray/50">
+                {pagination.prevLabel ?? "Newer"}
+              </span>
+            ))}
+          {pagination.nextHref !== undefined &&
+            (pagination.nextHref ? (
+              <Link
+                href={pagination.nextHref}
+                className="text-subheading font-semibold text-maroon transition-opacity hover:opacity-70"
+              >
+                {pagination.nextLabel ?? "Older"}
+              </Link>
+            ) : (
+              <span className="text-subheading font-semibold text-gray/50">
+                {pagination.nextLabel ?? "Older"}
+              </span>
+            ))}
+        </div>
+      )}
     </div>
   );
 }

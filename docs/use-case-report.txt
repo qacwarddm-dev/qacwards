@@ -1,0 +1,826 @@
+Use Case ID UC-001
+Use Case Name Login
+Actors All Users (Program Representative, Internal
+Accreditor, QAC Personnel, or QAC Personnel
+Admin)
+
+Descriptions This use case describes how users securely
+access the system by entering valid credentials or
+recovering their password through email
+verification.
+
+Flow of Events 1. The user goes to the login page.
+2. Enter PUP Webmail and password.
+3. System verifies credentials.
+4. If credentials are valid, the user gains
+access to the dashboard.
+5. If credentials are invalid, the user may
+select “Forgot Password.”
+6. The system sends a password recovery
+email.
+
+Preconditions User accounts must exist in the system.
+Internet connection is available.
+
+Postconditions ● The user is successfully logged in and
+redirected to the dashboard.
+● Password recovery email is sent if
+requested.
+
+Exceptions ● Invalid credentials entered.
+
+● Webmail not found or system error during
+password recovery.
+
+96
+
+Table 7
+
+View Dashboard (Academic Program) Use Case Report
+
+Use Case ID UC-002
+Use Case Name View Dashboard (Academic Program)
+Actors Program Representative
+Descriptions This use case describes how the Program
+Representative accesses their dashboard to view
+key performance indicators, document statuses,
+accreditation progress, recent uploads, and the
+calendar.
+
+Flow of Events 1. The Program Representative accesses the
+
+system dashboard.
+2. The system displays KPI cards.
+3. The system displays document status.
+4. The system displays ongoing program
+accreditation.
+5. The system displays recent uploads.
+6. The system displays the calendar.
+Preconditions ● The Program Representative must be
+
+logged into the system.
+● The user has appropriate access rights to
+the academic program dashboard.
+Postconditions ● The dashboard is successfully rendered
+with all current data displayed.
+
+Exceptions ● System error preventing data retrieval for
+
+dashboard components.
+● Network disconnection during the page
+load.
+
+Table 8
+
+View Dashboard (Internal Accreditor) Use Case Report
+
+Use Case ID UC-003
+Use Case Name View Dashboard (Internal Accreditor)
+Actors Internal Accreditor
+
+97
+
+Continuation of Table 8
+Descriptions This use case describes how the Internal
+Accreditor accesses their dashboard to view KPI
+cards, accreditation progress, and the calendar.
+Flow of Events 1. The Internal Accreditor accesses the
+
+system dashboard.
+2. The system displays KPI cards.
+3. The system displays ongoing program
+accreditation.
+4. The system displays the calendar.
+Preconditions ● The Internal Accreditor must be logged into
+
+the system.
+● The user has appropriate access rights to
+the academic program dashboard.
+Postconditions ● The dashboard is successfully rendered
+with all current data displayed.
+
+Exceptions ● System error preventing data retrieval for
+
+dashboard components.
+● Network disconnection during the page
+load.
+
+Table 9
+
+View Dashboard (QAC Personnel/ Admin) Use Case Report
+
+Use Case ID UC-004
+Use Case Name View Dashboard (QAC Personnel/Admin)
+Actors QAC Personnel or QAC Personnel Admin
+Descriptions This use case describes how the QAC Personnel
+or QAC Personnel Admin accesses their
+dashboard to view KPI cards and the overall
+COPCs performance chart.
+
+Flow of Events 1. The QAC Personnel or QAC Personnel
+Admin accesses the system dashboard.
+2. The system displays KPI cards.
+3. The system displays the COPCs'
+performance chart.
+
+98
+
+Continuation of Table 9
+Preconditions ● The QAC Personnel or QAC Personnel
+Admin must be logged into the system.
+● The user has appropriate access rights to
+the academic program dashboard.
+Postconditions ● The dashboard is successfully rendered
+with all current data displayed.
+
+Exceptions ● System error preventing data retrieval for
+
+dashboard components.
+● Network disconnection during the page
+load.
+
+Table 10
+
+Access Documents Use Case Report
+
+Use Case ID UC-005
+Use Case Name Access Documents
+Actors Program Representative
+Descriptions This use case describes how the Program
+Representative accesses, organizes, and interacts
+with documents within the system repository.
+Flow of Events 1. The Program Representative accesses the
+
+document repository.
+2. The system includes the view of document
+categories.
+3. The user may switch repository tabs.
+4. The user may upload an NDA form.
+5. The user may download an NDA form.
+6. The user may search for documents.
+7. The user may sort documents.
+
+Preconditions ● The Program Representative must be
+
+logged into the system.
+
+Postconditions ● The system successfully displays the
+document repository, and all initiated
+document interactions (such as searching,
+sorting, uploading, or downloading) are
+completed.
+
+99
+
+Continuation of Table 9
+Exceptions ● System error during document retrieval or
+
+file operations.
+
+Table 11
+
+Manage Accreditation Submissions Use Case Report
+
+Use Case ID UC-006
+Use Case Name Manage Accreditation Submissions
+Actors Program Representative
+Descriptions This use case describes how the Program
+Representative manages accreditation
+submissions by viewing requirements and
+submitting necessary files or links
+
+Flow of Events 1. The Program Representative accesses the
+accreditation submissions module.
+2. The system includes the display of
+accreditation levels.
+3. The user may view specific level
+requirements.
+4. The user may upload a requirements file.
+5. The user may provide a website link.
+6. The user submits the level requirements.
+Preconditions ● The user must be logged into the system.
+● The user has been assigned to an
+academic program.
+
+Postconditions ● Accreditation requirements are successfully
+
+uploaded, linked, or submitted.
+Exceptions ● Invalid file format during upload.
+● Invalid website link provided.
+● System error during submission.
+
+100
+
+Table 12
+
+Submit Feedback Use Case Report
+
+Use Case ID UC-007
+Use Case Name Submit Feedback
+Actors Program Representative, Internal Accreditor
+Descriptions This use case describes how the Program
+Representative and Internal Accreditor submit
+feedback or evaluations regarding the internal
+accreditation process or QAC assistance.
+Flow of Events 1. The user accesses the feedback module.
+2. The user may submit an evaluation for the
+Internal Accreditor.
+3. The user may submit an evaluation for
+QAC assistance.
+
+Preconditions ● The user must be logged into the system.
+Postconditions ● The feedback or evaluation is successfully
+
+recorded in the system.
+
+Exceptions ● System error preventing the submission of
+
+feedback.
+
+Table 13
+
+View Events Calendar Use Case Report
+
+Use Case ID UC-008
+Use Case Name View Events Calendar
+Actors Program Representative and Internal Accreditor
+Descriptions This use case describes how authorized users
+view the events calendar to check scheduled
+activities and event details.
+
+Flow of Events 1. The user accesses the events calendar
+
+module.
+2. The system displays the current month's
+
+101
+
+Continuation of Table 13
+Flow of Events calendar.
+
+3. The user may navigate to different months.
+4. The user may select an event to view its details.
+Preconditions ● The user must be logged into the system.
+
+● Internet connection is active.
+
+Postconditions ● The calendar or specific event details are
+successfully displayed to the user.
+Exceptions ● System error preventing calendar data
+
+retrieval.
+● Network interruption during navigation.
+
+Table 14
+
+View Activity Logs Use Case Report
+
+Use Case ID UC-009
+Use Case Name View Activity Logs
+Actors All Users (Program Representative, Internal
+Accreditor, QAC Personnel, or QAC Personnel
+Admin)
+
+Descriptions This use case enables all authorized users to
+monitor and track system activities by viewing
+recent logs, filtering by date, or searching by
+specific action types.
+
+Flow of Events
+
+1. The user accesses the activity log module.
+2. The system retrieves and displays the recent
+activity list.
+3. The user may filter logs by date.
+4. The user may search logs by action type.
+Preconditions ● The user must be authenticated and logged
+
+into the system.
+
+102
+
+Continuation of Table 14
+Postconditions ● The requested activity logs are displayed,
+filtered, or searched according to the user's
+criteria.
+
+Exceptions ● System error preventing the retrieval of the
+
+activity list.
+
+Table 15
+
+Review Assignments Use Case Report
+
+Use Case ID UC-010
+Use Case Name Review Assignments
+Actors Internal Accreditor
+Descriptions This use case describes how the Internal
+Accreditor reviews their assigned tasks, including
+the ability to accept or reject assignments.
+Flow of Events 1. The Internal Accreditor accesses the
+assignment review module.
+2. The system includes the display of the
+assignment list.
+3. The user may accept an assignment.
+4. The user may reject an assignment, which
+extends to providing a rejection note.
+Preconditions ● The user must be logged in as an Internal
+
+Accreditor.
+
+Postconditions ● The assignment status is updated based on
+the user's decision (accepted or rejected).
+Exceptions ● System error preventing the submission of
+the acceptance or rejection status.
+
+103
+
+Table 16
+
+Evaluate Documents Use Case Report
+
+Use Case ID UC-011
+Use Case Name Evaluate Documents
+Actors Internal Accreditor
+Descriptions This use case describes how the Internal
+Accreditor evaluates submitted documents, tracks
+progress, and marks them for Preliminary Survey
+Visit (PSV).
+
+Flow of Events 1. The Internal Accreditor accesses the
+document evaluation module.
+2. The system includes the display of the
+evaluation tracker.
+3. The user may download the evaluation
+form.
+4. The user may review submitted files.
+5. The user may verify requirements.
+6. The user marks the document as ready for
+PSV.
+
+Preconditions ● The Internal Accreditor must be logged into
+
+the system.
+● Documents must have been submitted by
+the Program Representative.
+
+Postconditions ● Documents are evaluated, requirements
+are verified, and status is updated for PSV.
+Exceptions ● System error during document review or
+
+status update.
+● Network interruption.
+
+Table 17
+
+Manage Documents Use Case Report
+
+Use Case ID UC-012
+Use Case Name Manage Documents
+Actors QAC Personnel or QAC Personnel Admin
+
+104
+
+Continuation of Table 17
+Descriptions This use case describes how QAC Personnel
+organize, navigate, and modify documents and
+folders within the system repository.
+
+Flow of Events 1. The QAC Personnel access the document
+
+management module.
+2. The system includes the ability to browse
+the document repository.
+3. The user may return to a previous folder.
+4. The user may search the repository.
+5. The user may sort items.
+6. The user may add a new folder or file.
+7. The user may modify item options.
+Preconditions ● The QAC Personnel must be logged into
+
+the system.
+● The user must have appropriate
+permissions to manage files.
+Postconditions ● Document repository structure or item
+settings are successfully updated.
+Exceptions ● System error during file modification or
+
+folder navigation.
+● File search yields no results.
+
+Table 18
+
+Manage Assignments Use Case Report
+
+Use Case ID UC-013
+Use Case Name Manage Assignments
+Actors QAC Personnel or QAC Personnel Admin
+Descriptions This use case describes how QAC Personnel
+manage assignments, including viewing the
+assignment list, creating new assignments, and
+configuring assignment details.
+
+105
+
+Continuation of Table 18
+Flow of Events 1. The QAC Personnel accesses the
+assignments management module.
+2. The system includes the display of the
+assignment list.
+3. The user may navigate back.
+4. The user may create a new assignment.
+5. The user may select program metadata.
+6. The user may add a new folder or file to the
+assignment.
+7. The user may select an eligible accreditor.
+Preconditions ● The QAC Personnel must be logged into
+
+the system.
+
+Postconditions ● New assignments are created, or existing
+assignment details are updated.
+
+Exceptions
+
+Table 19
+
+Generate Reports Use Case Report
+
+Use Case ID UC-014
+Use Case Name Generate Reports
+Actors QAC Personnel or QAC Personnel Admin
+Descriptions This use case describes how authorized personnel
+view existing report logs and create, preview, or
+export new reports.
+
+Flow of Events 1. The user accesses the report generation
+
+module.
+2. The system includes the display of report
+logs.
+3. The user initiates the generation of a new
+report.
+4. The system requires the selection of a
+report type.
+5. The user may preview the generated
+report.
+6. 6. The user may download or export the
+report file.
+
+106
+
+Continuation of Table 19
+Preconditions ● The user must be logged into the system
+
+with appropriate access rights.
+
+Postconditions ● A new report is generated, previewed, or
+
+successfully exported.
+
+Exceptions ● System error during report generation.
+● Failure to export or download the report file.
+
+Table 20
+
+Review Feedback Use Case Report
+
+Use Case ID UC-015
+Use Case Name Review Feedback
+Actors QAC Personnel Or QAC Personnel Admin
+Descriptions This use case describes how authorized QAC
+personnel review feedback logs, including filtering
+and viewing specific details.
+
+Flow of Events 1. The user accesses the feedback review
+
+module.
+2. The system includes the view of report
+logs.
+3. The user may filter feedback logs.
+4. The user may view specific feedback
+details.
+
+Preconditions ● The user must be logged into the system
+
+with appropriate access rights.
+Postconditions ● Feedback information is retrieved and
+displayed according to the user's filter or
+selection.
+
+Exceptions ● System error preventing the retrieval of
+
+feedback logs.
+
+107
+
+Table 21
+
+Manage Events Use Case Report
+
+Use Case ID UC-016
+Use Case Name Manage Events
+Actors QAC Personnel Or QAC Personnel Admin
+Descriptions This use case describes how authorized personnel
+manage events, including viewing the calendar,
+creating new events, modifying details, or
+canceling scheduled events.
+
+Flow of Events 1. The user accesses the event management
+
+module.
+2. The system includes the view of the event
+calendar.
+3. The user may create a new event, which
+includes setting the date/time and
+assigning event participants.
+4. The user may modify existing event details.
+5. The user may cancel a scheduled event.
+Preconditions ● The user must be logged into the system
+
+with appropriate access rights.
+
+Postconditions ● Event information is successfully created,
+modified, or updated in the system.
+Exceptions ● System error preventing event creation or
+
+modification.
+
+Table 22
+
+Monitor Extensions Use Case Report
+
+Use Case ID UC-017
+Use Case Name Monitor Extensions
+Actors QAC Personnel Or QAC Personnel Admin
+Descriptions This use case describes how authorized personnel
+monitor and process requests for task or
+accreditation extensions.
+
+108
+
+Continuation of Table 22
+Flow of Events 1. The user accesses the monitoring module.
+2. The system displays the list of pending
+extension requests.
+3. The user reviews the details of a specific
+request.
+4. The user approves or denies the extension
+request.
+5. The system notifies the requesting user of
+the decision.
+
+Preconditions ● The user must be logged into the system
+with appropriate administrative or
+personnel access rights.
+
+Postconditions ● The extension request status is updated,
+and the requesting user is notified.
+Exceptions ● System error preventing the retrieval of
+pending requests or the delivery of
+notifications.
+
+Table 23
+
+Manage Settings Use Case Report
+
+Use Case ID UC-018
+Use Case Name Manage Settings
+Actors QAC Personnel Admin
+Descriptions This use case describes how the QAC Personnel
+Admin accesses the settings panel to manage
+users, accreditation, public information, and
+system backups.
+
+Flow of Events 1. The QAC Personnel Admin accesses the
+
+settings management module.
+2. The system includes the display of the
+settings panel.
+3. The admin may manage users.
+4. The admin may manage accreditation.
+5. The admin may manage public information.
+
+109
+
+Continuation of Table 23
+
+6. The admin may perform file backups.
+Preconditions ● The user must be logged in as a QAC
+
+Personnel Admin.
+
+Postconditions ● System settings or configurations are
+
+successfully updated.
+
+Exceptions ● System error preventing access to the
+settings panel or configuration updates.
+
+Table 24
+
+Manage User Accounts Use Case Report
+
+Use Case ID UC-019
+Use Case Name Manage User Accounts
+Actors QAC Personnel Admin
+Descriptions This use case describes how the QAC Personnel
+Admin maintains user accounts by updating roles,
+resetting passwords, and managing account
+access.
+
+Flow of Events 1. The QAC Personnel Admin accesses the
+user account management module.
+2. The admin may update user roles.
+3. The admin may reset user passwords.
+4. The admin may deactivate or suspend user
+access.
+
+Preconditions ● The user must be logged in as a QAC
+
+Personnel Admin.
+
+Postconditions ● User account information, access status, or
+security settings are successfully updated.
+Exceptions ● System error preventing modifications to
+
+user account details.
+
+110
+
+Table 25
+
+Manage Accreditation Use Case Report
+
+Use Case ID UC-020
+Use Case Name Manage Accreditation
+Actors QAC Personnel Admin
+Descriptions This use case describes how the QAC Personnel
+Admin oversees the accreditation process,
+including initiating cycles, setting benchmarks, and
+tracking progress.
+
+Flow of Events 1. The QAC Personnel Admin accesses the
+accreditation management module.
+2. The system includes the view of the
+accreditation dashboard.
+3. The admin may initiate an accreditation
+cycle, which includes setting compliance
+benchmarks.
+4. The admin may track compliance progress.
+5. The admin may update the accreditation
+status.
+
+Preconditions ● The user must be logged in as a QAC
+
+Personnel Admin.
+
+Postconditions ● Accreditation processes are initiated,
+benchmarks are defined, and
+status/progress is successfully updated or
+tracked.
+
+Exceptions ● System error during cycle initiation or
+
+status update.
+
+Table 26
+
+Manage Public Information Use Case Report
+
+Use Case ID UC-021
+Use Case Name Manage Public Information
+Actors QAC Personnel Admin
+Descriptions This use case describes how the QAC Personnel
+
+111
+
+Continuation of Table 26
+Descriptions Admin maintains public-facing information by
+
+adding, editing, or removing content.
+
+Flow of Events 1. The QAC Personnel Admin accesses the
+public information management module.
+2. The admin may add new public information.
+3. The admin may edit existing public
+information.
+4. The admin may remove public content.
+Preconditions ● The user must be logged in as a QAC
+
+Personnel Admin.
+
+Postconditions ● Public-facing information is updated,
+added, or removed according to the
+admin's actions.
+
+Exceptions ● System error preventing updates to public
+
+information.
+
+Table 27
+
+Backup Files Use Case Report
+
+Use Case ID UC-022
+Use Case Name Backup Files
+Actors QAC Personnel Admin
+Descriptions This use case describes how the QAC Personnel
+Admin performs system backups by downloading
+system data, which includes exporting profile data
+and archiving repository documents.
+
+Flow of Events 1. The QAC Personnel Admin accesses the
+
+backup module.
+2. The admin initiates the download of system
+data.
+3. The system includes the export of profile
+data as part of the download process.
+4. The system includes the archival of
+repository documents as part of the
+download process.
+
+112
+
+Continuation of Table 27
+Preconditions ● The user must be logged in as a QAC
+
+Personnel Admin.
+● The system must have sufficient storage or
+access to perform the backup.
+Postconditions ● System data, including profile data and
+repository documents, is successfully
+backed up and downloaded.
+Exceptions ● System error during the data export or
+
+archiving process.
+● Insufficient permissions to access all
+required system data.
+
+Table 28
+
+View Notifications Use Case Report
+
+Use Case ID UC-023
+Use Case Name View Notifications
+Actors All Users (Program Representative, Internal
+Accreditor, QAC Personnel, or QAC Personnel
+Admin)
+
+Descriptions This use case describes how authorized system
+users access and manage their notifications,
+including viewing details, filtering unread items,
+and marking notifications as read.
+
+Flow of Events 1. The user accesses the notification module.
+2. The user may mark all notifications as read.
+3. The user may view specific notification
+details.
+4. The user may filter for unread notifications
+Preconditions ● The user must be logged into the system.
+Postconditions ● Notification statuses are updated, or
+specific details are displayed to the user.
+Exceptions ● System error preventing the display or
+
+update of notifications.
+
+113
+
+Table 29
+
+Upload NDA Form Use Case Report
+
+Use Case ID UC-024
+Use Case Name Upload NDA Form
+Actors Program Representative
+Descriptions This use case describes the process by which a
+Program Representative uploads an NDA form,
+including optional template downloads and file
+selection, followed by mandatory scanning,
+verification, and access granting.
+
+Flow of Events 1. The Program Representative initiates the
+
+NDA upload process.
+2. The user may optionally download an NDA
+template.
+3. The user selects the file from their local
+device.
+4. The system scans the uploaded document.
+5. The system verifies the upload's success.
+6. The system grants access to common
+documents.
+
+Preconditions ● The Program Representative must be
+
+logged into the system.
+
+Postconditions ● The NDA form is uploaded, scanned,
+verified, and access to common documents
+is granted.
+
+Exceptions ● System error during file scanning or upload
+
+verification.

@@ -3,7 +3,7 @@
 import { LogOut } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { DEV_USER_COOKIE } from "@/lib/dev-user";
+import { createClient } from "@/lib/supabase/browser";
 import {
   PORTAL_NAV,
   type PortalNavItem,
@@ -74,12 +74,14 @@ export default function PortalSidebar({ user }: { user: PortalUser }) {
   // Empty until a role's frames land — PORTAL_NAV is deliberately not guessed.
   const items = PORTAL_NAV[user.role] ?? [];
 
-  // Inverse of the login demo shortcut: drop the dev-preview cookie the login
-  // form set and return to the login flow. Real sign-out lands with the seam
-  // in phase 3b; until then this only forgets which fake person to draw.
-  function handleLogOut() {
-    document.cookie = `${DEV_USER_COOKIE}=; path=/; Max-Age=0; SameSite=Lax`;
+  // Real sign-out: end the Supabase session, then refresh so the server
+  // re-renders without a user and middleware sends the next request to /login.
+  // `refresh()` matters — without it the client keeps the already-rendered
+  // authenticated tree on screen after the session is gone.
+  async function handleLogOut() {
+    await createClient().auth.signOut();
     router.push("/login");
+    router.refresh();
   }
 
   return (

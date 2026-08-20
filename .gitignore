@@ -67,3 +67,7 @@ next-env.d.ts
 # not something `graphify update` can rebuild for nothing.
 graphify-out/*
 !graphify-out/.graphify_labels.json
+!.env.example
+
+# Compiled seed generator (pnpm gen:seed) — build artefact.
+.seed-build/

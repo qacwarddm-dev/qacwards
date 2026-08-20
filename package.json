@@ -8,11 +8,22 @@
     "start": "next start",
     "lint": "eslint",
     "test:visual": "playwright test",
-    "test:visual:ui": "playwright test --ui"
+    "test:visual:ui": "playwright test --ui",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:reset": "supabase db reset",
+    "gen:types": "supabase gen types typescript --local > src/lib/database.types.ts",
+    "gen:seed": "tsc -p scripts/tsconfig.seed.json && node .seed-build/scripts/gen-seed.js",
+    "check:seed": "tsc -p scripts/tsconfig.seed.json && node .seed-build/scripts/gen-seed.js --check"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.4",
+    "@supabase/supabase-js": "^2.112.3",
     "lucide-react": "^1.25.0",
     "next": "16.2.10",
+    "nodemailer": "^9.0.5",
+    "pdf-lib": "^1.17.1",
+    "pdf-parse": "^2.4.5",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
@@ -20,11 +31,13 @@
     "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/nodemailer": "^8.0.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "sharp": "^0.34.5",
+    "supabase": "^2.114.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

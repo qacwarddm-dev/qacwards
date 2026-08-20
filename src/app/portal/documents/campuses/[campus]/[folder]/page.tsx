@@ -1,14 +1,21 @@
 import { notFound } from "next/navigation";
+import { DocFileGrid, DocumentBrowser } from "@/components/portal/kit";
 import {
-  CAMPUSES,
-  DOCUMENT_FOLDERS,
-  SAMPLE_FILES,
-} from "@/components/portal/data";
-import { DocumentBrowser, EmptyState, FileCard } from "@/components/portal/kit";
+  getCampusPrograms,
+  getRepositoryFiles,
+  getRepositoryFolders,
+} from "@/lib/documents";
+import { createClient } from "@/lib/supabase/server";
 
 /**
  * assets/FIGMA/qac_personnel/02.5.1.1-...-Sample-Docs.png — the prototype only
- * fills "AACCUP Certificate"; every other folder shows the empty state.
+ * fills "AACCUP Certificate" with a sample file; `DocFileGrid` draws both the
+ * populated and empty states for real, shared with the Program Rep Reports tab
+ * and the college branch above.
+ *
+ * An off-main campus can host more than one programme (see
+ * `programs.ts` — Alfonso alone has three), so this reads one folder across
+ * every programme at the campus, each file labelled with its programme.
  */
 export default async function CampusFolderPage({
   params,
@@ -16,11 +23,22 @@ export default async function CampusFolderPage({
   params: Promise<{ campus: string; folder: string }>;
 }) {
   const { campus: campusSlug, folder: folderSlug } = await params;
-  const campus = CAMPUSES.find((c) => c.slug === campusSlug);
-  const folder = DOCUMENT_FOLDERS.find((f) => f.slug === folderSlug);
-  if (!campus || !folder) notFound();
 
-  const files = folder.slug === "aaccup-certificate" ? SAMPLE_FILES : [];
+  const supabase = await createClient();
+  const [{ data: campus }, folders, programs] = await Promise.all([
+    supabase.from("campuses").select("slug, name, is_main").eq("slug", campusSlug).maybeSingle(),
+    getRepositoryFolders(null),
+    getCampusPrograms(campusSlug),
+  ]);
+  const folder = folders.find((f) => f.slug === folderSlug);
+  if (!campus || campus.is_main || !folder) notFound();
+
+  const files = programs.length
+    ? await getRepositoryFiles(
+        programs.map((p) => p.id),
+        folder.id,
+      )
+    : [];
 
   return (
     <DocumentBrowser
@@ -31,15 +49,12 @@ export default async function CampusFolderPage({
         { label: folder.name },
       ]}
     >
-      {files.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <div className="flex flex-wrap gap-[24px]">
-          {files.map((f) => (
-            <FileCard key={f.name} name={f.name} thumbnail={f.thumbnail} />
-          ))}
-        </div>
-      )}
+      <DocFileGrid
+        files={files.map((f) => ({
+          id: f.id,
+          title: programs.length > 1 && f.programName ? `${f.programName} — ${f.title}` : f.title,
+        }))}
+      />
     </DocumentBrowser>
   );
 }

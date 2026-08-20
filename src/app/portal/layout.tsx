@@ -1,6 +1,6 @@
 import PortalSidebar from "@/components/portal/PortalSidebar";
 import PortalTopBar from "@/components/portal/PortalTopBar";
-import { getCurrentUser } from "@/lib/current-user";
+import { requireCurrentUser } from "@/lib/current-user";
 
 /**
  * Portal shell. `/portal` is a literal path segment, not a `(portal)` route
@@ -26,7 +26,7 @@ import { getCurrentUser } from "@/lib/current-user";
 export default async function PortalLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const user = await getCurrentUser();
+  const user = await requireCurrentUser();
 
   return (
     <div className="flex flex-col overflow-hidden">

@@ -107,6 +107,7 @@ export function SelectInput({
   value,
   active = false,
   defaultValue,
+  onSelect,
 }: {
   label: string;
   options?: string[];
@@ -119,6 +120,10 @@ export function SelectInput({
   /** Which option is shown selected before the user touches it; defaults to the
    *  first option (the create-assignment frame pre-selects e.g. "IV"). */
   defaultValue?: string;
+  /** Cascading pickers (create-assignment's campus→department→program→level
+   *  chain) need to react to a choice, not just display one. Omit for the
+   *  original self-contained menu. */
+  onSelect?: (value: string) => void;
 }) {
   // Display-only branch: a fixed value, no menu. Chevron is decorative.
   if (value !== undefined) {
@@ -140,7 +145,14 @@ export function SelectInput({
     );
   }
 
-  return <SelectMenu label={label} options={options ?? []} defaultValue={defaultValue} />;
+  return (
+    <SelectMenu
+      label={label}
+      options={options ?? []}
+      defaultValue={defaultValue}
+      onSelect={onSelect}
+    />
+  );
 }
 
 /**
@@ -153,13 +165,24 @@ function SelectMenu({
   label,
   options,
   defaultValue,
+  onSelect,
 }: {
   label: string;
   options: string[];
   defaultValue?: string;
+  onSelect?: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(defaultValue ?? options[0] ?? "");
+  // A cascading picker's `defaultValue` changes out from under this component
+  // (department options reset when campus changes). Adjusted during render,
+  // not in an effect — React re-renders once more before painting, rather
+  // than committing the stale value first and correcting it a frame later.
+  const [prevDefaultValue, setPrevDefaultValue] = useState(defaultValue);
+  if (defaultValue !== prevDefaultValue) {
+    setPrevDefaultValue(defaultValue);
+    setSelected(defaultValue ?? options[0] ?? "");
+  }
   const Chevron = open ? ChevronUp : ChevronDown;
 
   return (
@@ -206,6 +229,7 @@ function SelectMenu({
                     onClick={() => {
                       setSelected(o);
                       setOpen(false);
+                      onSelect?.(o);
                     }}
                     className={`relative flex w-full items-center px-[22px] py-[11px] text-left text-regular leading-none text-black transition-colors hover:bg-highlight ${isSelected ? "font-semibold" : ""}`}
                   >
@@ -227,22 +251,37 @@ function SelectMenu({
   );
 }
 
+/**
+ * Password field with a reveal toggle.
+ *
+ * Takes either `defaultValue` (uncontrolled, which is how the static screens used
+ * it) or `value` + `onChange`. B2 needed the controlled form for the real Change
+ * Password panel, and giving the component the prop is the right move — the
+ * alternative was a second near-identical field living next to this one.
+ */
 export function PasswordInput({
   label,
-  defaultValue = "",
+  defaultValue,
+  value,
+  onChange,
 }: {
   label: string;
   defaultValue?: string;
+  value?: string;
+  onChange?: React.ChangeEventHandler<HTMLInputElement>;
 }) {
   const [shown, setShown] = useState(false);
   const Icon = shown ? Eye : EyeOff;
+  const controlled = value !== undefined;
 
   return (
     <span className="relative block">
       <input
         type={shown ? "text" : "password"}
         aria-label={label}
-        defaultValue={defaultValue}
+        {...(controlled
+          ? { value, onChange }
+          : { defaultValue: defaultValue ?? "" })}
         className={`${SHELL} pr-[46px]`}
       />
       <button

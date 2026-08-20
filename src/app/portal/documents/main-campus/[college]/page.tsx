@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { COLLEGES, DOCUMENT_FOLDERS } from "@/components/portal/data";
 import { DocumentBrowser, FolderGrid } from "@/components/portal/kit";
+import { createClient } from "@/lib/supabase/server";
 
 /** assets/FIGMA/qac_personnel/02.6.1-Document-MainCampus-CollegeofAccountancyandFinance.png */
 export default async function CollegePage({
@@ -9,7 +10,19 @@ export default async function CollegePage({
   params: Promise<{ college: string }>;
 }) {
   const { college: slug } = await params;
-  const college = COLLEGES.find((c) => c.slug === slug);
+  // The route's own slug ("cadbe") is the college's real `code` lower-cased —
+  // `COLLEGES` (data.ts) still supplies the display name/badge, which are
+  // decorative and match the seed exactly; the code itself is checked against
+  // the database so a college that does not exist there 404s here too.
+  const localCollege = COLLEGES.find((c) => c.slug === slug);
+  if (!localCollege) notFound();
+
+  const supabase = await createClient();
+  const { data: college } = await supabase
+    .from("colleges")
+    .select("id, code, name")
+    .eq("code", slug.toUpperCase())
+    .maybeSingle();
   if (!college) notFound();
 
   return (
@@ -17,12 +30,12 @@ export default async function CollegePage({
       backHref="/portal/documents/main-campus"
       crumbs={[
         { label: "Main Campus", href: "/portal/documents/main-campus" },
-        { label: college.name },
+        { label: localCollege.name },
       ]}
     >
       <FolderGrid
         entries={DOCUMENT_FOLDERS}
-        hrefFor={(f) => `/portal/documents/main-campus/${college.slug}/${f.slug}`}
+        hrefFor={(f) => `/portal/documents/main-campus/${localCollege.slug}/${f.slug}`}
       />
     </DocumentBrowser>
   );
