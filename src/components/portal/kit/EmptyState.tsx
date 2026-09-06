@@ -21,6 +21,8 @@ const VARIANT_ICON: Partial<Record<Variant, LucideIcon>> = {
  * No imposed top padding — the parent places it (the old `pt-[133px]` baked
  * in an assumption about the page around it that did not hold everywhere it
  * got reused).
+ *
+ * `action` covers the single-button case; anything richer goes in `children`.
  */
 export default function EmptyState({
   variant = "empty",
@@ -30,6 +32,7 @@ export default function EmptyState({
   action,
   icon: Icon,
   size = "md",
+  children,
 }: {
   variant?: Variant;
   title?: string;
@@ -39,6 +42,10 @@ export default function EmptyState({
   action?: { label: string; onClick?: () => void; href?: string };
   icon?: LucideIcon;
   size?: "sm" | "md";
+  /** A custom action slot for the cases one `Button` cannot express — the
+   *  accept/decline pair on a locked evaluation sheet. Rendered instead of
+   *  `action`, not beside it. */
+  children?: React.ReactNode;
 }) {
   const heading = title ?? message ?? "Nothing here yet.";
   const CustomIcon = Icon ?? VARIANT_ICON[variant];
@@ -62,15 +69,19 @@ export default function EmptyState({
       )}
       <p className="text-subheading leading-none text-maroon">{heading}</p>
       {description && <p className="t-sm max-w-sm text-gray">{description}</p>}
-      {action && (
-        <Button
-          variant="secondary"
-          className="mt-[6px]"
-          href={action.href}
-          onClick={action.onClick}
-        >
-          {action.label}
-        </Button>
+      {children ? (
+        <div className="mt-[6px]">{children}</div>
+      ) : (
+        action && (
+          <Button
+            variant="secondary"
+            className="mt-[6px]"
+            href={action.href}
+            onClick={action.onClick}
+          >
+            {action.label}
+          </Button>
+        )
       )}
     </div>
   );

@@ -116,26 +116,122 @@ export async function respondToAssignment(
 
   if (error) return { ok: false, error: error.message };
 
+  const { data: assignment } = await supabase
+    .from("assignments")
+    .select("status")
+    .eq("id", assignmentId)
+    .maybeSingle();
+
   // The first acceptance starts the work. Guarded by the transition table rather
   // than written unconditionally, so a later acceptance cannot drag a further-on
   // assignment backwards.
   if (response === "accepted") {
-    const { data: assignment } = await supabase
-      .from("assignments")
-      .select("status")
-      .eq("id", assignmentId)
-      .maybeSingle();
-
     if (assignment && canAdvanceAssignment(assignment.status, "in_progress")) {
       await supabase
         .from("assignments")
         .update({ status: "in_progress" })
         .eq("id", assignmentId);
     }
+  } else if (assignment && canAdvanceAssignment(assignment.status, "declined")) {
+    // Round 2 §1: the assignment returns to the QAC Personnel queue only once
+    // the whole team has stepped back. One decline out of three still leaves two
+    // accreditors who can work the sheet, and marking that assignment declined
+    // would take it away from them.
+    const { data: team } = await supabase
+      .from("assignment_accreditors")
+      .select("response")
+      .eq("assignment_id", assignmentId);
+
+    if ((team ?? []).length > 0 && (team ?? []).every((m) => m.response === "rejected")) {
+      await supabase
+        .from("assignments")
+        .update({ status: "declined" })
+        .eq("id", assignmentId);
+    }
   }
 
   revalidatePath("/portal/assignment");
   return { ok: true };
+}
+
+/**
+ * QAC Personnel puts a new team on an assignment its accreditors declined.
+ *
+ * A replacement, not a second assignment: `assignments.submission_id` is UNIQUE,
+ * so the declined row is the only row this submission will ever have, and the
+ * fix is to swap its membership. The old rows go rather than being kept as
+ * history — `activity_log` already records every response
+ * (20260818000900_notifications_activity.sql), so the decline and its reason
+ * survive the delete where a stale `rejected` row would only make the team look
+ * half-refused for ever.
+ *
+ * Deliberately not restricted to declined assignments: an accreditor going on
+ * leave mid-`assigned` is the same operation, and there is no reason to make QAC
+ * wait for a formal decline first.
+ */
+export async function reassignAssignment(
+  assignmentId: string,
+  accreditorIds: string[],
+): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  if (accreditorIds.length === 0) {
+    return { ok: false, error: "Choose at least one accreditor." };
+  }
+
+  const { data: assignment } = await supabase
+    .from("assignments")
+    .select("status")
+    .eq("id", assignmentId)
+    .maybeSingle();
+
+  if (!assignment) return { ok: false, error: "That assignment could not be found." };
+  if (!["assigned", "declined"].includes(assignment.status)) {
+    return {
+      ok: false,
+      error: "Only an assignment that has not started yet can be reassigned.",
+    };
+  }
+
+  const { error: clearError } = await supabase
+    .from("assignment_accreditors")
+    .delete()
+    .eq("assignment_id", assignmentId);
+
+  if (clearError) return { ok: false, error: clearError.message };
+
+  const { error: teamError } = await supabase
+    .from("assignment_accreditors")
+    .insert(accreditorIds.map((id) => ({ assignment_id: assignmentId, profile_id: id })));
+
+  if (teamError) return { ok: false, error: teamError.message };
+
+  if (assignment.status === "declined") {
+    await supabase.from("assignments").update({ status: "assigned" }).eq("id", assignmentId);
+  }
+
+  revalidatePath("/portal/assignment");
+  return { ok: true };
+}
+
+/** The eligible-accreditor list for the programme behind an assignment — the
+ *  reassign dialog picks from the same ranked list the create screen does, but
+ *  starts from an assignment id rather than a programme it already knows. */
+export async function fetchEligibleAccreditorsForAssignment(
+  assignmentId: string,
+): Promise<EligibleAccreditor[]> {
+  const supabase = await createClient();
+
+  const { data } = await supabase
+    .from("assignments")
+    .select("submissions(program_id)")
+    .eq("id", assignmentId)
+    .maybeSingle();
+
+  const programId = data?.submissions?.program_id;
+  if (!programId) return [];
+
+  return getEligibleAccreditors(programId);
 }
 
 /** Create the shared sheet on first open — one per assignment (UNIQUE). */

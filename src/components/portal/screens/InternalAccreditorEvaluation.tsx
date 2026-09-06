@@ -43,7 +43,14 @@ export default function InternalAccreditorEvaluation({ rows: data }: { rows: Eva
       program: <span className="block truncate">{e.program}</span>,
       level: e.level,
       accreditor: e.accreditor,
-      score: <span className="italic text-gray">{e.score}</span>,
+      // For a row this accreditor has not answered yet, what they need to know
+      // is not the score — the sheet is closed to them until they accept
+      // (round 2 §1) — so the cell says the thing that is actually blocking.
+      score: (
+        <span className="italic text-gray">
+          {e.myResponse === "pending" ? "Accept to start" : e.score}
+        </span>
+      ),
     },
     // The most recently created assignment is the one worth showing expanded
     // — data is ordered newest-first, so that is the first row, not the last.
@@ -60,13 +67,19 @@ export default function InternalAccreditorEvaluation({ rows: data }: { rows: Eva
       <Panel
         title="Document Evaluation"
         action={
-          <button
-            type="button"
-            className="flex items-center gap-[8px] text-subheading font-semibold leading-none text-maroon transition-opacity hover:opacity-70"
-          >
-            <Download className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
-            Download Accreditation Visit Evaluation Form
-          </button>
+          // The form is generated per assignment, and this panel lists many, so
+          // the header button follows the newest one rather than pretending to
+          // export the table. With no rows there is nothing to download and the
+          // affordance is absent instead of dead.
+          data.length > 0 ? (
+            <a
+              href={`/api/evaluations/${data[0].id}/form`}
+              className="flex items-center gap-[8px] text-subheading font-semibold leading-none text-maroon transition-opacity hover:opacity-70"
+            >
+              <Download className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
+              Download Accreditation Visit Evaluation Form
+            </a>
+          ) : undefined
         }
       >
         {rows.length > 0 ? (

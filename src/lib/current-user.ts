@@ -29,6 +29,14 @@ export type CurrentUser = PortalUser & {
   role: PortalRole;
   webmail: string;
   avatarPath: string | null;
+  /** Round 2 §2: a QAC Personnel account the QAC Admin also made an Internal
+   *  Accreditor. Read `actsAsAccreditor`, not this — the flag is meaningless on
+   *  a profile whose role is already `internal_accreditor`. */
+  isInternalAccreditor: boolean;
+  /** True for the `internal_accreditor` role and for the flagged dual-role
+   *  account alike: the one question every accreditor surface asks. */
+  actsAsAccreditor: boolean;
+  signaturePath: string | null;
 };
 
 const AVATAR_FALLBACK = "/assets/portal/avatar-placeholder.png";
@@ -57,7 +65,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "id, role, surname, given_name, middle_initial, webmail, avatar_path, is_active, positions(name)",
+      "id, role, surname, given_name, middle_initial, webmail, avatar_path, is_active, is_internal_accreditor, signature_path, positions(name)",
     )
     .eq("id", user.id)
     .eq("is_active", true)
@@ -84,6 +92,10 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     avatar,
     webmail: profile.webmail,
     avatarPath: profile.avatar_path,
+    isInternalAccreditor: profile.is_internal_accreditor,
+    actsAsAccreditor:
+      profile.role === "internal_accreditor" || profile.is_internal_accreditor,
+    signaturePath: profile.signature_path,
     // Real counts land in B8; until the notifications table exists this is 0,
     // which is honest, where a fake number would not be.
     notifications: 0,

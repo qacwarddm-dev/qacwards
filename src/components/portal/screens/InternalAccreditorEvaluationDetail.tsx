@@ -4,8 +4,9 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Download, X } from "lucide-react";
 import type { AssignmentDetail } from "@/lib/assignments";
+import type { Signatory } from "@/lib/accreditor";
 import { decideItem, markReadyForSurveyVisit } from "@/lib/assignment-actions";
-import { Button, type Column, DataTable, Panel, PdfChip } from "../kit";
+import { Button, type Column, DataTable, Panel, PdfChip, SignatureBlock } from "../kit";
 
 /**
  * Internal Accreditor → Evaluation → per-document sheet.
@@ -20,6 +21,12 @@ import { Button, type Column, DataTable, Panel, PdfChip } from "../kit";
  * `getAssignmentDetail()` / `getEvaluation()`, seeded on first open by
  * `ensureEvaluation` + `ensureEvaluationItems`
  * (`/portal/evaluation/[id]/page.tsx`).
+ *
+ * Round 2 §4 wires the frame's Download button (it had no generator behind it)
+ * and adds the sign-off row below the sheet: the accreditors who accepted, with
+ * the signature each one captured on their profile. It appears once the work is
+ * actually finished — a signature under a sheet still being decided would be
+ * attesting to nothing.
  *
  * The frame's "Best Practice" section is not reproduced — there is no column
  * anywhere that distinguishes a Best Practice document from a Narrative
@@ -36,6 +43,10 @@ type EvalItem = {
   submission_document_id: string | null;
   requirement_area_id: string | null;
 };
+
+/** Statuses at which the sheet is finished enough for a mark to mean something:
+ *  the team has called it ready for the survey visit or beyond. */
+const SIGNED_OFF = ["for_psv", "evaluated", "score_returned"];
 
 const SUMMARY_COLUMNS: Column[] = [
   { key: "campus", header: "Campus", width: "w-[150px]" },
@@ -57,11 +68,13 @@ export default function InternalAccreditorEvaluationDetail({
   detail,
   items,
   score,
+  signatories,
 }: {
   state?: "review" | "done";
   detail: AssignmentDetail;
   items: EvalItem[];
   score: string;
+  signatories: Signatory[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -137,13 +150,13 @@ export default function InternalAccreditorEvaluationDetail({
         title="Document Evaluation"
         back={{ href: "/portal/evaluation", to: "Evaluation" }}
         action={
-          <button
-            type="button"
+          <a
+            href={`/api/evaluations/${detail.id}/form`}
             className="flex items-center gap-[8px] text-subheading font-semibold leading-none text-maroon transition-opacity hover:opacity-70"
           >
             <Download className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
             Download Accreditation Visit Evaluation Form
-          </button>
+          </a>
         }
         footer={
           review ? (
@@ -238,6 +251,22 @@ export default function InternalAccreditorEvaluationDetail({
             )}
           </section>
         </div>
+
+        {SIGNED_OFF.includes(detail.status) && signatories.length > 0 && (
+          <section className="mt-[48px]">
+            <Heading>Evaluated and signed by</Heading>
+            <div className="mt-[18px] flex flex-wrap gap-[32px]">
+              {signatories.map((s) => (
+                <SignatureBlock
+                  key={s.id}
+                  name={s.name}
+                  signatureUrl={s.signatureUrl}
+                  caption="Internal Accreditor"
+                />
+              ))}
+            </div>
+          </section>
+        )}
       </Panel>
     </div>
   );

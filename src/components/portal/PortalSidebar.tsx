@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { Fragment, useState } from "react";
 import { Drawer } from "./kit";
 import {
-  PORTAL_NAV,
+  navForUser,
   type PortalNavItem,
   type PortalUser,
 } from "./portal-nav";
@@ -135,7 +135,7 @@ function NavList({
 export function MobileNavTrigger({ user }: { user: PortalUser }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const items = PORTAL_NAV[user.role] ?? [];
+  const items = navForUser(user);
 
   return (
     <>
@@ -159,7 +159,8 @@ export function MobileNavTrigger({ user }: { user: PortalUser }) {
 export default function PortalSidebar({ user }: { user: PortalUser }) {
   const pathname = usePathname();
   // Empty until a role's frames land — PORTAL_NAV is deliberately not guessed.
-  const items = PORTAL_NAV[user.role] ?? [];
+  // `navForUser` adds the accreditor item a dual-role account needs (round 2 §2).
+  const items = navForUser(user);
 
   return (
     <nav

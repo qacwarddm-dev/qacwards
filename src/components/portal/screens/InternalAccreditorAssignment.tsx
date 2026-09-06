@@ -1,6 +1,16 @@
 import { Check, EllipsisVertical, X } from "lucide-react";
 import Link from "next/link";
-import { type Column, Button, DataTable, EmptyState, Modal, Panel } from "../kit";
+import {
+  type Column,
+  Button,
+  DataTable,
+  EmptyState,
+  Modal,
+  Panel,
+  STATUS,
+  StatusPill,
+  type StatusKey,
+} from "../kit";
 import AssignmentResponse from "./AssignmentResponse";
 
 /**
@@ -27,6 +37,9 @@ export type AssignmentListRow = {
   college: string;
   program: string;
   level: string;
+  /** The raw `assignment_status` enum value, not a prettified string: the
+   *  Status cell renders it through the kit's status registry so this screen
+   *  and the QAC one cannot disagree on what `for_psv` is called. */
   status: string;
   myResponse: string | null;
 };
@@ -66,9 +79,13 @@ function ActionSquare({ tone, confirmHref }: { tone: "accept" | "reject"; confir
 export default function InternalAccreditorAssignment({
   confirm,
   assignments,
+  title = "Accreditation Assignment",
 }: {
   confirm?: string;
   assignments: AssignmentListRow[];
+  /** Round 2 §2: a dual-role QAC Personnel sees this panel below their own
+   *  queue, where "Accreditation Assignment" would repeat the panel above it. */
+  title?: string;
 }) {
   const rows = assignments.map((a) => ({
     id: a.id,
@@ -90,7 +107,11 @@ export default function InternalAccreditorAssignment({
         ),
       status: (
         <span className="flex items-center justify-center gap-[16px]">
-          <span className="italic text-gray">{a.status}</span>
+          {a.status in STATUS ? (
+            <StatusPill status={a.status as StatusKey} size="sm" />
+          ) : (
+            <span className="italic text-gray">{a.status.replace(/_/g, " ")}</span>
+          )}
           <EllipsisVertical
             className="h-[18px] w-[18px] text-black"
             strokeWidth={2}
@@ -103,7 +124,7 @@ export default function InternalAccreditorAssignment({
 
   return (
     <div className="pb-[50px] pl-[54px] pr-[52px] pt-[50px]">
-      <Panel title="Accreditation Assignment">
+      <Panel title={title}>
         {assignments.length > 0 ? (
           <DataTable columns={COLUMNS} rows={rows} />
         ) : (
@@ -121,7 +142,11 @@ export default function InternalAccreditorAssignment({
               <Button variant="ghost" href="/portal/assignment">
                 Cancel
               </Button>
-              <AssignmentResponse assignmentId={confirm} variant="confirm-accept" />
+              <AssignmentResponse
+                assignmentId={confirm}
+                variant="confirm-accept"
+                afterRespond="/portal/assignment"
+              />
             </div>
           </Modal>
         )}

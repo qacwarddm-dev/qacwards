@@ -2,10 +2,13 @@ import Link from "next/link";
 import { History, IdCard, Mail } from "lucide-react";
 import { requireCurrentUser } from "@/lib/current-user";
 import { getProfileDetails } from "@/lib/profile";
+import { getExpertiseAreas, getExpertiseFor, getSignatureUrl } from "@/lib/accreditor";
 import { createClient } from "@/lib/supabase/server";
 import { BUCKETS, signedUrl } from "@/lib/storage";
 import ProfilePasswordCard from "@/components/portal/screens/ProfilePasswordCard";
 import ProfilePhotoCard from "@/components/portal/screens/ProfilePhotoCard";
+import ProfileSignatureCard from "@/components/portal/screens/ProfileSignatureCard";
+import ProfileSpecialtyCard from "@/components/portal/screens/ProfileSpecialtyCard";
 import {
   Card,
   FieldLabel,
@@ -33,15 +36,30 @@ import {
  * the password pair is two 312s. Department measures 520 — deliberately short of
  * the strip, not a full-width field.
  *
- * Wired in B2. Personal Details is still display-only; the two live panels are
+ * Wired in B2. Personal Details is still display-only; the live panels are
  * their own client components because they own mutations, and the page stays a
  * server component that reads and passes down.
+ *
+ * Round 2 §3/§4 add a third row for accreditors only — editable Discipline
+ * Expertise beside the e-signature. Both are things an accreditor owns about
+ * themselves, and neither means anything for a representative, so the row is
+ * absent rather than empty for everyone else. That also takes Discipline
+ * Expertise out of the read-only Personal Details panel for them: one field,
+ * one place, and the editable one wins.
  */
 const AVATAR_FALLBACK = "/assets/portal/avatar-placeholder.png";
 
 export default async function ProfilePage() {
   const user = await requireCurrentUser();
   const profile = await getProfileDetails();
+
+  const [expertiseAreas, myExpertise, signatureUrl] = user.actsAsAccreditor
+    ? await Promise.all([
+        getExpertiseAreas(),
+        getExpertiseFor(user.id),
+        getSignatureUrl(user.id, user.signaturePath),
+      ])
+    : [[], [], null];
 
   // The avatars bucket is private, so the disc needs a signed URL rather than the
   // stored path — §2.8: no bucket in this system serves a public URL.
@@ -107,11 +125,13 @@ export default async function ProfilePage() {
               <ReadOnlyField label="Position" value={profile.position} />
             </div>
 
-            <ReadOnlyField
-              label={profile.wide.label}
-              value={profile.wide.value}
-              className="mt-[20px] w-[520px]"
-            />
+            {!user.actsAsAccreditor && (
+              <ReadOnlyField
+                label={profile.wide.label}
+                value={profile.wide.value}
+                className="mt-[20px] w-[520px]"
+              />
+            )}
           </div>
         </Card>
       </div>
@@ -149,6 +169,17 @@ export default async function ProfilePage() {
 
         <ProfilePasswordCard webmail={profile.webmail} />
       </div>
+
+      {user.actsAsAccreditor && (
+        <div className="mt-[22px] flex flex-col items-stretch gap-[15px] lg:flex-row">
+          <ProfileSpecialtyCard
+            profileId={user.id}
+            areas={expertiseAreas}
+            initial={myExpertise}
+          />
+          <ProfileSignatureCard signatureUrl={signatureUrl} suggestedName={user.name} />
+        </div>
+      )}
     </div>
   );
 }

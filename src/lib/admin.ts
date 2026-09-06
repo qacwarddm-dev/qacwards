@@ -194,6 +194,7 @@ export type UserSearchRow = {
   webmail: string;
   role: UserRole;
   isActive: boolean;
+  isInternalAccreditor: boolean;
 };
 
 /**
@@ -209,7 +210,7 @@ export async function searchUsers(query: string): Promise<UserSearchRow[]> {
 
   const { data } = await supabase
     .from("profiles")
-    .select("id, surname, given_name, webmail, role, is_active")
+    .select("id, surname, given_name, webmail, role, is_active, is_internal_accreditor")
     .or(`surname.ilike.${q},given_name.ilike.${q},webmail.ilike.${q}`)
     .order("surname")
     .limit(50);
@@ -220,6 +221,7 @@ export async function searchUsers(query: string): Promise<UserSearchRow[]> {
     webmail: u.webmail,
     role: u.role,
     isActive: u.is_active,
+    isInternalAccreditor: u.is_internal_accreditor,
   }));
 }
 

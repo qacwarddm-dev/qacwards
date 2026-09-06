@@ -11,13 +11,23 @@
  * function — these are plain sync helpers, not actions.
  */
 
-/** `assignment.status` — exactly the 5-step Stepper in `ASSIGNMENT_STEPS`. */
+/**
+ * `assignment.status` — the 5-step Stepper in `ASSIGNMENT_STEPS`, plus round 2's
+ * `declined` hanging off the side of it.
+ *
+ * `declined` is reachable only from `assigned`, and that is a fact about the
+ * data rather than a restriction: the assignment advances to `in_progress` on
+ * the first acceptance, so an assignment every member declined never left
+ * `assigned`. Reassignment is the one way back, which is why `declined` returns
+ * there instead of being terminal.
+ */
 const ASSIGNMENT_TRANSITIONS: Record<string, string[]> = {
-  assigned: ["in_progress"],
+  assigned: ["in_progress", "declined"],
   in_progress: ["for_psv"],
   for_psv: ["evaluated"],
   evaluated: ["score_returned"],
   score_returned: [],
+  declined: ["assigned"],
 };
 
 const SUBMISSION_TRANSITIONS: Record<string, string[]> = {

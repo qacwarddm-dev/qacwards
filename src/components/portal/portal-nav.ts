@@ -140,4 +140,35 @@ export type PortalUser = {
   position: string;
   avatar: string;
   notifications: number;
+  /** Round 2 §2 — a QAC Personnel account that also serves as an Internal
+   *  Accreditor. Optional because the static fixtures in `data.ts` predate it
+   *  and none of them is dual-role; read the rail through `navForUser()`. */
+  actsAsAccreditor?: boolean;
 };
+
+/**
+ * The rail this particular person gets, as opposed to the one their role gets.
+ *
+ * Round 2 §2 makes a QAC Personnel account able to hold accreditor work as
+ * well, and that work has a screen the QAC rail does not link:
+ * `/portal/evaluation`. Adding it for everyone would put a dead item on the
+ * rail of every QAC user who is not on a team; adding it here keeps
+ * `PORTAL_NAV` a transcription of the frames and makes the dual role the only
+ * thing that deviates from them.
+ *
+ * Assignment is already on the QAC rail and is the shared URL both roles use,
+ * so nothing needs inserting for it.
+ */
+export function navForUser(user: PortalUser): PortalNavItem[] {
+  const items = PORTAL_NAV[user.role] ?? [];
+  if (!user.actsAsAccreditor || user.role === "internal_accreditor") return items;
+
+  const evaluation = PORTAL_NAV.internal_accreditor?.find(
+    (item) => item.href === "/portal/evaluation",
+  );
+  if (!evaluation || items.some((item) => item.href === evaluation.href)) return items;
+
+  const at = items.findIndex((item) => item.href === "/portal/assignment");
+  const withEvaluation = { ...evaluation, group: items[at]?.group };
+  return [...items.slice(0, at + 1), withEvaluation, ...items.slice(at + 1)];
+}

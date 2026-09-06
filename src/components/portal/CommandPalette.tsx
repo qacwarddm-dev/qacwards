@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search } from "lucide-react";
-import { PORTAL_NAV, type PortalUser } from "./portal-nav";
+import { navForUser, type PortalUser } from "./portal-nav";
 
 const EXTRA_ROUTES = [
   { label: "Profile", href: "/portal/profile" },
@@ -26,12 +26,12 @@ export default function CommandPalette({ user }: { user: PortalUser }) {
   const router = useRouter();
 
   const routes = useMemo(() => {
-    const nav = PORTAL_NAV[user.role] ?? [];
+    const nav = navForUser(user);
     const seen = new Set<string>();
     return [...nav.map((n) => ({ label: n.label, href: n.href })), ...EXTRA_ROUTES].filter(
       (r) => (seen.has(r.href) ? false : (seen.add(r.href), true)),
     );
-  }, [user.role]);
+  }, [user]);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();

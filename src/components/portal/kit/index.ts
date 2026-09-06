@@ -3,6 +3,7 @@
  * see the "Component kit" rule in CLAUDE.md. Screens pass data and variants;
  * components own their own spacing, radius, colour and type.
  */
+export { default as AccreditorPicker } from "./AccreditorPicker";
 export { default as Alert, type AlertTone } from "./Alert";
 export { default as BackLink } from "./BackLink";
 export { default as Badge } from "./Badge";
@@ -38,6 +39,7 @@ export {
   TextareaField,
   TextInput,
 } from "./Field";
+export { default as ExpertisePicker } from "./ExpertisePicker";
 export { default as FolderCard } from "./FolderCard";
 export { default as FolderGrid, type FolderEntry } from "./FolderGrid";
 export { default as MiniCalendar, type MeetingKind } from "./MiniCalendar";
@@ -56,6 +58,8 @@ export { default as ProgressRow } from "./ProgressRow";
 export { default as RowList } from "./RowList";
 export { default as SearchField } from "./SearchField";
 export { default as SectionHeading } from "./SectionHeading";
+export { default as SignatureBlock } from "./SignatureBlock";
+export { default as SignaturePad, type SignatureMode } from "./SignaturePad";
 export { default as Skeleton } from "./Skeleton";
 export { default as Spinner } from "./Spinner";
 export { default as SplitStat, type SplitStatHalf } from "./SplitStat";

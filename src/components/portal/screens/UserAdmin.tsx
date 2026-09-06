@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Button, ConfirmDialog, DataTable } from "@/components/portal/kit";
+import { Badge, Button, ConfirmDialog, DataTable } from "@/components/portal/kit";
+import UserAccreditorEditor from "./UserAccreditorEditor";
 import { searchUsers, setUserActive, setUserRole } from "@/lib/admin";
 import { ROLE_LABELS } from "@/lib/role-labels";
 import type { UserRole } from "@/lib/database.types";
@@ -16,6 +17,11 @@ import type { UserRole } from "@/lib/database.types";
  * change your own role) are enforced in the server action; they are mirrored here
  * only to grey the control out. The action is the one that decides — a disabled
  * button is a courtesy, not a control.
+ *
+ * Round 2 §2/§3 add "Edit", which is where the *second* role and the specialty
+ * live. The inline `select` above stays what it always was — the one role the
+ * account is — so the two controls cannot be mistaken for each other: the select
+ * replaces a role, Edit adds one.
  */
 type User = {
   id: string;
@@ -23,6 +29,8 @@ type User = {
   webmail: string;
   role: UserRole;
   isActive: boolean;
+  /** Round 2 §2 — a QAC Personnel account that also holds accreditor work. */
+  isInternalAccreditor: boolean;
 };
 
 const ROLES: UserRole[] = [
@@ -35,8 +43,9 @@ const ROLES: UserRole[] = [
 const COLUMNS = [
   { key: "name", header: "Name", width: "flex-1" },
   { key: "role", header: "Role", width: "w-[230px]" },
+  { key: "second", header: "Second role", width: "w-[120px]", align: "center" as const },
   { key: "status", header: "Status", width: "w-[100px]" },
-  { key: "actions", header: "", width: "w-[150px]", align: "center" as const },
+  { key: "actions", header: "", width: "w-[220px]", align: "center" as const },
 ];
 
 export default function UserAdmin({
@@ -120,6 +129,11 @@ export default function UserAdmin({
             ))}
           </select>
         ),
+        second: user.isInternalAccreditor ? (
+          <Badge tone="info">+ Accreditor</Badge>
+        ) : (
+          <span className="text-regular text-gray">—</span>
+        ),
         status: (
           <span
             className={`text-regular font-semibold ${
@@ -130,7 +144,8 @@ export default function UserAdmin({
           </span>
         ),
         actions: (
-          <span className="flex justify-center">
+          <span className="flex justify-center gap-[8px]">
+            <UserAccreditorEditor user={user} />
             <Button
               variant={user.isActive ? "outline" : "solid"}
               size="md"

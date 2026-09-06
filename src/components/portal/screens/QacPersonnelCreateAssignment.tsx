@@ -5,22 +5,14 @@ import { useRouter } from "next/navigation";
 import { createAssignmentForProgramLevel, fetchEligibleAccreditors } from "@/lib/assignment-actions";
 import type { EligibleAccreditor } from "@/lib/assignments";
 import {
+  AccreditorPicker,
   BackLink,
   Button,
   Card,
-  type Column,
-  DataTable,
   FieldLabel,
   PanelHeader,
   SelectInput,
 } from "../kit";
-
-/** assets/FIGMA/qac_personnel/03.1-Create new assignment.png */
-const COLUMNS: Column[] = [
-  { key: "name", header: "Name", width: "w-[248px]" },
-  { key: "expertise", header: "Expertise", width: "flex-1" },
-  { key: "action", header: "Action", width: "w-[200px]" },
-];
 
 type Campus = { id: string; name: string };
 type College = { id: string; name: string };
@@ -133,36 +125,6 @@ export default function QacPersonnelCreateAssignment({
     });
   }
 
-  const rows = accreditors.map((a) => ({
-    id: a.id,
-    cells: {
-      name: (
-        <span className="text-gray">
-          {a.name}
-          {a.isQacStaff && (
-            <span className="ml-[8px] italic text-gray">(QAC Personnel)</span>
-          )}
-        </span>
-      ),
-      expertise: (
-        <span className="text-gray">
-          {a.matched.length > 0 ? a.matched.join(", ") : "No matching expertise on file"}
-        </span>
-      ),
-      action: (
-        <span className="flex justify-center">
-          <Button
-            variant={selected.has(a.id) ? "solid" : "outline"}
-            disabled={pending}
-            onClick={() => toggle(a.id)}
-          >
-            {selected.has(a.id) ? "Selected" : "Assign"}
-          </Button>
-        </span>
-      ),
-    },
-  }));
-
   return (
     <div className="px-[57px] pb-[45px] pt-[32px]">
       <Card className="px-[44.5px] pb-[22px] pt-[28px]">
@@ -239,13 +201,12 @@ export default function QacPersonnelCreateAssignment({
             Eligible Accreditors
           </h2>
           <div className="mt-[18px]">
-            {rows.length > 0 ? (
-              <DataTable columns={COLUMNS} rows={rows} bodyRowH="h-[47px]" />
-            ) : (
-              <p className="py-[20px] text-regular text-gray">
-                No active accreditors on file yet.
-              </p>
-            )}
+            <AccreditorPicker
+              accreditors={accreditors}
+              selected={selected}
+              onToggle={toggle}
+              disabled={pending}
+            />
           </div>
         </Card>
 

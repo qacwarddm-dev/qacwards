@@ -9,10 +9,10 @@ import { respondToAssignment } from "@/lib/assignment-actions";
 /**
  * Accept or decline an assignment invitation.
  *
- * Two shapes, one component, because they are the same write: the small reject
- * square in the table's Action column, and the Accept button inside the
- * confirmation modal. Splitting them would mean two call sites drifting apart on
- * what "decline" does.
+ * Three shapes, one component, because they are the same write: the small reject
+ * square in the table's Action column, the Accept button inside the confirmation
+ * modal, and the accept/decline pair on a locked evaluation sheet. Splitting them
+ * would mean call sites drifting apart on what "decline" does.
  *
  * Declining asks for a reason — `assignment_accreditors.rejection_note` exists so
  * QAC can see why a team member stepped back, and an empty note makes the column
@@ -21,9 +21,15 @@ import { respondToAssignment } from "@/lib/assignment-actions";
 export default function AssignmentResponse({
   assignmentId,
   variant = "reject-square",
+  afterRespond,
 }: {
   assignmentId: string;
-  variant?: "reject-square" | "confirm-accept";
+  variant?: "reject-square" | "confirm-accept" | "decline-button";
+  /** Where to go once the answer lands. Omitted, the current route re-renders
+   *  in place — right for a screen that becomes the evaluation sheet on accept,
+   *  wrong for the Accept Confirmation modal, whose open state IS the URL and
+   *  which therefore has to navigate to close. */
+  afterRespond?: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -35,9 +41,13 @@ export default function AssignmentResponse({
     return new Promise<void>((resolve) => {
       startTransition(async () => {
         const result = await respondToAssignment(assignmentId, response, rejectionNote);
-        if (!result.ok) setError(result.error);
-        else if (variant === "confirm-accept") router.push("/portal/assignment");
-        else setAsking(false);
+        if (!result.ok) {
+          setError(result.error);
+        } else {
+          setAsking(false);
+          if (afterRespond) router.push(afterRespond);
+          else router.refresh();
+        }
         resolve();
       });
     });
@@ -62,14 +72,20 @@ export default function AssignmentResponse({
 
   return (
     <>
-      <button
-        type="button"
-        aria-label="Decline assignment"
-        onClick={() => setAsking(true)}
-        className="flex h-[24px] w-[24px] items-center justify-center rounded-[6px] bg-[color:var(--color-maroon)]/25"
-      >
-        <X className="h-[16px] w-[16px] text-white" strokeWidth={3} aria-hidden />
-      </button>
+      {variant === "decline-button" ? (
+        <Button variant="danger" disabled={pending} onClick={() => setAsking(true)}>
+          Decline
+        </Button>
+      ) : (
+        <button
+          type="button"
+          aria-label="Decline assignment"
+          onClick={() => setAsking(true)}
+          className="flex h-[24px] w-[24px] items-center justify-center rounded-[6px] bg-[color:var(--color-maroon)]/25"
+        >
+          <X className="h-[16px] w-[16px] text-white" strokeWidth={3} aria-hidden />
+        </button>
+      )}
       <ConfirmDialog
         open={asking}
         onOpenChange={setAsking}

@@ -956,9 +956,11 @@ export type Database = {
           given_name: string
           id: string
           is_active: boolean
+          is_internal_accreditor: boolean
           middle_initial: string | null
           position_id: string | null
           role: Database["public"]["Enums"]["user_role"]
+          signature_path: string | null
           surname: string
           updated_at: string
           webmail: string
@@ -971,9 +973,11 @@ export type Database = {
           given_name: string
           id: string
           is_active?: boolean
+          is_internal_accreditor?: boolean
           middle_initial?: string | null
           position_id?: string | null
           role: Database["public"]["Enums"]["user_role"]
+          signature_path?: string | null
           surname: string
           updated_at?: string
           webmail: string
@@ -986,9 +990,11 @@ export type Database = {
           given_name?: string
           id?: string
           is_active?: boolean
+          is_internal_accreditor?: boolean
           middle_initial?: string | null
           position_id?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          signature_path?: string | null
           surname?: string
           updated_at?: string
           webmail?: string
@@ -1837,6 +1843,7 @@ export type Database = {
         | "for_psv"
         | "evaluated"
         | "score_returned"
+        | "declined"
       award_status: "active" | "expired" | "superseded" | "revoked"
       cycle_status: "draft" | "open" | "closed"
       email_status: "pending" | "sent" | "failed"
@@ -2008,6 +2015,7 @@ export const Constants = {
         "for_psv",
         "evaluated",
         "score_returned",
+        "declined",
       ],
       award_status: ["active", "expired", "superseded", "revoked"],
       cycle_status: ["draft", "open", "closed"],

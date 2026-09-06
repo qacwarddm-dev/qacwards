@@ -16,6 +16,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const BUCKETS = {
   submissions: "submissions",
+  signatures: "signatures",
   repository: "repository",
   templates: "templates",
   commonDocs: "common-docs",
@@ -71,6 +72,22 @@ export async function signedUrl(
   return { data: data.signedUrl, error: null };
 }
 
+/**
+ * Read an object's bytes on the server, rather than handing the browser a signed
+ * URL. Used when the file is an input to something the server builds — the
+ * generated evaluation form embeds an accreditor's signature PNG, and a URL the
+ * server would only have to fetch back is a round trip for nothing.
+ */
+export async function downloadFile(
+  supabase: SupabaseClient,
+  bucket: BucketName,
+  path: string,
+): Promise<StorageResult<Uint8Array>> {
+  const { data, error } = await supabase.storage.from(bucket).download(path);
+  if (error || !data) return { data: null, error: error?.message ?? "Not found." };
+  return { data: new Uint8Array(await data.arrayBuffer()), error: null };
+}
+
 export async function removeFile(
   supabase: SupabaseClient,
   bucket: BucketName,
@@ -89,4 +106,14 @@ export async function removeFile(
 export function avatarPath(profileId: string, fileName: string): string {
   const ext = fileName.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
   return `${profileId}/avatar.${ext}`;
+}
+
+/**
+ * Where an accreditor's e-signature lives. Same owner-folder shape as
+ * `avatarPath`, and the extension is fixed rather than derived: the bucket
+ * accepts `image/png` alone, because the capture UI produces a canvas export
+ * whatever the accreditor drew or typed.
+ */
+export function signaturePath(profileId: string): string {
+  return `${profileId}/signature.png`;
 }

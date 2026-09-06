@@ -17,7 +17,7 @@ export default async function UsersSettingsPage() {
 
   const { data: users } = await supabase
     .from("profiles")
-    .select("id, surname, given_name, webmail, role, is_active")
+    .select("id, surname, given_name, webmail, role, is_active, is_internal_accreditor")
     .order("surname");
 
   return (
@@ -32,6 +32,7 @@ export default async function UsersSettingsPage() {
           webmail: u.webmail,
           role: u.role,
           isActive: u.is_active,
+          isInternalAccreditor: u.is_internal_accreditor,
         }))}
       />
     </Card>
