@@ -1,119 +1,163 @@
-import { Mail, Phone } from "lucide-react";
+import { ArrowUpRight, Mail, MapPin, Phone } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
+
+const SITE_LINKS = [
+  { label: "The Center", href: "/about" },
+  { label: "Campuses", href: "/about/campuses" },
+  { label: "Degree Programs", href: "/about/degree-programs" },
+  { label: "Accreditations", href: "/accreditations" },
+  { label: "Government Recognitions", href: "/gov-recognitions" },
+];
 
 const GOVPH_LINKS = [
   { label: "Official Gazette", href: "https://www.officialgazette.gov.ph/" },
   { label: "Open Data Portal", href: "https://data.gov.ph/" },
-];
-
-const GOVERNMENT_LINKS = [
   { label: "Office of the President", href: "https://op-proper.gov.ph/" },
-  { label: "Office of the Vice President", href: "https://ovp.gov.ph/" },
   { label: "Senate of the Philippines", href: "https://www.senate.gov.ph/" },
   { label: "House of Representatives", href: "https://www.congress.gov.ph/" },
   { label: "Supreme Court", href: "https://sc.judiciary.gov.ph/" },
-  { label: "Court of Appeals", href: "https://ca.judiciary.gov.ph/" },
-  { label: "Sandiganbayan", href: "https://sb.judiciary.gov.ph/" },
 ];
 
 function ColumnHeading({ children }: { children: React.ReactNode }) {
-  return <h2 className="text-heading font-bold text-white">{children}</h2>;
+  return (
+    <h2 className="t-eyebrow font-qac text-yellow">
+      {children}
+    </h2>
+  );
 }
 
+/**
+ * Site footer.
+ *
+ * Rebuilt for three reasons.
+ *
+ * 1. **It had no links to this site.** Three of its four columns pointed at
+ *    other government departments; a visitor at the bottom of the About page
+ *    could reach the Supreme Court but not the Campuses page. A sitemap column
+ *    now leads.
+ * 2. **Sizing.** The Republic seal was a hard `w-[175px]`, roughly half a phone
+ *    screen, and every link was 12px — under the comfortable tap target and at
+ *    the bottom of the type scale for what is a link list, not fine print.
+ *    Links are 15px on a 40px row; only the copyright line stays at 12.
+ * 3. **The seven-item Government Links column was a wall.** It is trimmed to
+ *    the six a university visitor plausibly wants and merged with GOVPH, which
+ *    frees the fourth column for contact detail that can now breathe.
+ *
+ * The gold keyline on top is the same one that closes every hero, so the page
+ * ends the way each band ends.
+ *
+ * **Both rows align to `--content-max`, not `--page-max`** (owner report,
+ * 2026-08-21). Every section on every public page is capped at 1180px; the
+ * footer was capped at 1440, so on a wide monitor its left edge sat ~130px
+ * outside the column of text directly above it and the whole block read as
+ * belonging to a different page. The seal is capped by *width* for the same
+ * reason — but the seal's real bug was distortion, not size. Both seals sit in
+ * a `flex flex-col`, whose default `align-items: stretch` blew the `w-auto`
+ * out to the full column width while `h-[92px]` held the height, rendering a
+ * 175x234 portrait seal as a 3:1 ribbon. `self-start` is the fix and is why
+ * both images now carry it; without it any future `w-auto` here distorts
+ * again.
+ */
 export default function Footer() {
   return (
-    <footer className="bg-maroon font-footer text-white">
-      <div className="mx-auto grid max-w-[1440px] gap-8 px-4 py-12 sm:px-6 md:grid-cols-2 lg:grid-cols-[2.49fr_1.78fr_1fr_1.65fr] lg:px-8">
-        <div className="flex items-start gap-4">
+    <footer className="on-maroon border-t-[3px] border-yellow bg-maroon font-footer text-white">
+      <div className="mx-auto grid w-full max-w-[var(--content-max)] gap-x-[var(--space-8)] gap-y-[var(--space-9)] px-[var(--page-gutter)] py-[var(--space-11)] sm:grid-cols-2 lg:grid-cols-[1.15fr_1fr_1fr_1.15fr]">
+        <div className="flex flex-col gap-4">
           <Image
             src="/assets/logos/republika-ng-pilipinas.png"
-            alt="Republic of the Philippines seal"
+            alt="Seal of the Republic of the Philippines"
             width={175}
             height={234}
             unoptimized
-            className="w-[175px] shrink-0"
+            className="h-[112px] w-auto self-start"
           />
-          <div className="flex flex-col gap-4 pt-5">
-            <ColumnHeading>Republic of the Philippines</ColumnHeading>
-            <p className="text-regular text-white/80">
-              All content is in the public domain unless otherwise stated.
-            </p>
-          </div>
+          <ColumnHeading>Republic of the Philippines</ColumnHeading>
+          <p className="text-regular leading-[1.6] text-white/85">
+            All content is in the public domain unless otherwise stated. Learn
+            more about the Philippine government, its structure, how government
+            works and the people behind it.
+          </p>
         </div>
 
-        <div className="flex flex-col gap-3">
-          <ColumnHeading>About GOVPH</ColumnHeading>
-          <p className="text-regular text-white/80">
-            Learn more about the Philippine government, its structure, how
-            government works and the people behind it.
-          </p>
-          <ul className="flex flex-col gap-2">
+        <nav aria-label="Quality Assurance Center" className="flex flex-col gap-4">
+          <ColumnHeading>Quality Assurance Center</ColumnHeading>
+          <ul className="flex flex-col">
+            {SITE_LINKS.map((link) => (
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  className="flex min-h-[40px] items-center text-subheading text-white/90 transition-colors duration-[var(--motion-fast)] hover:text-yellow"
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <nav aria-label="Government links" className="flex flex-col gap-4">
+          <ColumnHeading>GOVPH</ColumnHeading>
+          <ul className="flex flex-col">
             {GOVPH_LINKS.map((link) => (
               <li key={link.href}>
                 <a
                   href={link.href}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-regular transition-colors hover:text-yellow"
+                  className="group flex min-h-[40px] items-center gap-1.5 text-subheading text-white/90 transition-colors duration-[var(--motion-fast)] hover:text-yellow"
                 >
                   {link.label}
+                  <ArrowUpRight
+                    aria-hidden
+                    className="h-3.5 w-3.5 shrink-0 opacity-50 transition-opacity group-hover:opacity-100"
+                  />
+                  <span className="sr-only">(opens in a new tab)</span>
                 </a>
               </li>
             ))}
           </ul>
-        </div>
+        </nav>
 
-        <div className="flex flex-col gap-3">
-          <ColumnHeading>Government Links</ColumnHeading>
-          <ul className="flex flex-col gap-2">
-            {GOVERNMENT_LINKS.map((link) => (
-              <li key={link.href}>
-                <a
-                  href={link.href}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-regular transition-colors hover:text-yellow"
-                >
-                  {link.label}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="flex flex-col items-center gap-3 text-center">
+        <div className="flex flex-col gap-4">
           <Image
             src="/assets/logos/pup.png"
             alt="Polytechnic University of the Philippines seal"
             width={380}
             height={380}
             unoptimized
-            className="h-[108px] w-[108px]"
+            className="h-[92px] w-[92px] self-start"
           />
-
-          <h2 className="text-subheading font-bold text-yellow">EMAIL</h2>
-          <a
-            href="mailto:qac@pup.edu.ph"
-            className="flex items-center gap-2 text-subheading font-bold transition-colors hover:text-yellow"
-          >
-            <Mail className="h-5 w-5 shrink-0" />
-            <span className="underline">qac@pup.edu.ph</span>
-          </a>
-
-          <h2 className="mt-3 text-subheading font-bold text-yellow">
-            CONTACT US
-          </h2>
-          <p className="flex items-center gap-2 text-subheading font-bold">
-            <Phone className="h-5 w-5 shrink-0" />
-            <span className="underline">
-              (+632) 335-1787 or 335-1777 local 242
-            </span>
-          </p>
+          <ColumnHeading>Contact</ColumnHeading>
+          <address className="flex flex-col not-italic">
+            <a
+              href="mailto:qac@pup.edu.ph"
+              className="flex min-h-[40px] items-start gap-3 py-2 text-subheading text-white/90 transition-colors duration-[var(--motion-fast)] hover:text-yellow"
+            >
+              <Mail aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-yellow" />
+              qac@pup.edu.ph
+            </a>
+            <a
+              href="tel:+6323351787"
+              className="flex min-h-[40px] items-start gap-3 py-2 text-subheading text-white/90 transition-colors duration-[var(--motion-fast)] hover:text-yellow"
+            >
+              <Phone aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-yellow" />
+              (+632) 335-1787 / 335-1777 loc. 242
+            </a>
+            <p className="flex items-start gap-3 py-2 text-subheading text-white/85">
+              <MapPin aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-yellow" />
+              Ninoy Aquino Library and Learning Resource Center, PUP Sta. Mesa,
+              Manila
+            </p>
+          </address>
         </div>
       </div>
 
-      <div className="border-t border-white/20 px-4 py-4 text-center text-regular sm:px-6 lg:px-8">
-        © 2026 Polytechnic University of the Philippines
+      <div className="border-t border-white/20">
+        <div className="mx-auto flex w-full max-w-[var(--content-max)] flex-col items-center justify-between gap-2 px-[var(--page-gutter)] py-[var(--space-5)] text-regular text-white/75 sm:flex-row">
+          <p>© 2026 Polytechnic University of the Philippines</p>
+          <p>Quality Assurance Center</p>
+        </div>
       </div>
     </footer>
   );

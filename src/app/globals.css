@@ -112,36 +112,53 @@
 :root {
   --page-gutter: clamp(16px, 4vw, 64px);
   --panel-pad: var(--space-6);
-  /* Auth panel content zoom. See the note beside the removed `--auth-scale`
-     below: every measurement inside the auth panel is a fixed px read off the
-     1440 frame, so above that width the panel grows and the card does not,
-     which the owner reported as the card reading far too small (2026-08-20).
-     Unlike `--auth-scale` this scales only the panel's *contents* — the
-     photo/panel split stays at its measured 922px, so the hero crop is
-     untouched — and it is capped, so a 2560 monitor gets a readable card
-     rather than a magnified one. Stepped rather than continuous because
-     `calc(100vw / 1440px)` (length/length -> number) is not reliably
-     supported. */
-  --auth-zoom: 1;
+  /* Public-site vertical rhythm. Replaces the per-page `pt-32 pb-40` /
+     `pb-28 pt-11` / `py-16` grab-bag: one value, fluid, so the whitespace
+     scales with the viewport instead of eating a phone screen. */
+  --section-y: clamp(48px, 7vw, 96px);
+  /* --- Auth screens (redesign 2026-08-21).
+
+     `--auth-zoom` is GONE, and with it the whole magnify-the-frame strategy.
+     It was a stepped scale factor (1 / 1.12 / 1.25 / 1.4) applied to the auth
+     panel's contents because every measurement inside that panel was a fixed px
+     read off the 1440x810 Figma frame, so on any other viewport the only way to
+     keep the card legible was to zoom it. That had three costs worth naming,
+     since re-introducing the factor would bring all three back:
+
+       1. `zoom` is not a layout: it scales the ancestor's coordinate space, so
+          `getBoundingClientRect()` and `clientHeight` stop agreeing and the card
+          needed a ResizeObserver fitting loop (`useFitToRoom`) just to avoid
+          colliding with the footnote. That loop is deleted too.
+       2. It defeats user text zoom. A person who sets a larger default font size
+          gets nothing back from a layout whose sizes are px multiplied by a
+          viewport-width step.
+       3. It has no answer below 1024, where the factor floors at 1 and a 330px
+          card sat marooned in a full-width white panel.
+
+     The replacement is ordinary responsive layout: fluid card widths, a fluid
+     type ramp that clamps between frozen tokens, and a panel that scrolls when
+     the content is taller than the room. Nothing here invents a colour, family
+     or size — same discipline as the public-site clamps above. */
+
+  /* Panel padding. Reaches a comfortable editorial margin on a monitor without
+     eating a 360px phone. */
+  --auth-gutter: clamp(20px, 4.5vw, 56px);
+  /* Card measure. The login frames drew 330 and register 382; both are now
+     ceilings on a width that fills a phone edge-to-edge inside the gutter. */
+  --auth-card: clamp(280px, 100%, 400px);
+  --auth-card-wide: clamp(280px, 100%, 464px);
+  /* The panel's signature top-left arc. A corner treatment, so it shrinks on
+     small viewports rather than swallowing the panel's first line of content. */
+  --auth-arc: clamp(24px, 4vw, 96px);
+  /* WCAG 2.5.5 target size. The frames drew 35px buttons and 40px fields; both
+     are under the 44px floor, and on a phone that is the difference between
+     hitting the field and hitting the label above it. */
+  --auth-control-h: 44px;
+  --auth-vgap: clamp(16px, 2.2vw, 24px);
 }
 @media (min-width: 1024px) {
   :root {
     --panel-pad: var(--space-7);
-  }
-}
-@media (min-width: 1440px) {
-  :root {
-    --auth-zoom: 1.12;
-  }
-}
-@media (min-width: 1680px) {
-  :root {
-    --auth-zoom: 1.25;
-  }
-}
-@media (min-width: 1920px) {
-  :root {
-    --auth-zoom: 1.4;
   }
 }
 
@@ -185,6 +202,17 @@ body {
   from {
     opacity: 0;
     transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes drawer-down {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
   }
   to {
     opacity: 1;
@@ -315,6 +343,126 @@ html {
   letter-spacing: 0.02em;
 }
 
+/* --- Secondary text on the public site is `text-black/70`, never `text-gray`.
+   --color-gray (#7B7979) measures 4.39:1 on white, which is under the 4.5:1
+   floor for normal-size text; every muted caption, role line and standfirst on
+   these pages was therefore failing WCAG AA. `black/70` resolves to ~#4D4D4D
+   (8.6:1) and introduces no colour outside design/figma-tokens.md, since it is
+   an alpha of a frozen token — the same move --hairline and --tint-* already
+   make. --color-gray remains correct for gridlines and other non-essential
+   marks, which is what the token file describes it as. */
+
+/* --- Fluid type roles (public-site redesign, 2026-08-20). No new size is
+   introduced: every clamp() below interpolates BETWEEN two sizes that are
+   already in design/figma-tokens.md. The frozen scale has a single heading
+   size (36px), which on a 360px phone overflows a hero title and on a 1440
+   monitor reads as body copy; clamping between two frozen tokens is the only
+   way to be responsive without inventing a size. */
+
+/* 20 -> 36. Hero + page titles. */
+@utility t-hero {
+  font-size: clamp(var(--text-heading), 0.9rem + 2.4vw, var(--text-title));
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+/* 20 -> 31. Section titles, one step under a hero. */
+@utility t-section {
+  font-size: clamp(var(--text-heading), 0.8rem + 1.4vw, var(--text-banner));
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+/* 15 -> 20. Standfirst / lede copy under a title. */
+@utility t-lead {
+  font-size: clamp(var(--text-subheading), 0.7rem + 0.55vw, var(--text-heading));
+  font-weight: 400;
+  line-height: 1.5;
+}
+/* 36 -> 150. The campus stat band. 150px is the prototype's measured value,
+   not a new one; the clamp only stops it blowing past a phone's width. */
+@utility t-numeral {
+  font-size: clamp(var(--text-title), 15vw, 150px);
+  font-weight: 800;
+  line-height: 0.85;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+/* 31 -> 120. The accreditation count tiles, same reasoning as above. */
+@utility t-numeral-sm {
+  font-size: clamp(var(--text-banner), 11vw, 120px);
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+/* Section index marker — "01" beside a heading. Poppins, tabular. */
+@utility t-index {
+  font-family: var(--font-qac);
+  font-size: var(--text-regular);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Long-form body copy. The public site is mostly running text (the About
+   page alone is nine history paragraphs); before this every page hand-rolled
+   `space-y-[30px] leading-loose` and centred it across 1161px, which is ~150
+   characters a line. One utility, one measure, one rhythm. */
+@utility prose-public {
+  font-size: var(--text-subheading);
+  line-height: 1.75;
+  color: var(--color-black);
+  text-wrap: pretty;
+
+  & > * + * {
+    margin-top: var(--space-6);
+  }
+  & strong {
+    font-weight: 700;
+  }
+  & a {
+    color: var(--color-maroon);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  & ol,
+  & ul {
+    padding-left: var(--space-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  & ol {
+    list-style: decimal;
+  }
+  & ul {
+    list-style: disc;
+  }
+  & li::marker {
+    color: var(--color-maroon);
+    font-weight: 700;
+  }
+}
+
+/* --- Staggered entrance. One orchestrated reveal per page rather than a
+   micro-interaction on every element; `page-in` already exists and the global
+   prefers-reduced-motion block already neutralises it. */
+@utility reveal {
+  animation: page-in var(--motion-slow) var(--ease-out) both;
+}
+
+/* --- Section divider: 4px maroon over a gold hairline. The About page already
+   drew this by hand (`border-y-[20px] border-maroon`, plus a one-off #E1C16E
+   rule); making it one class is what stops the third page inventing a fourth
+   variant. */
+@utility rule-brand {
+  height: 4px;
+  background: var(--color-maroon);
+  box-shadow: 0 5px 0 0 var(--color-yellow);
+}
+
 /* Portal + auth frame scale — REMOVED (Phase 6, 09-ui-refactor §F4/§12).
    `--portal-scale` and `--auth-scale` zoomed the whole shell by
    viewport/1440 so a wide monitor read the same proportions as the 1440
@@ -346,5 +494,115 @@ html {
 @media (min-width: 640px) {
   .brand-lockup {
     zoom: 1;
+  }
+}
+
+/* --- Auth type roles (redesign 2026-08-21). Two clamps, both between sizes
+   that already exist in design/figma-tokens.md — the same move the public-site
+   ramp above makes, and for the same reason: the frozen scale jumps 15 -> 20 ->
+   36 with nothing in between, so a fixed pick is either cramped on a monitor or
+   overflowing on a phone. */
+
+/* 12 -> 15. Field labels. `leading-none` on a 12px maroon label was the auth
+   screens' default and it clipped descenders in "College / Department". */
+@utility t-label {
+  font-size: clamp(var(--text-regular), 0.68rem + 0.35vw, var(--text-subheading));
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+}
+
+/* Resolves to exactly 16px at every width, clamped between the frozen 15 and
+   20. This is not cosmetic: Mobile Safari zooms the viewport whenever a focused
+   input's font-size is under 16px, so every field on these screens used to
+   punch the page to 106% on tap and leave it there. */
+@utility t-input {
+  font-size: clamp(var(--text-subheading), 1rem, var(--text-heading));
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+/* --- Auth field. One border treatment for inputs, selects and the file
+   dropzone, so the three cannot drift apart.
+
+   The frames drew a 2px maroon border on every field in the resting state.
+   That reads as 2012 and, worse, as an error state: a form of six identically
+   outlined maroon boxes gives focus nowhere to land. Resting is a hairline;
+   maroon is spent on the focused field only, drawn as a ring so the box does
+   not reflow by 1px when it gains focus. */
+@utility auth-field {
+  min-height: var(--auth-control-h);
+  width: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--hairline-strong);
+  background: var(--color-white);
+  padding-inline: var(--space-3);
+  color: var(--color-black);
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+}
+/* The focus indicator is a solid maroon ring held off the field by a white
+   gap, not a tinted glow. A glow at any alpha low enough to look soft lands
+   around 1.4:1 against white, well under the 3:1 WCAG 1.4.11 asks of a focus
+   indicator; full maroon is 12.6:1. `outline: none` is safe here only because
+   this ring replaces it — the global :focus-visible outline still covers every
+   control that does not opt into this utility. */
+@utility auth-field-focus {
+  border-color: var(--color-maroon);
+  box-shadow:
+    0 0 0 2px var(--color-white),
+    0 0 0 4px var(--color-maroon);
+  outline: none;
+}
+
+/* --- Staggered entrance for the auth column.
+
+   Its own keyframes rather than the shared `page-in`, for one reason that is
+   invisible until it bites: `page-in` ends on `transform: translateY(0)`, and
+   with `animation-fill-mode: both` that computed transform is retained forever
+   after the animation finishes. A retained transform creates a stacking
+   context, so every direct child of a staggered form became its own painting
+   layer — which meant an open AuthSelect menu (`z-30`, inside an earlier child)
+   was painted *under* the submit button in a later child, no matter what
+   z-index it asked for.
+
+   Ending the keyframe on `transform: none` is NOT enough on its own: an
+   animation interpolating from `translateY(6px)` resolves `none` to the
+   identity matrix, so `fill-mode: both` retains `matrix(1,0,0,1,0,0)` — still a
+   transform, still a stacking context. `backwards` is the fill that actually
+   fixes it: the from-state is held during the stagger delay, and once the
+   animation ends the element drops back to its own styles, transform and all.
+
+   The global prefers-reduced-motion reset collapses the duration, so a
+   reduced-motion user lands on the finished state with no opacity trap. */
+@keyframes auth-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@utility auth-stagger {
+  & > * {
+    animation: auth-in var(--motion-slow) var(--ease-out) backwards;
+  }
+  & > *:nth-child(1) {
+    animation-delay: 40ms;
+  }
+  & > *:nth-child(2) {
+    animation-delay: 90ms;
+  }
+  & > *:nth-child(3) {
+    animation-delay: 140ms;
+  }
+  & > *:nth-child(4) {
+    animation-delay: 190ms;
+  }
+  & > *:nth-child(n + 5) {
+    animation-delay: 240ms;
   }
 }

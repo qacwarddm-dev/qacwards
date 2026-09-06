@@ -1,31 +1,43 @@
 "use client";
 
-import { Monitor, UserRound } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { ImagePlus, X } from "lucide-react";
 import { useRef, useState } from "react";
-import { AuthButton, AuthCard, AuthShell } from "@/components/auth";
+import { useRouter } from "next/navigation";
+import { AuthButton, AuthCard, AuthFormError, AuthShell } from "@/components/auth";
 import { createClient } from "@/lib/supabase/browser";
 import { BUCKETS, avatarPath, uploadFile } from "@/lib/storage";
 import { REGISTER_STEPS } from "../register-options";
 import { clearDraft } from "../registration-draft";
 
 /**
- * Step 4 of register — assets/FIGMA/register/upload-profile.png, titled PROFILE.
+ * Step 4 of register — the profile picture.
  *
- * Measured from the body top (card top + the 63px band): blurb 40.5, the 80px
- * avatar 110, "Drag photo here" 203, "- or -" 234, the outlined 191x35 upload
- * button 260, Next 345 and Skip 404. The placeholder disc is #B7B7B7, which no
- * token carries; --color-gray at 55% renders 182 against the card's white and is
- * the nearest token-derived match to the measured 183.
- *
- * Wired in B2. The picker still previews locally, but Next now uploads the chosen
- * file to the private `avatars` bucket and writes `profiles.avatar_path`. The
- * account already exists by this point (it was created when the OTP was
+ * The account already exists by this point (it was created when the OTP was
  * verified), so **Skip is a real ending, not an abandonment** — that is why the
- * frame offers both and why only Next implies a picture was chosen.
+ * screen offers both and why only Next implies a picture was chosen.
+ *
+ * ## 2026-08-21 redesign
+ *
+ * **The drop zone was not reachable.** It was a `<div>` carrying drag handlers,
+ * with the only usable control a separate outlined "Upload from computer"
+ * button beside a "Drag photo here" instruction that was false for anyone not
+ * using a mouse. The zone is one `<button>` now: click it, focus it and press
+ * Enter, or drop a file on it — three ways into the same file picker, and the
+ * label reads correctly for all of them.
+ *
+ * **The chosen file was never announced.** Picking a photo swapped a grey disc
+ * for a preview and said nothing; the file name is now stated in a polite live
+ * region, and the preview has a real alt.
+ *
+ * **There was no way to undo a choice** short of picking a different file. There
+ * is a Remove control.
+ *
+ * **The placeholder disc was `--color-gray` at 55%** to hit a measured #B7B7B7
+ * that no token carries. It is a bordered, tinted well instead — no invented
+ * colour, and it reads as a target rather than as a person-shaped blank.
  */
 const MAX_BYTES = 2 * 1024 * 1024;
+
 export default function ProfileForm() {
   const router = useRouter();
   const [preview, setPreview] = useState<string | null>(null);
@@ -36,7 +48,11 @@ export default function ProfileForm() {
   const fileInput = useRef<HTMLInputElement>(null);
 
   const accept = (file: File | undefined) => {
-    if (!file?.type.startsWith("image/")) return;
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("That file is not an image. Choose a JPG or PNG.");
+      return;
+    }
     if (file.size > MAX_BYTES) {
       setError("That photo is larger than 2 MB.");
       return;
@@ -47,6 +63,16 @@ export default function ProfileForm() {
       if (old) URL.revokeObjectURL(old);
       return URL.createObjectURL(file);
     });
+  };
+
+  const clearChoice = () => {
+    setPreview((old) => {
+      if (old) URL.revokeObjectURL(old);
+      return null;
+    });
+    setChosen(null);
+    setError(null);
+    if (fileInput.current) fileInput.current.value = "";
   };
 
   function finish() {
@@ -66,7 +92,7 @@ export default function ProfileForm() {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      setError("That registration expired. Start again from Create an Account.");
+      setError("That registration expired. Start again from Create an account.");
       setPending(false);
       return;
     }
@@ -88,97 +114,117 @@ export default function ProfileForm() {
   }
 
   return (
-    <AuthShell align="center">
-      <AuthCard variant="register" title="PROFILE">
-        <p className="mt-[5.5px] text-center text-regular leading-[14.5px] text-gray">
-          We suggest using your PUP picture as your profile picture.
-        </p>
-
-        <div
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragging(true);
-          }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={(e) => {
-            e.preventDefault();
-            setDragging(false);
-            accept(e.dataTransfer.files[0]);
-          }}
-          className="flex flex-col items-center"
-        >
-          {preview ? (
-            // A blob: object URL of unknown dimensions that the optimiser cannot
-            // fetch, so next/image has nothing to do here.
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={preview}
-              alt="Chosen profile picture"
-              className={`mt-[40.5px] h-[80px] w-[80px] rounded-full object-cover ${
-                dragging ? "opacity-60" : ""
-              }`}
-            />
-          ) : (
-            <span
-              className={`mt-[40.5px] flex h-[80px] w-[80px] items-center justify-center rounded-full bg-gray/55 ${
-                dragging ? "opacity-60" : ""
-              }`}
-            >
-              <UserRound
-                className="h-[46px] w-[46px] text-white"
-                strokeWidth={0}
-                fill="currentColor"
-                aria-hidden
-              />
-            </span>
-          )}
-
-          <p className="mt-[13px] text-regular leading-[12px] text-black">
-            Drag photo here
-          </p>
-          <p className="mt-[19px] text-regular leading-[12px] text-gray">- or -</p>
+    <AuthShell>
+      <AuthCard
+        variant="register"
+        step={{ current: 4, total: 4 }}
+        title="Add a profile photo"
+        subtitle="We suggest your PUP picture. You can skip this and add one later."
+      >
+        <div className="auth-stagger flex flex-col gap-[var(--auth-vgap)]">
+          {error && <AuthFormError>{error}</AuthFormError>}
 
           <input
             ref={fileInput}
             type="file"
             accept="image/*"
-            className="hidden"
+            className="sr-only"
+            tabIndex={-1}
             onChange={(e) => accept(e.target.files?.[0])}
           />
-          <span className="mt-[14px]">
-            <AuthButton
-              tone="outline"
-              size="upload"
+
+          <div className="flex flex-col gap-[var(--space-3)]">
+            <button
+              type="button"
               onClick={() => fileInput.current?.click()}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragging(true);
+              }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragging(false);
+                accept(e.dataTransfer.files[0]);
+              }}
+              aria-label={
+                chosen
+                  ? `Change profile photo. Currently ${chosen.name}`
+                  : "Choose a profile photo. You can also drop an image here"
+              }
+              className={`flex flex-col items-center gap-[var(--space-3)] rounded-[var(--radius-lg)] border border-dashed p-[var(--space-6)] text-center transition-colors duration-[var(--motion-fast)] ${
+                dragging
+                  ? "border-maroon bg-[var(--tint-maroon)]"
+                  : "border-[var(--hairline-strong)] bg-surface hover:border-maroon hover:bg-[var(--tint-maroon)]"
+              }`}
             >
-              <Monitor className="h-[16px] w-[16px]" strokeWidth={1.5} aria-hidden />
-              Upload from computer
+              {preview ? (
+                // A blob: object URL of unknown dimensions that the optimiser
+                // cannot fetch, so next/image has nothing to do here.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={preview}
+                  alt="Preview of the profile photo you chose"
+                  className="h-[96px] w-[96px] rounded-full object-cover shadow-[var(--elev-2)]"
+                />
+              ) : (
+                <span className="grid h-[96px] w-[96px] place-items-center rounded-full border border-[var(--hairline-strong)] bg-white">
+                  <ImagePlus
+                    className="h-[32px] w-[32px] text-maroon"
+                    strokeWidth={1.5}
+                    aria-hidden
+                  />
+                </span>
+              )}
+
+              <span className="flex flex-col gap-[2px]">
+                <span className="t-body-strong text-maroon">
+                  {chosen ? "Choose a different photo" : "Upload a photo"}
+                </span>
+                <span className="t-sm text-black/70">
+                  Drag an image here, or click to browse. JPG or PNG, up to 2 MB.
+                </span>
+              </span>
+            </button>
+
+            {chosen && (
+              <div className="flex items-center justify-between gap-[var(--space-3)] rounded-[var(--radius-md)] border border-[var(--hairline)] bg-white p-[var(--space-2)] pl-[var(--space-3)]">
+                <p className="t-sm min-w-0 flex-1 truncate text-black">
+                  {chosen.name}
+                </p>
+                <AuthButton tone="ghost" onClick={clearChoice}>
+                  <X className="h-[14px] w-[14px]" strokeWidth={2.5} aria-hidden />
+                  Remove
+                </AuthButton>
+              </div>
+            )}
+
+            <p role="status" aria-live="polite" className="sr-only">
+              {chosen ? `${chosen.name} selected.` : ""}
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-[var(--space-3)]">
+            <AuthButton
+              tone="maroon"
+              size="lg"
+              block
+              onClick={handleNext}
+              loading={pending}
+            >
+              {pending ? "Saving…" : chosen ? "Save and finish" : "Finish"}
             </AuthButton>
-          </span>
-        </div>
-
-        {error && (
-          <p className="mt-[14px] text-center text-regular leading-tight text-maroon">
-            {error}
-          </p>
-        )}
-
-        <div className="mt-[50px] mb-[11.5px] flex flex-col items-center">
-          <AuthButton
-            tone="maroon"
-            size="pill-sm"
-            onClick={handleNext}
-            disabled={pending}
-          >
-            {pending ? "Saving…" : "Next"}
-          </AuthButton>
-          <Link
-            href={REGISTER_STEPS.done}
-            onClick={clearDraft}
-            className="mt-[19px] text-regular leading-[12px] text-maroon"
-          >
-            Skip
-          </Link>
+            <AuthButton
+              tone="ghost"
+              block
+              onClick={() => {
+                clearDraft();
+                router.push(REGISTER_STEPS.done);
+              }}
+            >
+              Skip for now
+            </AuthButton>
+          </div>
         </div>
       </AuthCard>
     </AuthShell>

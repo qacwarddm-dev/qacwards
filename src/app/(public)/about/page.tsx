@@ -1,22 +1,22 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 
+import {
+  PageHero,
+  PersonCard,
+  Section,
+  SectionIntro,
+} from "@/components/public";
+
 export const metadata: Metadata = {
   title: "About | PUP Quality Assurance Center",
   description:
     "The Quality Assurance Center of the Polytechnic University of the Philippines — its officials and staff, mandate, core functions, goals, objectives and history.",
 };
 
-// Two values below come off the client prototype but have no entry in
-// design/figma-tokens.md yet — the cream band behind "Officials and Staff" and
-// the gold hairline that fences it. Flagged for the client; swap for tokens
-// once they are added to the token file.
-const BAND_BG = "bg-[#FFF8DC]";
-const BAND_RULE = "border-[#E1C16E]";
-
 // Portraits ship from the client with a 5px frame already baked into the PNG,
-// so the frame colour is part of the file, not a CSS border. Only the drop
-// shadow is ours.
+// so the frame colour is part of the file, not a CSS border.
+
 const PORTRAIT_SHADOW = "shadow-[6px_6px_11px_rgba(0,0,0,0.25)]";
 
 const DIRECTOR_MESSAGE = [
@@ -183,184 +183,245 @@ const HISTORY = [
   "With these accomplishments, QAC is proud to proclaim that with the well-defined core functions, goals, and objectives, best practices, the Center is on the right track in attaining its vision of nurturing a culture of quality in the University.",
 ];
 
-function Portrait({ person }: { person: Official }) {
-  return (
-    <div className="flex w-[233px] flex-col items-center">
-      <Image
-        src={person.photo}
-        alt={person.name}
-        width={person.width}
-        height={person.height}
-        className={`h-[310px] w-auto ${PORTRAIT_SHADOW}`}
-      />
-      {/* Wider than the 233px portrait so the roles break where the prototype
-          breaks them; only safe once the band itself has room for four across. */}
-      <div className="mt-6 w-[233px] max-w-[90vw] text-center text-maroon xl:w-[330px]">
-        <p className="text-heading font-bold leading-[24px] xl:whitespace-nowrap">
-          {person.name}
-        </p>
-        <p className="text-subheading leading-[18px]">{person.role}</p>
-      </div>
-    </div>
-  );
-}
 
+/**
+ * About — the site's long-form page, and the one the redesign changed most.
+ *
+ * What was dated:
+ *
+ * - **A floated portrait.** `sm:float-left sm:mr-[62px]` around a 279px image
+ *   with justified 15px copy wrapping it. Text wrap around a float has no
+ *   responsive story between 640 and 1024 — the measure collapses to a few
+ *   words a line. It is a two-column grid now, and the portrait is sticky on
+ *   desktop so it stays with the message it belongs to.
+ * - **Ten identical `text-title` headings** down a ~4,000px page with nothing
+ *   to tell them apart. Each major part now carries a section marker, an
+ *   eyebrow and its own band tone, so the page has a spine.
+ * - **A hand-tuned portrait wall**: `flex-wrap` with `gap-x-[106px]` for the
+ *   four chiefs and `gap-x-[130px]` for the threes, plus a fixed `w-[233px]`
+ *   and an `xl:whitespace-nowrap` on the names. It reflowed into orphans at
+ *   most widths. A real grid replaces it.
+ * - **Two un-tokenised hex values** (`#FFF8DC` band, `#E1C16E` rule) that
+ *   shipped with a "flagged for the client" comment. Both are gone: the band is
+ *   `--tint-yellow` and the rules are `--color-yellow`, so the page no longer
+ *   holds colours outside design/figma-tokens.md.
+ * - **Justified body copy** (`sm:text-justify`) at 15px across 1152px, which
+ *   produced rivers and ~150-character lines. Copy now runs ragged-right at
+ *   `--prose-max`.
+ */
 export default function AboutPage() {
   return (
     <div>
-      {/* Banner ratio comes off the prototype: 532px tall at a 1445px viewport.
-          The supplied ABOUT US.jpg is a 3:2 full-body shot, so it is cropped,
-          not scaled — 2% down the overflow leaves the same headroom above the
-          tallest head (~9% of the band) that the prototype has. Because both
-          the aspect and the offset are ratios, the crop holds at any width. */}
-      <Image
-        src="/assets/imagery/about-us.jpg"
-        alt="The Quality Assurance Center team"
+      <PageHero
+        image="/assets/imagery/about-us.jpg"
         width={2048}
         height={1364}
-        className="aspect-[1445/532] w-full object-cover object-[center_2%]"
+        art="photo"
+        alt="The Quality Assurance Center team"
+        eyebrow="About"
+        title="Quality Assurance Center"
+        lede="The office that carries accreditation, government recognition and continuous quality improvement for the Polytechnic University of the Philippines."
+        focus="center 18%"
         priority
       />
-      <div className="h-5 bg-maroon" />
 
-      <section className="px-4 pb-28 pt-11 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-[1152px]">
-          <Image
-            src="/assets/employees/claudio.png"
-            alt="Sanjay P. Claudio, DPA — QAC Director"
-            width={279}
-            height={399}
-            className={`mx-auto mb-8 sm:float-left sm:mx-0 sm:mb-6 sm:mr-[62px] ${PORTRAIT_SHADOW}`}
-          />
-
-          <h1 className="text-title font-bold leading-[1.2] text-maroon">
-            Message from the QAC Director
-          </h1>
-
-          <div className="mt-7 space-y-[30px] text-subheading leading-loose sm:text-justify">
-            {DIRECTOR_MESSAGE.map((paragraph) => (
-              <p key={paragraph.slice(0, 32)}>{paragraph}</p>
-            ))}
+      <Section>
+        <div className="grid gap-[var(--space-8)] lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)] lg:gap-[var(--space-11)]">
+          <div className="lg:sticky lg:top-[calc(var(--bar-h)+var(--space-6))] lg:self-start">
+            <Image
+              src="/assets/employees/claudio.png"
+              alt=""
+              width={279}
+              height={399}
+              sizes="(min-width: 1024px) 280px, 60vw"
+              className={`w-[200px] max-w-full sm:w-[240px] lg:w-full ${PORTRAIT_SHADOW}`}
+            />
+            <span aria-hidden className="mt-6 block h-[2px] w-12 bg-yellow" />
+            <p className="t-h1 mt-4 text-maroon">Sanjay P. Claudio, DPA</p>
+            <p className="t-sm mt-1 text-black/70">Director</p>
           </div>
 
-          <p className="mt-[26px] text-heading font-bold">
-            Sanjay P. Claudio, DPA
-          </p>
-        </div>
-      </section>
-
-      <section
-        id="officials"
-        className={`border-y-[5px] px-4 pb-[29px] pt-[33px] sm:px-6 lg:px-8 ${BAND_BG} ${BAND_RULE}`}
-      >
-        <h2 className="text-center text-title font-black leading-[1.2] text-maroon">
-          OFFICIALS AND STAFF
-        </h2>
-
-        <div className="mx-auto mt-[38px] max-w-[1250px]">
-          <div className="flex justify-center">
-            <Portrait person={DIRECTOR} />
-          </div>
-
-          <div className="mt-[45px] grid grid-cols-1 justify-items-center gap-y-[45px] sm:grid-cols-2">
-            {ASSISTANT_DIRECTORS.map((person) => (
-              <Portrait key={person.name} person={person} />
-            ))}
-          </div>
-
-          <div className="mt-[45px] flex flex-wrap justify-center gap-x-[106px] gap-y-[45px]">
-            {CHIEFS.map((person) => (
-              <Portrait key={person.name} person={person} />
-            ))}
-          </div>
-
-          {/* Three across, so the prototype opens the column gap to 130px. */}
-          {[COORDINATORS, ADMINISTRATIVE_STAFF].map((row) => (
-            <div
-              key={row[0].role}
-              className="mt-[45px] flex flex-wrap justify-center gap-x-[130px] gap-y-[45px]"
-            >
-              {row.map((person) => (
-                <Portrait key={person.name} person={person} />
+          <div>
+            <SectionIntro
+              index="01"
+              eyebrow="Foreword"
+              title="Message from the QAC Director"
+              as="h2"
+            />
+            <div className="prose-public mt-[var(--space-7)] max-w-[var(--prose-max)]">
+              {DIRECTOR_MESSAGE.map((paragraph) => (
+                <p key={paragraph.slice(0, 32)}>{paragraph}</p>
               ))}
             </div>
-          ))}
+            <p className="t-body-strong mt-[var(--space-7)] font-pup text-maroon">
+              Sanjay P. Claudio, DPA
+            </p>
+          </div>
         </div>
-      </section>
+      </Section>
 
-      <section className="px-4 pb-40 pt-32 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-[1152px]">
-          <h2 className="text-title font-bold leading-[1.2] text-maroon">Mission</h2>
-          <p className="mt-9 text-heading leading-[1.5]">
-            Advance an inclusive, equitable, and globally relevant polytechnic
-            education towards national development.
-          </p>
+      <Section id="officials" tone="tint">
+        <SectionIntro
+          index="02"
+          eyebrow="The team"
+          title="Officials and Staff"
+          lede="Thirteen people carry the Center's work across the main campus, the branches and its international partnerships."
+          as="h2"
+        />
 
-          <h2 className="mt-16 text-title font-bold leading-[1.2] text-maroon">Vision</h2>
-          <p className="mt-9 text-heading leading-[1.5]">
-            Provide quality education through instruction, advance research and
-            extension services. Produce world-class professionals as potential
-            industry leaders and job providers. Develop and produce facilities
-            through the use of adapted technology and indigenous materials.
-          </p>
+        <div className="mt-[var(--space-9)] grid gap-[var(--space-8)] sm:grid-cols-[minmax(0,320px)_minmax(0,1fr)] sm:gap-[var(--space-9)]">
+          <PersonCard person={DIRECTOR} feature />
+          <div className="grid gap-[var(--space-7)] sm:grid-cols-2 sm:self-end">
+            {ASSISTANT_DIRECTORS.map((person) => (
+              <PersonCard key={person.name} person={person} />
+            ))}
+          </div>
+        </div>
 
-          <div className="mt-16 border-y-[20px] border-maroon">
-            <Image
-              src="/assets/imagery/about-vision.jpg"
-              alt="Aerial view of the PUP Main Campus"
-              width={1920}
-              height={1080}
-              sizes="(min-width: 1216px) 1152px, 100vw"
-              className="aspect-[1154/440] w-full object-cover object-top"
+        {[
+          { heading: "Chiefs", people: CHIEFS },
+          { heading: "Quality Assurance Coordinators", people: COORDINATORS },
+          { heading: "Administrative Staff", people: ADMINISTRATIVE_STAFF },
+        ].map((group) => (
+          <div key={group.heading} className="mt-[var(--space-11)]">
+            <h3 className="t-eyebrow flex items-center gap-4 text-maroon">
+              {group.heading}
+              <span aria-hidden className="h-px flex-1 bg-maroon/25" />
+            </h3>
+            <div className="mt-[var(--space-7)] grid gap-[var(--space-7)] grid-cols-2 lg:grid-cols-4">
+              {group.people.map((person) => (
+                <PersonCard key={person.name} person={person} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </Section>
+
+      <Section tone="maroon">
+        <SectionIntro
+          index="03"
+          eyebrow="What we are for"
+          title="Mission and Vision"
+          as="h2"
+          onDark
+        />
+        <div className="mt-[var(--space-8)] grid gap-[var(--space-8)] lg:grid-cols-2 lg:gap-[var(--space-11)]">
+          <div>
+            <h3 className="t-eyebrow text-yellow">Mission</h3>
+            <p className="t-lead mt-4 text-white">
+              Advance an inclusive, equitable, and globally relevant polytechnic
+              education towards national development.
+            </p>
+          </div>
+          <div>
+            <h3 className="t-eyebrow text-yellow">Vision</h3>
+            <p className="t-lead mt-4 text-white">
+              Provide quality education through instruction, advance research and
+              extension services. Produce world-class professionals as potential
+              industry leaders and job providers. Develop and produce facilities
+              through the use of adapted technology and indigenous materials.
+            </p>
+          </div>
+        </div>
+      </Section>
+
+      <figure className="relative">
+        <div className="relative aspect-[3/2] w-full sm:aspect-[21/9] lg:aspect-[1154/380]">
+          <Image
+            src="/assets/imagery/about-vision.jpg"
+            alt="Aerial view of the PUP Main Campus"
+            fill
+            sizes="100vw"
+            className="object-cover object-top"
+          />
+        </div>
+        <span aria-hidden className="absolute inset-x-0 bottom-0 h-[3px] bg-yellow" />
+      </figure>
+
+      <Section>
+        <div className="grid gap-[var(--space-8)] lg:grid-cols-[minmax(0,300px)_minmax(0,1fr)] lg:gap-[var(--space-11)]">
+          <div className="lg:sticky lg:top-[calc(var(--bar-h)+var(--space-6))] lg:self-start">
+            <SectionIntro
+              index="04"
+              eyebrow="Remit"
+              title="Mandate"
+              as="h2"
             />
           </div>
 
-          <div className="mt-[42px] space-y-[30px] text-subheading leading-loose">
-            {OVERVIEW.map((paragraph) => (
-              <p key={paragraph.slice(0, 32)}>{paragraph}</p>
+          <div className="max-w-[var(--prose-max)]">
+            <div className="prose-public">
+              {OVERVIEW.map((paragraph) => (
+                <p key={paragraph.slice(0, 32)}>{paragraph}</p>
+              ))}
+            </div>
+
+            {[
+              {
+                heading: "Core Functions",
+                lede: "The QAC\u2019s primary roles are to:",
+                items: CORE_FUNCTIONS,
+                ordered: true,
+              },
+              {
+                heading: "Goals",
+                lede: "The QAC endeavors to achieve:",
+                items: GOALS,
+                ordered: true,
+              },
+              {
+                heading: "Objectives",
+                lede: "Towards these ends, the QAC commits to:",
+                items: OBJECTIVES,
+                ordered: false,
+              },
+            ].map((block) => (
+              <div key={block.heading} className="mt-[var(--space-11)]">
+                <h3 className="t-h1 font-qac text-maroon">{block.heading}</h3>
+                <span aria-hidden className="mt-3 block h-[2px] w-10 bg-yellow" />
+                <div className="prose-public mt-[var(--space-5)]">
+                  <p>{block.lede}</p>
+                  {block.ordered ? (
+                    <ol>
+                      {block.items.map((item) => (
+                        <li key={item.slice(0, 32)}>{item}</li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <ul>
+                      {block.items.map((item) => (
+                        <li key={item.slice(0, 32)}>{item}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
             ))}
           </div>
+        </div>
+      </Section>
 
-          <h2 className="mt-12 text-title font-bold leading-[1.2] text-maroon">
-            Core Functions
-          </h2>
-          <p className="mt-8 text-subheading leading-loose">
-            The QAC&rsquo;s primary roles are to:
-          </p>
-          <ol className="mt-7 list-decimal pl-[22px] text-subheading leading-loose">
-            {CORE_FUNCTIONS.map((item) => (
-              <li key={item.slice(0, 32)}>{item}</li>
-            ))}
-          </ol>
+      <Section tone="tint">
+        <div className="grid gap-[var(--space-8)] lg:grid-cols-[minmax(0,300px)_minmax(0,1fr)] lg:gap-[var(--space-11)]">
+          <div className="lg:sticky lg:top-[calc(var(--bar-h)+var(--space-6))] lg:self-start">
+            <SectionIntro
+              index="05"
+              eyebrow="Since 1987"
+              title="History"
+              lede="From the first programs submitted for accreditation to 84 accredited today."
+              as="h2"
+            />
+          </div>
 
-          <h2 className="mt-16 text-title font-bold leading-[1.2] text-maroon">Goals</h2>
-          <p className="mt-8 text-subheading leading-loose">
-            The QAC endeavors to achieve:
-          </p>
-          <ol className="mt-7 list-decimal pl-[22px] text-subheading leading-loose">
-            {GOALS.map((item) => (
-              <li key={item.slice(0, 32)}>{item}</li>
-            ))}
-          </ol>
-
-          <h2 className="mt-16 text-title font-bold leading-[1.2] text-maroon">Objectives</h2>
-          <p className="mt-8 text-subheading leading-loose">
-            Towards these ends, the QAC commits to:
-          </p>
-          <ul className="mt-7 list-disc pl-[22px] text-subheading leading-loose">
-            {OBJECTIVES.map((item) => (
-              <li key={item.slice(0, 32)}>{item}</li>
-            ))}
-          </ul>
-
-          <h2 className="mt-16 text-title font-bold leading-[1.2] text-maroon">History</h2>
-          <div className="mt-8 space-y-[35px] text-subheading leading-[35px]">
+          {/* The drop cap is the one piece of ornament on the page, and it is
+              doing a job: it marks where a nine-paragraph read begins. */}
+          <div className="prose-public max-w-[var(--prose-max)] [&>p:first-child]:first-letter:mr-2 [&>p:first-child]:first-letter:float-left [&>p:first-child]:first-letter:font-pup [&>p:first-child]:first-letter:text-title [&>p:first-child]:first-letter:leading-[0.85] [&>p:first-child]:first-letter:text-maroon">
             {HISTORY.map((paragraph) => (
               <p key={paragraph.slice(0, 32)}>{paragraph}</p>
             ))}
           </div>
         </div>
-      </section>
+      </Section>
     </div>
   );
 }

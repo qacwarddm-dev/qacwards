@@ -1,5 +1,14 @@
 import type { Metadata } from "next";
-import Image from "next/image";
+
+import {
+  type Campus,
+  CampusCard,
+  FigureStat,
+  PageHero,
+  RichText,
+  Section,
+  SectionIntro,
+} from "@/components/public";
 
 export const metadata: Metadata = {
   title: "Campuses | PUP Quality Assurance Center",
@@ -9,57 +18,16 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-static";
 
-// Campus copy carries two emphasis styles in the prototype:
-//   **text**  bold, body colour
-//   __text__  bold maroon (used for statutes and place names)
-// Keeping the copy in plain strings avoids JSX collapsing the spaces that sit
-// either side of an inline <strong>.
-const EMPHASIS = /(\*\*[^*]+\*\*|__[^_]+__)/g;
-
-function RichText({ text }: { text: string }) {
-  return (
-    <>
-      {text.split(EMPHASIS).map((part, index) => {
-        if (part.startsWith("**")) {
-          return (
-            <strong key={index} className="font-bold">
-              {part.slice(2, -2)}
-            </strong>
-          );
-        }
-        if (part.startsWith("__")) {
-          return (
-            <strong key={index} className="font-bold text-maroon">
-              {part.slice(2, -2)}
-            </strong>
-          );
-        }
-        return part;
-      })}
-    </>
-  );
-}
-
 const INTRO =
-  "The __Polytechnic University of the Philippines (PUP)__ has successfully grown its academic presence to include more than 24 campuses spread across the island of Luzon. These locations span from the main hub in Metro Manila to various provinces in Central Luzon, CALABARZON, and Bicol. In a landmark achievement for the “Sintang Paaralan,” the university has officially inaugurated its first-ever campus in the Visayas, located in the Municipality of __Leyte, Leyte__. This new campus, established under Republic Act 11786, offers specialized programs like Information Technology and Entrepreneurship to students in the region. By crossing into the Visayas, PUP reinforces its national mission to provide high-quality, state-subsidized education to deserving learners throughout the Philippine archipelago.";
-
-// Both bands are one content column wide; the side rules of the stat band are
-// exactly one grid column (365px) each.
-const BAND = "max-w-[1161px]";
+  "The __Polytechnic University of the Philippines (PUP)__ has successfully grown its academic presence to include more than 24 campuses spread across the island of Luzon. These locations span from the main hub in Metro Manila to various provinces in Central Luzon, CALABARZON, and Bicol. In a landmark achievement for the \u201cSintang Paaralan,\u201d the university has officially inaugurated its first-ever campus in the Visayas, located in the Municipality of __Leyte, Leyte__. This new campus, established under Republic Act 11786, offers specialized programs like Information Technology and Entrepreneurship to students in the region. By crossing into the Visayas, PUP reinforces its national mission to provide high-quality, state-subsidized education to deserving learners throughout the Philippine archipelago.";
 
 const STATS = [
-  { value: "6", label: "REGIONS" },
-  { value: "24", label: "CAMPUSES" },
+  { value: "6", label: "Regions" },
+  { value: "24", label: "Campuses" },
 ];
 
-type Campus = {
-  name: string;
-  photo: string;
-  body: string;
-};
-
 // Order follows the client's asset folder (alphabetical), which is the order the
-// prototype renders: 22 cards, three per row, the last one centred on its own.
+// prototype renders.
 const CAMPUSES: Campus[] = [
   {
     name: "PUP ALFONSO CAMPUS",
@@ -173,77 +141,74 @@ const CAMPUSES: Campus[] = [
   },
 ];
 
+
+/**
+ * Campuses.
+ *
+ * What was dated:
+ *
+ * - **The stat band was a four-column grid held together by hand** — two 150px
+ *   numerals flanked by `h-3.5 bg-maroon` bars pinned with explicit
+ *   `col-start`/`row-start`, and a `text-[96px] md:text-[150px]` step that
+ *   still overflowed below 400px. It is two FigureStats on a maroon band now,
+ *   where the numerals can be gold and actually carry the page.
+ * - **The intro paragraph was centred across 1161px** at 15px — roughly 150
+ *   characters a line, which is about twice the readable measure, and centred
+ *   copy at that length has no reliable left edge to return to.
+ * - **The 22 campuses were bare photos with centred text under them**, laid out
+ *   with `flex-wrap` + `gap-x-[33px] gap-y-[66px]` and `w-full max-w-[365px]`,
+ *   so the last row orphaned and nothing bound a photograph to its own caption.
+ *   They are cards in a real grid now.
+ * - `sizes="365px"` told the browser to fetch a 365px image at every viewport,
+ *   including the ones where the card is 92vw. Corrected in CampusCard.
+ */
 export default function CampusesPage() {
   return (
     <div>
-      <h1 className="sr-only">Campuses</h1>
-      <Image
-        src="/assets/imagery/campuses.png"
-        alt="Polytechnic University of the Philippines — Campuses"
+      <PageHero
+        image="/assets/imagery/campuses.png"
         width={1356}
         height={374}
-        className="aspect-[4.5] w-full object-cover object-[center_16%]"
+        art="titlecard"
+        alt="Polytechnic University of the Philippines — Campuses"
+        eyebrow="Where we are"
+        title="Twenty-four campuses, six regions, two island groups."
+        lede="Since Republic Act 11786 the university has its first campus in the Visayas — in the Municipality of Leyte, Leyte."
         priority
       />
 
-      <section className="px-4 pb-28 pt-20 sm:px-6 lg:px-8">
-        <div
-          className={`mx-auto grid grid-cols-[1fr_auto_auto_1fr] items-center gap-x-6 md:gap-x-[60px] ${BAND}`}
-        >
-          <span className="col-start-1 row-start-1 h-3.5 bg-maroon" aria-hidden />
-          <span className="col-start-2 row-start-1 text-[96px] font-extrabold leading-none text-maroon md:text-[150px]">
-            {STATS[0].value}
-          </span>
-          <span className="col-start-3 row-start-1 text-[96px] font-extrabold leading-none text-maroon md:text-[150px]">
-            {STATS[1].value}
-          </span>
-          <span className="col-start-4 row-start-1 h-3.5 bg-maroon" aria-hidden />
-          <span className="col-start-2 row-start-2 mt-9 text-center text-heading font-bold leading-[1.2] md:text-title">
-            {STATS[0].label}
-          </span>
-          <span className="col-start-3 row-start-2 mt-9 text-center text-heading font-bold leading-[1.2] md:text-title">
-            {STATS[1].label}
-          </span>
+      <Section tone="maroon">
+        <div className="grid items-center gap-[var(--space-9)] lg:grid-cols-[minmax(0,auto)_minmax(0,1fr)] lg:gap-[var(--space-11)]">
+          <div className="flex justify-center gap-[var(--space-9)] sm:gap-[var(--space-12)]">
+            {STATS.map((stat) => (
+              <FigureStat
+                key={stat.label}
+                value={stat.value}
+                label={stat.label}
+                onDark
+              />
+            ))}
+          </div>
+          <p className="t-body max-w-[var(--prose-max)] text-white/90">
+            <RichText text={INTRO} onDark />
+          </p>
         </div>
+      </Section>
 
-        <p
-          className={`mx-auto mt-16 text-center text-subheading leading-loose ${BAND}`}
-        >
-          <RichText text={INTRO} />
-        </p>
-      </section>
-
-      <div className="px-4 sm:px-6 lg:px-8">
-        <div className={`mx-auto h-[5px] bg-maroon ${BAND}`} />
-      </div>
-
-      <section className="px-4 pb-30 pt-28 sm:px-6 lg:px-8">
-        <div
-          className={`mx-auto flex flex-wrap justify-center gap-x-[33px] gap-y-[66px] ${BAND}`}
-        >
+      <Section>
+        <SectionIntro
+          index="01"
+          eyebrow="Directory"
+          title="Every campus"
+          lede="Listed alphabetically. Each entry gives the campus's founding, its legal basis where one exists, and the programs it offers."
+          as="h2"
+        />
+        <div className="mt-[var(--space-9)] grid gap-[var(--space-6)] md:grid-cols-2 lg:grid-cols-3">
           {CAMPUSES.map((campus) => (
-            <article key={campus.name} className="w-full max-w-[365px]">
-              <div className="relative aspect-[365/206] w-full overflow-hidden">
-                <Image
-                  src={campus.photo}
-                  alt={campus.name}
-                  fill
-                  sizes="365px"
-                  className="object-cover"
-                />
-              </div>
-
-              <h2 className="mt-6 text-center text-heading font-bold text-maroon">
-                {campus.name}
-              </h2>
-
-              <p className="mt-6 text-center text-subheading leading-loose">
-                <RichText text={campus.body} />
-              </p>
-            </article>
+            <CampusCard key={campus.name} campus={campus} />
           ))}
         </div>
-      </section>
+      </Section>
     </div>
   );
 }

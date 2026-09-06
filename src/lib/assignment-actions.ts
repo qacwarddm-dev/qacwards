@@ -454,10 +454,16 @@ export async function fetchEligibleAccreditors(programId: string): Promise<Eligi
 /**
  * The frame's form picks a programme and a level, not a submission — but
  * `createAssignment` (like the `submissions` table itself) is keyed on a
- * submission id. This resolves the two to the one submitted-but-unassigned
- * submission that answers them, and gives an honest error when there is not
- * one, rather than letting the picker imply a submission exists that hasn't
- * been filed yet.
+ * submission id. QAC Personnel is the one who starts an accreditation
+ * submission (not the programme representative), so this resolves the two to
+ * a submitted submission for them: reusing one already at `submitted`,
+ * force-submitting one a rep left mid-draft (`not_started`/`in_progress`/
+ * `returned`), or — the common case, a programme that never touched this
+ * level — starting one from scratch.
+ *
+ * A submission already at `under_evaluation` or `evaluated` is deliberately
+ * left alone: that attempt already has (or had) an assignment, and a second
+ * one belongs to `openRetake()`, not here.
  */
 export async function createAssignmentForProgramLevel(
   programId: string,
@@ -466,22 +472,59 @@ export async function createAssignmentForProgramLevel(
 ): Promise<{ ok: true; assignmentId: string } | { ok: false; error: string }> {
   const supabase = await createClient();
 
-  const { data: submission } = await supabase
+  const { data: latest } = await supabase
     .from("submissions")
-    .select("id")
+    .select("id, status")
     .eq("program_id", programId)
     .eq("level_id", levelId)
-    .eq("status", "submitted")
     .order("attempt", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  if (!submission) {
+  if (latest?.status === "submitted") {
+    return createAssignment(latest.id, accreditorIds, null);
+  }
+
+  if (latest && ["under_evaluation", "evaluated"].includes(latest.status)) {
     return {
       ok: false,
-      error: "No submitted submission exists yet for that programme and level.",
+      error: "That programme and level already has an assignment for its current attempt.",
     };
   }
 
-  return createAssignment(submission.id, accreditorIds, null);
+  if (latest) {
+    const { error } = await supabase
+      .from("submissions")
+      .update({ status: "submitted", submitted_at: new Date().toISOString() })
+      .eq("id", latest.id);
+
+    if (error) return { ok: false, error: error.message };
+    return createAssignment(latest.id, accreditorIds, null);
+  }
+
+  const { data: cycle } = await supabase
+    .from("accreditation_cycles")
+    .select("id")
+    .eq("status", "open")
+    .maybeSingle();
+
+  if (!cycle) {
+    return { ok: false, error: "No accreditation cycle is open yet." };
+  }
+
+  const { data: created, error } = await supabase
+    .from("submissions")
+    .insert({
+      cycle_id: cycle.id,
+      program_id: programId,
+      level_id: levelId,
+      status: "submitted",
+      submitted_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+
+  if (error) return { ok: false, error: error.message };
+
+  return createAssignment(created.id, accreditorIds, null);
 }

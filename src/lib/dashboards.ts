@@ -147,38 +147,56 @@ const EMPTY_REP_DASHBOARD: RepDashboard = {
 };
 
 /**
- * A representative may hold more than one programme (decision 6); this reads
- * off the first one, same known limitation already flagged on the repository
- * tab in B6 — a programme picker is future work, not invented here.
+ * Everything a representative sees is scoped to the programmes they represent
+ * (decision 6 allows more than one), while the department tiles widen further
+ * to each represented programme's college — or campus, for satellite
+ * programmes without a college (O-1).
  */
 export async function getRepDashboard(): Promise<RepDashboard> {
   const supabase = await createClient();
   const note = asOfNow();
 
   const programs = await getMyPrograms();
-  const programId = programs[0]?.id;
-  if (!programId) return EMPTY_REP_DASHBOARD;
+  const programIds = programs.map((p) => p.id);
+  if (programIds.length === 0) return EMPTY_REP_DASHBOARD;
+  const programSet = new Set(programIds);
 
-  const { data: program } = await supabase
+  const { data: programRows } = await supabase
     .from("programs")
     .select("id, college_id, campus_id")
-    .eq("id", programId)
-    .maybeSingle();
+    .in("id", programIds);
 
   // "Department" = same college on the main campus, or same campus where the
   // campus has no colleges of its own — satellite programmes carry a null
-  // college_id (O-1 / decision 6).
-  let siblingIds = [programId];
-  if (program) {
-    const { data: siblings } = program.college_id
-      ? await supabase.from("programs").select("id").eq("college_id", program.college_id)
-      : await supabase.from("programs").select("id").eq("campus_id", program.campus_id);
-    if (siblings && siblings.length > 0) siblingIds = siblings.map((s) => s.id);
-  }
+  // college_id (O-1 / decision 6). A representative spanning programmes of two
+  // colleges sees both departments' standing, so the scopes union.
+  const collegeIds = (programRows ?? [])
+    .map((p) => p.college_id)
+    .filter((id): id is string => Boolean(id));
+  const campusIds = (programRows ?? [])
+    .filter((p) => !p.college_id)
+    .map((p) => p.campus_id);
+
+  const [byCollege, byCampus] = await Promise.all([
+    collegeIds.length
+      ? supabase.from("programs").select("id").in("college_id", collegeIds)
+      : Promise.resolve({ data: [] as { id: string }[] | null }),
+    campusIds.length
+      ? supabase.from("programs").select("id").in("campus_id", campusIds)
+      : Promise.resolve({ data: [] as { id: string }[] | null }),
+  ]);
+
+  const siblingIds = [
+    ...new Set([
+      ...programIds,
+      ...(byCollege.data ?? []).map((s) => s.id),
+      ...(byCampus.data ?? []).map((s) => s.id),
+    ]),
+  ];
 
   const [levelCounts, { data: submissions }] = await Promise.all([
     programLevelCounts(siblingIds),
-    supabase.from("submissions").select("id").eq("program_id", programId),
+    supabase.from("submissions").select("id").in("program_id", programIds),
   ]);
 
   const submissionIds = (submissions ?? []).map((s) => s.id);
@@ -254,7 +272,10 @@ export async function getRepDashboard(): Promise<RepDashboard> {
     .order("created_at", { ascending: false });
 
   const ongoing = (assignments ?? [])
-    .filter((a) => a.submissions?.program_id === programId)
+    .filter((a) => {
+      const pid = a.submissions?.program_id;
+      return pid ? programSet.has(pid) : false;
+    })
     .slice(0, 5)
     .map((a) => ({
       id: a.id,

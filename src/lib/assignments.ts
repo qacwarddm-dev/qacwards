@@ -15,6 +15,10 @@ export type EligibleAccreditor = {
   /** Expertise areas this accreditor holds that match the programme's name. */
   matched: string[];
   expertiseCount: number;
+  /** Owner decision 2026-08-22: QAC Personnel may be assigned as the internal
+   *  accreditor of last resort when nobody eligible matches. They rank below
+   *  every real accreditor, badged in the picker so the choice is explicit. */
+  isQacStaff: boolean;
 };
 
 /**
@@ -27,6 +31,10 @@ export type EligibleAccreditor = {
  * (OtherContext.txt does not provide one), and inventing one would be inventing
  * reference data; word overlap against the programme title is the honest
  * approximation, and it is why unmatched accreditors are still returned.
+ *
+ * QAC Personnel are listed after every internal accreditor as the fallback the
+ * owner described: sometimes nobody eligible matches, and a QAC staff member
+ * takes the assignment themselves.
  */
 export async function getEligibleAccreditors(
   programId: string,
@@ -37,8 +45,10 @@ export async function getEligibleAccreditors(
     supabase.from("programs").select("name").eq("id", programId).maybeSingle(),
     supabase
       .from("profiles")
-      .select("id, surname, given_name, webmail, accreditor_expertise(expertise_areas(name))")
-      .eq("role", "internal_accreditor")
+      .select(
+        "id, surname, given_name, webmail, role, accreditor_expertise(expertise_areas(name))",
+      )
+      .in("role", ["internal_accreditor", "qac_personnel"])
       .eq("is_active", true)
       .order("surname"),
   ]);
@@ -68,9 +78,15 @@ export async function getEligibleAccreditors(
         webmail: a.webmail,
         matched,
         expertiseCount: areas.length,
+        isQacStaff: a.role === "qac_personnel",
       };
     })
-    .sort((a, b) => b.matched.length - a.matched.length || a.name.localeCompare(b.name));
+    .sort(
+      (a, b) =>
+        Number(a.isQacStaff) - Number(b.isQacStaff) ||
+        b.matched.length - a.matched.length ||
+        a.name.localeCompare(b.name),
+    );
 }
 
 export type AssignmentRow = {

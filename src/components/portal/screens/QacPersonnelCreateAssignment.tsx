@@ -90,7 +90,7 @@ export default function QacPersonnelCreateAssignment({
     setProgramId(programsAvailable[0]?.id ?? "");
   }
 
-  const defaultLevel = levels.find((l) => l.code === "IV")?.id ?? levels[0]?.id ?? "";
+  const defaultLevel = levels[0]?.id ?? "";
   const [levelId, setLevelId] = useState(defaultLevel);
 
   const [accreditors, setAccreditors] = useState<EligibleAccreditor[]>([]);
@@ -136,7 +136,14 @@ export default function QacPersonnelCreateAssignment({
   const rows = accreditors.map((a) => ({
     id: a.id,
     cells: {
-      name: <span className="text-gray">{a.name}</span>,
+      name: (
+        <span className="text-gray">
+          {a.name}
+          {a.isQacStaff && (
+            <span className="ml-[8px] italic text-gray">(QAC Personnel)</span>
+          )}
+        </span>
+      ),
       expertise: (
         <span className="text-gray">
           {a.matched.length > 0 ? a.matched.join(", ") : "No matching expertise on file"}
@@ -236,7 +243,7 @@ export default function QacPersonnelCreateAssignment({
               <DataTable columns={COLUMNS} rows={rows} bodyRowH="h-[47px]" />
             ) : (
               <p className="py-[20px] text-regular text-gray">
-                No active internal accreditors on file yet.
+                No active accreditors on file yet.
               </p>
             )}
           </div>

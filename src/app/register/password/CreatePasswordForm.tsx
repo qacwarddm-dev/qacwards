@@ -2,46 +2,70 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { AuthButton, AuthCard, AuthPasswordField, AuthShell } from "@/components/auth";
+import {
+  AuthButton,
+  AuthCard,
+  AuthFormError,
+  AuthPasswordField,
+  AuthShell,
+} from "@/components/auth";
 import { createClient } from "@/lib/supabase/browser";
 import { REGISTER_STEPS } from "../register-options";
 
 /**
- * Step 3 of register — assets/FIGMA/register/createpassword.png.
+ * Step 3 of register — set the password.
  *
- * This is the one frame that insets its body 64px instead of 44 (250px of
- * content, not 290), hence `contentWidth="narrow"`. Measured from the body top:
- * Password label 36, the two italic rules 13.5 below it at a 12px pitch, field
- * 10 under those, Confirm label 23 under the first field, Next 59.5 below the
- * second, and 58 of air beneath the button.
+ * The previous step's `verifyOtp` already created the account and signed the
+ * user in, so this is `updateUser({ password })` against a live session. An
+ * account exists from here on whether or not the user finishes the profile step,
+ * which is why Profile's Skip is a legitimate ending — and why this screen and
+ * the next deliberately carry no Back link.
  *
- * The two rules under "Password" are the frame's own copy, so they are also the
- * validation: Next stays disabled (the frame's muted maroon) until both are
- * satisfied and the two entries match.
+ * ## 2026-08-21 redesign
  *
- * Wired in B2. The previous step's `verifyOtp` already created the account and
- * signed the user in, so this is `updateUser({ password })` against a live
- * session — an account exists from here on whether or not the user finishes the
- * profile step, which is why Profile's Skip is a legitimate ending.
+ * **The two requirements are live.** They were static grey italic lines with a
+ * hand-drawn 2.5px bullet and no connection to the field or to the button they
+ * governed; the only feedback on satisfying them was that Next stopped being
+ * grey. Each now reports its own state, in text as well as colour, and is bound
+ * to the input through `aria-describedby`.
+ *
+ * **The mismatch is stated.** Typing two different passwords produced no message
+ * at all — the button simply stayed inert.
+ *
+ * **`contentWidth="narrow"` is gone.** This was the one frame that inset its
+ * body 64px instead of 44, which the earlier notes already flagged as a probable
+ * design slip; the card has one inset now.
  */
-const RULES = [
-  "Must be at least 8 characters long",
-  "Must contain one or more numbers",
-];
-
 const MIN_LENGTH = 8;
 
 export default function CreatePasswordForm() {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [confirmError, setConfirmError] = useState<string | undefined>();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  const meetsRules = password.length >= MIN_LENGTH && /\d/.test(password);
-  const canProceed = meetsRules && confirm === password;
+  const rules = [
+    { label: "At least 8 characters long", met: password.length >= MIN_LENGTH },
+    { label: "Contains one or more numbers", met: /\d/.test(password) },
+  ];
+  const meetsRules = rules.every((rule) => rule.met);
 
-  async function handleNext() {
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+
+    if (!meetsRules) {
+      setError("Your password does not meet the requirements listed below.");
+      return;
+    }
+    if (confirm !== password) {
+      setError(null);
+      setConfirmError("The two passwords do not match.");
+      return;
+    }
+
+    setConfirmError(undefined);
     setError(null);
     setPending(true);
 
@@ -50,7 +74,7 @@ export default function CreatePasswordForm() {
     if (updateError) {
       setError(
         updateError.message.toLowerCase().includes("session")
-          ? "That registration expired. Start again from Create an Account."
+          ? "That registration expired. Start again from Create an account."
           : updateError.message,
       );
       setPending(false);
@@ -61,41 +85,45 @@ export default function CreatePasswordForm() {
   }
 
   return (
-    <AuthShell align="center">
-      <AuthCard variant="register" title="CREATE PASSWORD" contentWidth="narrow">
-        <AuthPasswordField
-          label="Password"
-          placeholder="Enter Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          rules={RULES}
-        />
+    <AuthShell>
+      <AuthCard
+        variant="register"
+        step={{ current: 3, total: 4 }}
+        title="Create a password"
+        subtitle="This is what you will sign in with from now on."
+      >
+        <form
+          onSubmit={handleSubmit}
+          noValidate
+          className="auth-stagger flex flex-col gap-[var(--auth-vgap)]"
+        >
+          {error && <AuthFormError>{error}</AuthFormError>}
 
-        <div className="mt-[20.5px]">
           <AuthPasswordField
-            label="Confirm Password"
-            placeholder="Enter Confirm Password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
+            label="Password"
+            autoComplete="new-password"
+            placeholder="Enter a password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            rules={rules}
           />
-        </div>
 
-        {error && (
-          <p className="mt-[11px] text-center text-regular leading-tight text-maroon">
-            {error}
-          </p>
-        )}
+          <AuthPasswordField
+            label="Confirm password"
+            autoComplete="new-password"
+            placeholder="Re-enter the password"
+            value={confirm}
+            error={confirmError}
+            onChange={(e) => {
+              setConfirm(e.target.value);
+              if (confirmError) setConfirmError(undefined);
+            }}
+          />
 
-        <div className="mt-[60px] mb-[29.5px] flex flex-col items-center">
-          <AuthButton
-            tone="maroon"
-            size="pill"
-            disabled={!canProceed || pending}
-            onClick={handleNext}
-          >
-            {pending ? "Saving…" : "Next"}
+          <AuthButton type="submit" tone="maroon" size="lg" block loading={pending}>
+            {pending ? "Saving…" : "Continue"}
           </AuthButton>
-        </div>
+        </form>
       </AuthCard>
     </AuthShell>
   );

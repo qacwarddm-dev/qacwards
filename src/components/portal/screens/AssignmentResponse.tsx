@@ -1,6 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button, ConfirmDialog } from "../kit";
 import { respondToAssignment } from "@/lib/assignment-actions";
@@ -24,6 +25,7 @@ export default function AssignmentResponse({
   assignmentId: string;
   variant?: "reject-square" | "confirm-accept";
 }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [asking, setAsking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +36,7 @@ export default function AssignmentResponse({
       startTransition(async () => {
         const result = await respondToAssignment(assignmentId, response, rejectionNote);
         if (!result.ok) setError(result.error);
+        else if (variant === "confirm-accept") router.push("/portal/assignment");
         else setAsking(false);
         resolve();
       });

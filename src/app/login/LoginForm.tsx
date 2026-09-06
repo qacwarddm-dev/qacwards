@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import {
+  AuthAccountPrompt,
   AuthButton,
   AuthCard,
+  AuthFormError,
   AuthPasswordField,
   AuthShell,
   AuthTextField,
@@ -15,18 +17,34 @@ import { createClient } from "@/lib/supabase/browser";
 import { safeNextParam } from "@/lib/safe-next";
 
 /**
- * Credentials form — assets/FIGMA/login/LoginForm.png.
+ * Credentials form at `/login?as=<role>`.
  *
- * Real Supabase Auth as of B2; the phase-3a demo shortcut (type a role name to
- * be signed in as it) is gone along with `demo-login.ts` and the dev cookie.
+ * ## 2026-08-21 redesign
+ *
+ * **The submit is no longer disabled until the form is filled.** It shipped
+ * `disabled={pending || webmail === "" || password === ""}`, which is the single
+ * most common accessibility mistake in a sign-in form: the control is inert, the
+ * reason is never stated, and a screen-reader user hears "Login, dimmed" with no
+ * way to find out what is missing. It submits, and says what is missing.
+ *
+ * **Errors are announced.** They were a bare `<p>` — rendered, styled maroon,
+ * and completely silent to assistive technology. `AuthFormError` is `role=
+ * "alert"`, and the field-level messages are wired through `aria-describedby`.
+ *
+ * **Autofill works now.** No field carried `autoComplete`, `type="email"` or
+ * `inputMode`, so password managers did not recognise the form and phones
+ * offered the wrong keyboard for an email address.
+ *
+ * **The nested card is gone**, the heading is sentence case rather than
+ * `LOG IN TO YOUR ACCOUNT`, and the 60.5px gap before the button is now the
+ * form's own rhythm. See AuthCard for why the two-surface construction went.
  *
  * `?next=` is where middleware parked the page the user was trying to reach. It
- * is passed through `safeNextParam` rather than used directly — an unchecked
+ * goes through `safeNextParam` rather than being used directly — an unchecked
  * `next` is an open redirect, and a login page that forwards to
  * `https://evil.example` after authenticating is worth more to an attacker than
  * most bugs on this screen.
  */
-const REGISTER_PROMPT = "Doesn’t have an Account? ";
 
 /** Supabase returns one deliberately vague message for bad email *and* bad
  *  password, and repeating it verbatim is right: distinguishing them tells an
@@ -34,11 +52,15 @@ const REGISTER_PROMPT = "Doesn’t have an Account? ";
 const INVALID = "That webmail and password do not match an account.";
 
 export default function LoginForm({ as }: { as?: string }) {
-  void as; // the role picker's ?as= is cosmetic now; the account carries the role
+  void as; // the role picker's ?as= is cosmetic; the account carries the role
   const router = useRouter();
   const params = useSearchParams();
   const [webmail, setWebmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{
+    webmail?: string;
+    password?: string;
+  }>({});
   const [error, setError] = useState<string | null>(
     params.get("deactivated") === "1"
       ? "That account has been deactivated. Contact the Quality Assurance Center."
@@ -48,6 +70,19 @@ export default function LoginForm({ as }: { as?: string }) {
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+
+    // Validated here rather than by disabling the button, so the reason is on
+    // screen and attached to the field it belongs to.
+    const next = {
+      webmail: webmail.trim() === "" ? "Enter your PUP webmail." : undefined,
+      password: password === "" ? "Enter your password." : undefined,
+    };
+    setFieldErrors(next);
+    if (next.webmail || next.password) {
+      setError(null);
+      return;
+    }
+
     setError(null);
     setPending(true);
 
@@ -73,61 +108,59 @@ export default function LoginForm({ as }: { as?: string }) {
   }
 
   return (
-    <AuthShell topRight={<BackLink href="/login" />}>
-      <AuthCard variant="form">
-        <h1 className="text-center text-heading leading-none font-bold text-maroon">
-          LOG IN TO YOUR ACCOUNT
-        </h1>
-
+    <AuthShell topRight={<BackLink href="/login" destination="role selection" />}>
+      <AuthCard
+        variant="form"
+        title="Log in to your account"
+        subtitle="Use the PUP webmail your account was registered with."
+      >
+        {/* noValidate: the browser's own bubbles are unstyled, untranslatable
+            and vanish on blur. The messages below are ours and they persist. */}
         <form
           onSubmit={handleSubmit}
-          className="mt-[20px] flex flex-col items-center rounded-[20px] bg-white pt-[51.5px] pb-[29.5px]"
+          noValidate
+          className="auth-stagger flex flex-col gap-[var(--auth-vgap)]"
         >
-          <div className="w-[250px]">
-            <AuthTextField
-              label="PUP Webmail *"
-              placeholder="example@pup.edu.ph"
-              value={webmail}
-              onChange={(e) => setWebmail(e.target.value)}
+          {error && <AuthFormError>{error}</AuthFormError>}
+
+          <AuthTextField
+            label="PUP Webmail"
+            type="email"
+            name="email"
+            inputMode="email"
+            autoComplete="username"
+            autoCapitalize="none"
+            spellCheck={false}
+            placeholder="example@pup.edu.ph"
+            value={webmail}
+            error={fieldErrors.webmail}
+            onChange={(e) => setWebmail(e.target.value)}
+          />
+
+          <div className="flex flex-col gap-[var(--space-2)]">
+            <AuthPasswordField
+              label="Password"
+              name="password"
+              autoComplete="current-password"
+              placeholder="Enter your password"
+              value={password}
+              error={fieldErrors.password}
+              onChange={(e) => setPassword(e.target.value)}
             />
-            <div className="mt-[27px]">
-              <AuthPasswordField
-                label="Password *"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
             <Link
               href="/login/forgot"
-              className="mt-[11px] block text-right text-regular leading-none text-maroon underline"
+              className="t-sm self-end rounded-[var(--radius-sm)] px-[var(--space-1)] py-[6px] text-maroon underline underline-offset-[3px] hover:no-underline"
             >
-              Forgot Password?
+              Forgot password?
             </Link>
-
-            {error && (
-              <p className="mt-[11px] text-regular leading-tight text-maroon">
-                {error}
-              </p>
-            )}
           </div>
 
-          <div className="mt-[60.5px]">
-            <AuthButton
-              type="submit"
-              tone="maroon"
-              size="pill"
-              disabled={pending || webmail === "" || password === ""}
-            >
-              {pending ? "Logging in…" : "Login"}
+          <div className="flex flex-col items-center gap-[var(--space-4)]">
+            <AuthButton type="submit" tone="maroon" size="lg" block loading={pending}>
+              {pending ? "Logging in…" : "Log in"}
             </AuthButton>
+            <AuthAccountPrompt to="register" />
           </div>
-
-          <p className="mt-[20px] text-regular leading-none text-gray">
-            {REGISTER_PROMPT}
-            <Link href="/register" className="text-maroon">
-              Register
-            </Link>
-          </p>
         </form>
       </AuthCard>
     </AuthShell>

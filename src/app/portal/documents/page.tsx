@@ -69,12 +69,12 @@ export default async function DocumentsPage({
   return (
     <div className="pt-[118px] pb-[45px] pl-[203.5px] pr-[74px]">
       <h1 className="sr-only">Documents</h1>
-      <p className="w-[851px] text-center text-subheading leading-none text-gray">
+      <p className="text-center text-subheading leading-none text-gray">
         Click the <strong className="font-bold text-maroon">Campus</strong> to see
         all the document files.
       </p>
 
-      <div className="mt-[70px] flex gap-[149px]">
+      <div className="mt-[70px] flex justify-center gap-[149px]">
         {ENTRIES.map((e) => (
           <CoverCard
             key={e.href}

@@ -56,6 +56,7 @@ export default async function PortalTopBar({ user }: { user: PortalUser }) {
             alt=""
             width={80}
             height={80}
+            unoptimized={user.avatar.includes("/storage/v1/")}
             className="ml-[14px] h-[40px] w-[40px] rounded-full object-cover"
           />
         </IdentityMenu>

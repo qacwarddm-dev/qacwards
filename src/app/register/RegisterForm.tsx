@@ -1,13 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
+  AuthAccountPrompt,
   AuthButton,
   AuthCard,
+  AuthFieldGroup,
+  AuthFormError,
   AuthInput,
-  AuthLabel,
   AuthSelect,
   AuthShell,
   AuthTextField,
@@ -28,25 +29,42 @@ import { createClient } from "@/lib/supabase/browser";
 import { draftToAuthMetadata, readDraft, saveDraft } from "./registration-draft";
 
 /**
- * Create-an-account form — assets/FIGMA/register/reg form.png and
- * program-rep-form.png, which are the same form in two states, not two screens.
+ * Create-an-account form — step 1 of 4.
  *
  * The System Role and Campus selects drive which fields follow:
  *   - Program Representative + Sta. Mesa, Manila  → College / Department appears
  *     between Campus and PUP Position (owner rule, 2026-07-25); any other campus
  *     hides it.
- *   - Program Representative + any campus chosen  → PUP Position appears (the base
- *     frame, with no campus picked, shows neither field).
+ *   - Program Representative + any campus chosen  → PUP Position appears.
  *
- * Wired to real auth in B2. Next mails a 6-digit code with
- * `signInWithOtp({ shouldCreateUser: true })` and carries these fields along as
- * auth metadata, so the account is only created when the code is verified on the
- * next step — see registration-draft.ts for why the OTP flow is what fits the
- * frames' order. It ships disabled (the frame's muted maroon) until the visible
- * required fields are filled.
+ * Next mails a 6-digit code with `signInWithOtp({ shouldCreateUser: true })` and
+ * carries these fields along as auth metadata, so the account is only created
+ * when the code is verified on the next step — see registration-draft.ts for why
+ * the OTP flow is what fits the frames' order.
+ *
+ * ## 2026-08-21 redesign
+ *
+ * **The Full Name row was three fixed-width boxes** — 99px, flexible, 59px — on
+ * one line at every viewport, inside a card whose own width was fixed at 382px.
+ * Under about 400px of panel that row was unusable. It is a `<fieldset>` now
+ * (three inputs under one caption is what the element is for), and it stacks
+ * below `sm` rather than compressing.
+ *
+ * **The revealed fields appear silently.** Choosing "Academic Program" inserts
+ * up to two new selects into the middle of the form, which a screen reader had
+ * no way of knowing about. The group is a polite live region that says which
+ * fields were added.
+ *
+ * **Next was disabled until every visible required field was filled**, with no
+ * statement of which one was missing across a form of up to seven. It submits
+ * and reports.
+ *
+ * **Progress is shown.** Registration is four screens and none of them said so.
+ *
+ * `RegisterForm` restores its sessionStorage draft **on mount**, not during
+ * render: `sessionStorage` does not exist during the server render, so a lazy
+ * initialiser would hydrate mismatched.
  */
-/** The role select stores the owner's label ("Academic Program"), not the database
- *  enum — B0 split the two (register-options.ts SYSTEM_ROLES, open item O-4). */
 const ROLE_LABELS = SYSTEM_ROLES.map((r) => r.label);
 
 export default function RegisterForm() {
@@ -59,18 +77,10 @@ export default function RegisterForm() {
   const [campus, setCampus] = useState("");
   const [college, setCollege] = useState("");
   const [position, setPosition] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  /**
-   * Step 2 can now come Back here, so the draft it was carrying has to come back
-   * with it — otherwise Back reads as "lose everything you typed". Restored in an
-   * effect rather than seeded into `useState`: `sessionStorage` does not exist
-   * during the server render, so lazy initialisers would hydrate mismatched.
-   * That server/client split is exactly the case `set-state-in-effect` cannot
-   * see, and there is no render-time read that fixes it — the first client
-   * render must match the server's empty one before the draft can land.
-   */
   useEffect(() => {
     const draft = readDraft();
     if (!draft) return;
@@ -89,23 +99,28 @@ export default function RegisterForm() {
   const showCollege = isProgramRep && campus === MAIN_CAMPUS;
   const showPosition = isProgramRep && campus !== "";
 
-  /** OtherContext.txt keeps two position lists, one per role. The frame only ever
-   *  drew the Academic Program state, so QAC's nine had nowhere to render. */
+  /** OtherContext.txt keeps two position lists, one per role. */
   const positions =
     role === QAC_PERSONNEL_LABEL ? QAC_POSITIONS : PROGRAM_POSITIONS;
 
-  const canProceed =
-    surname !== "" &&
-    given !== "" &&
-    webmail !== "" &&
-    role !== "" &&
-    campus !== "" &&
-    (!showCollege || college !== "") &&
-    (!showPosition || position !== "");
-
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (!canProceed) return;
+
+    const next: Record<string, string> = {};
+    if (surname.trim() === "") next.name = "Enter your surname and given name.";
+    else if (given.trim() === "") next.name = "Enter your given name.";
+    if (webmail.trim() === "") next.webmail = "Enter your PUP webmail.";
+    if (role === "") next.role = "Choose your system role.";
+    if (campus === "") next.campus = "Choose your campus.";
+    if (showCollege && college === "") next.college = "Choose your college or department.";
+    if (showPosition && position === "") next.position = "Choose your PUP position.";
+
+    setErrors(next);
+    if (Object.keys(next).length > 0) {
+      setError("Some details are still missing. Check the fields marked below.");
+      return;
+    }
+
     setError(null);
     setPending(true);
 
@@ -123,7 +138,7 @@ export default function RegisterForm() {
     // The domain rule is also a Postgres trigger on auth.users, which is the one
     // that actually holds — this check only saves a pointless round trip.
     if (!/^[^@\s]+@pup\.edu\.ph$/i.test(draft.webmail)) {
-      setError("Use your PUP webmail (example@pup.edu.ph).");
+      setErrors({ webmail: "Use your PUP webmail (example@pup.edu.ph)." });
       setPending(false);
       return;
     }
@@ -144,43 +159,60 @@ export default function RegisterForm() {
   }
 
   return (
-    <AuthShell align="center" topRight={<BackLink href="/login" />}>
-      <AuthCard variant="register" title="CREATE AN ACCOUNT">
+    <AuthShell topRight={<BackLink href="/login" destination="sign in" />}>
+      <AuthCard
+        variant="register"
+        step={{ current: 1, total: 4 }}
+        title="Create an account"
+        subtitle="Register with your PUP webmail. We will send a code to confirm it."
+      >
         <form
           onSubmit={handleSubmit}
-          className="flex flex-col gap-[17px]"
+          noValidate
+          className="auth-stagger flex flex-col gap-[var(--auth-vgap)]"
         >
-          <div>
-            <AuthLabel>Full Name</AuthLabel>
-            <div className="mt-[9px] flex gap-[4px]">
+          {error && <AuthFormError>{error}</AuthFormError>}
+
+          <AuthFieldGroup legend="Full Name" error={errors.name}>
+            {/* Stacks below `sm`. The old row held 99px / 1fr / 59px at every
+                width, so on a phone the given-name box was a few characters
+                wide and "M.I." had no room for its own placeholder. */}
+            <div className="grid grid-cols-1 gap-[var(--space-3)] sm:grid-cols-[1fr_1fr_72px]">
               <AuthInput
                 aria-label="Surname"
+                autoComplete="family-name"
                 placeholder="Surname"
-                className="w-[99px] shrink-0"
                 value={surname}
                 onChange={(e) => setSurname(e.target.value)}
               />
               <AuthInput
-                aria-label="Given Name"
+                aria-label="Given name"
+                autoComplete="given-name"
                 placeholder="Given Name"
-                className="min-w-0 flex-1"
                 value={given}
                 onChange={(e) => setGiven(e.target.value)}
               />
               <AuthInput
-                aria-label="Middle Initial"
+                aria-label="Middle initial"
+                autoComplete="additional-name"
+                maxLength={2}
                 placeholder="M.I."
-                className="w-[59px] shrink-0"
                 value={middle}
                 onChange={(e) => setMiddle(e.target.value)}
               />
             </div>
-          </div>
+          </AuthFieldGroup>
 
           <AuthTextField
             label="PUP Webmail"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
             placeholder="example@pup.edu.ph"
             value={webmail}
+            error={errors.webmail}
             onChange={(e) => setWebmail(e.target.value)}
           />
 
@@ -188,8 +220,12 @@ export default function RegisterForm() {
             label="System Role"
             options={ROLE_LABELS}
             value={role}
-            onChange={setRole}
-            placeholder="Select Role"
+            onChange={(v) => {
+              setRole(v);
+              setPosition("");
+            }}
+            placeholder="Select role"
+            error={errors.role}
           />
 
           <AuthSelect
@@ -197,55 +233,45 @@ export default function RegisterForm() {
             options={CAMPUSES}
             value={campus}
             onChange={setCampus}
-            placeholder="Select Campus"
+            placeholder="Select campus"
+            error={errors.campus}
           />
 
-          {showCollege && (
-            <AuthSelect
-              label="College / Department"
-              options={COLLEGES}
-              value={college}
-              onChange={setCollege}
-              placeholder="Select College / Department"
-            />
-          )}
-
-          {showPosition && (
-            <AuthSelect
-              label="PUP Position"
-              options={positions}
-              value={position}
-              onChange={setPosition}
-              placeholder="Select Position"
-            />
-          )}
-
-          {/* The frame puts 52.2px between the last field and Next (this 13 plus
-              the form's 17 gap). That was measured on the four-field state; the
-              six-field one has no frame to measure — program-rep-form.png draws
-              no button at all — and there it read as dead air, so the owner
-              asked to trim it (2026-07-26). 30px still clears the 17px the
-              fields sit apart, so the button stays visibly outside the form. */}
-          <div className="mt-[13px] flex flex-col items-center">
-            {error && (
-              <p className="mb-[11px] text-center text-regular leading-tight text-maroon">
-                {error}
-              </p>
+          {/* Polite live region: choosing a role and campus can insert two more
+              selects here, and a form that grows under you without saying so is
+              a change no screen reader reports. */}
+          <div
+            aria-live="polite"
+            className="flex flex-col gap-[var(--auth-vgap)] empty:hidden"
+          >
+            {showCollege && (
+              <AuthSelect
+                label="College / Department"
+                options={COLLEGES}
+                value={college}
+                onChange={setCollege}
+                placeholder="Select college or department"
+                error={errors.college}
+              />
             )}
-            <AuthButton
-              type="submit"
-              tone="maroon"
-              size="pill"
-              disabled={!canProceed || pending}
-            >
-              {pending ? "Sending code…" : "Next"}
+
+            {showPosition && (
+              <AuthSelect
+                label="PUP Position"
+                options={positions}
+                value={position}
+                onChange={setPosition}
+                placeholder="Select position"
+                error={errors.position}
+              />
+            )}
+          </div>
+
+          <div className="flex flex-col items-center gap-[var(--space-4)]">
+            <AuthButton type="submit" tone="maroon" size="lg" block loading={pending}>
+              {pending ? "Sending code…" : "Continue"}
             </AuthButton>
-            <p className="mt-[17px] text-regular leading-none text-gray">
-              Already have an Account?{" "}
-              <Link href="/login" className="text-maroon">
-                Login
-              </Link>
-            </p>
+            <AuthAccountPrompt to="login" />
           </div>
         </form>
       </AuthCard>

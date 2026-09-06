@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { PortalRole, PortalUser } from "@/components/portal/portal-nav";
 import { ROLE_LABELS } from "@/lib/role-labels";
+import { BUCKETS, signedUrl } from "@/lib/storage";
 
 /**
  * The identity seam. Everything that needs to know who is signed in goes through
@@ -64,6 +65,15 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
 
   if (!profile) return null;
 
+  // `avatar_path` is a bucket-relative key (`{id}/avatar.jpg`), not a URL — the
+  // avatars bucket is private (§2.8), so next/image needs a signed URL here too,
+  // the same as the profile screen's own photo card.
+  let avatar = AVATAR_FALLBACK;
+  if (profile.avatar_path) {
+    const signed = await signedUrl(supabase, BUCKETS.avatars, profile.avatar_path);
+    if (signed.data) avatar = signed.data;
+  }
+
   return {
     id: profile.id,
     role: profile.role,
@@ -71,7 +81,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     // The bar shows the person's PUP position; before B3 assigns one it falls
     // back to the role label rather than rendering an empty slot.
     position: profile.positions?.name ?? ROLE_LABELS[profile.role],
-    avatar: profile.avatar_path ?? AVATAR_FALLBACK,
+    avatar,
     webmail: profile.webmail,
     avatarPath: profile.avatar_path,
     // Real counts land in B8; until the notifications table exists this is 0,

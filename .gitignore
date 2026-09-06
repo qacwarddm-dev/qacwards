@@ -72,3 +72,15 @@ graphify-out/*
 
 # Compiled seed generator (pnpm gen:seed) — build artefact.
 .seed-build/
+
+# Dev server log + Playwright screenshot output.
+.next-dev.log
+.shots/
+
+# Ad-hoc root-level verification scripts (Playwright probes, not app code).
+/*.mjs
+
+# Raw video masters. The 364MB HEVC source of the landing-page video lives in
+# assets/OTHERS/ and is never served — public/assets/video/ holds the encoded
+# H.264 web copy, which is what ships.
+assets/OTHERS/*.mp4

@@ -111,19 +111,20 @@ export default function InternalAccreditorAssignment({
         )}
       </Panel>
 
-      {confirm && assignments.some((a) => a.id === confirm) && (
-        <Modal title="Accept Confirmation" className="w-[350px]">
-          <p className="text-center text-regular leading-[18px] text-gray">
-            Are you sure you want to accept this assignment?
-          </p>
-          <div className="mt-[24px] flex justify-center gap-[16px]">
-            <Button variant="ghost" href="/portal/assignment">
-              Cancel
-            </Button>
-            <AssignmentResponse assignmentId={confirm} variant="confirm-accept" />
-          </div>
-        </Modal>
-      )}
+      {confirm &&
+        assignments.some((a) => a.id === confirm && a.myResponse === "pending") && (
+          <Modal title="Accept Confirmation" className="w-[350px]">
+            <p className="text-center text-regular leading-[18px] text-gray">
+              Are you sure you want to accept this assignment?
+            </p>
+            <div className="mt-[24px] flex justify-center gap-[16px]">
+              <Button variant="ghost" href="/portal/assignment">
+                Cancel
+              </Button>
+              <AssignmentResponse assignmentId={confirm} variant="confirm-accept" />
+            </div>
+          </Modal>
+        )}
     </div>
   );
 }
