@@ -38,6 +38,14 @@ function manilaTime(iso: string): string {
   });
 }
 
+/** Converts a `datetime-local` wall-clock string (no zone) into a UTC ISO
+ *  instant, hard-pinned to Manila's fixed UTC+8 (no DST, ever) rather than
+ *  whatever zone the server process happens to run in (O-20). */
+export function manilaWallClockToUtcIso(wallClock: string): string {
+  const withSeconds = wallClock.length === 16 ? `${wallClock}:00` : wallClock;
+  return new Date(`${withSeconds}+08:00`).toISOString();
+}
+
 export async function getEvents(from: Date, to: Date): Promise<PortalEvent[]> {
   const supabase = await createClient();
 
@@ -48,7 +56,7 @@ export async function getEvents(from: Date, to: Date): Promise<PortalEvent[]> {
     .lte("start_time", to.toISOString())
     .order("start_time");
 
-  return (data ?? []).map((e) => ({
+  const rows = (data ?? []).map((e) => ({
     id: e.id,
     title: e.title,
     description: e.description,
@@ -57,6 +65,49 @@ export async function getEvents(from: Date, to: Date): Promise<PortalEvent[]> {
     kind: e.kind,
     cancelled: e.cancelled_at !== null,
   }));
+
+  const deadlines = await getAssignmentDeadlineEvents(from, to);
+  return [...rows, ...deadlines].sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/**
+ * QAC's per-assignment deadline (`assignments.due_date`) surfaced on the same
+ * calendar as `events` rather than requiring QAC to separately create a
+ * calendar entry for it (client's call, 2026-09-06). RLS on `assignments`
+ * already limits these to the rows the viewer can see.
+ */
+async function getAssignmentDeadlineEvents(from: Date, to: Date): Promise<PortalEvent[]> {
+  const supabase = await createClient();
+
+  const fromDate = manilaDate(from.toISOString());
+  const toDate = manilaDate(to.toISOString());
+
+  const { data } = await supabase
+    .from("assignments")
+    .select("id, due_date, submissions(programs(name), accreditation_levels(name))")
+    .not("due_date", "is", null)
+    .gte("due_date", fromDate)
+    .lte("due_date", toDate);
+
+  return (data ?? []).map((a) => {
+    const submission = Array.isArray(a.submissions) ? a.submissions[0] : a.submissions;
+    const program = Array.isArray(submission?.programs)
+      ? submission?.programs[0]
+      : submission?.programs;
+    const level = Array.isArray(submission?.accreditation_levels)
+      ? submission?.accreditation_levels[0]
+      : submission?.accreditation_levels;
+
+    return {
+      id: `assignment-deadline:${a.id}`,
+      title: `Deadline — ${program?.name ?? "Assignment"}${level?.name ? ` (${level.name})` : ""}`,
+      description: null,
+      date: a.due_date as string,
+      time: "",
+      kind: "deadline",
+      cancelled: false,
+    };
+  });
 }
 
 /** The events in one calendar month, Manila-aligned. */
@@ -82,7 +133,7 @@ export async function getUpcomingEvents(limit = 5): Promise<PortalEvent[]> {
     .order("start_time")
     .limit(limit);
 
-  return (data ?? []).map((e) => ({
+  const rows = (data ?? []).map((e) => ({
     id: e.id,
     title: e.title,
     description: e.description,
@@ -91,4 +142,12 @@ export async function getUpcomingEvents(limit = 5): Promise<PortalEvent[]> {
     kind: e.kind,
     cancelled: false,
   }));
+
+  const now = new Date();
+  const farOut = new Date(now.getTime() + 1000 * 60 * 60 * 24 * 365);
+  const deadlines = await getAssignmentDeadlineEvents(now, farOut);
+
+  return [...rows, ...deadlines]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, limit);
 }

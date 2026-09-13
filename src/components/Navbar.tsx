@@ -126,10 +126,15 @@ export default function Navbar() {
     >
       {/* Height is pinned to --bar-h, not derived from the lockup: the auth
           screens reserve exactly that for this bar, so the lockup stepping down
-          on a phone must not move it. */}
+          on a phone must not move it.
+
+          Horizontal insets match `PortalTopBar` exactly (16px, 25px from md)
+          rather than the centered `--page-gutter`/`--page-max` container —
+          client confirmed the maroon portal bar's edge alignment is correct,
+          so this bar was changed to match it instead of the other way round. */}
       <nav
         aria-label="Primary"
-        className="mx-auto flex h-[var(--bar-h)] max-w-[var(--page-max)] items-center justify-between gap-4 px-[var(--page-gutter)]"
+        className="flex h-[var(--bar-h)] items-center justify-between gap-4 pl-[16px] pr-[16px] md:pl-[25px] md:pr-[25px]"
       >
         {/* brand-lockup carries the width step-down, not BrandLockup itself. */}
         <Link href="/" className="brand-lockup flex min-w-0 items-center">

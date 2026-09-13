@@ -169,7 +169,7 @@ export const PROGRAMS: ProgramSeed[] = [
   { campus: "sta-mesa-manila", college: "COED", name: "Master of Arts in Education major in Teaching in the Challenged Areas" },
   { campus: "sta-mesa-manila", college: "COED", name: "Master of Arts in Education Management" },
   { campus: "sta-mesa-manila", college: "COED", name: "Master of Arts in English Language Teaching" },
-  { campus: "sta-mesa-manila", college: "COED", name: "Master of Arts in Physical Education and Sports" },
+  { campus: "sta-mesa-manila", college: "CHK", name: "Master of Arts in Physical Education and Sports" },
   { campus: "sta-mesa-manila", college: "COED", name: "Doctor of Philosophy in Education" },
   { campus: "sta-mesa-manila", college: "CE", name: "Bachelor of Science in Civil Engineering" },
   { campus: "sta-mesa-manila", college: "CE", name: "Bachelor of Science in Computer Engineering" },

@@ -52,6 +52,32 @@ export async function ensureSubmission(
 
   if (existing) return { ok: true, submissionId: existing.id };
 
+  const { data: level } = await supabase
+    .from("accreditation_levels")
+    .select("code, ordinal")
+    .eq("id", levelId)
+    .maybeSingle();
+
+  // Client's call 2026-09-06: PSV must be 100% (an active award) before a
+  // programme can start Level I. Only gates the PSV→I transition — nothing
+  // downstream in the assignment/submission state machines expressed it.
+  if (level?.code === "I") {
+    const { data: psv } = await supabase
+      .from("program_accreditations")
+      .select("id, accreditation_levels!inner(code)")
+      .eq("program_id", programId)
+      .eq("status", "active")
+      .eq("accreditation_levels.code", "PSV")
+      .maybeSingle();
+
+    if (!psv) {
+      return {
+        ok: false,
+        error: "PSV must be fully passed before Level I can start.",
+      };
+    }
+  }
+
   const { data: created, error } = await supabase
     .from("submissions")
     .insert({ cycle_id: cycle.id, program_id: programId, level_id: levelId })

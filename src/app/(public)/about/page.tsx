@@ -269,13 +269,11 @@ export default function AboutPage() {
           as="h2"
         />
 
-        <div className="mt-[var(--space-9)] grid gap-[var(--space-8)] sm:grid-cols-[minmax(0,320px)_minmax(0,1fr)] sm:gap-[var(--space-9)]">
-          <PersonCard person={DIRECTOR} feature />
-          <div className="grid gap-[var(--space-7)] sm:grid-cols-2 sm:self-end">
-            {ASSISTANT_DIRECTORS.map((person) => (
-              <PersonCard key={person.name} person={person} />
-            ))}
-          </div>
+        <div className="mt-[var(--space-9)] grid grid-cols-2 gap-[var(--space-7)] lg:grid-cols-4">
+          <PersonCard person={DIRECTOR} />
+          {ASSISTANT_DIRECTORS.map((person) => (
+            <PersonCard key={person.name} person={person} />
+          ))}
         </div>
 
         {[

@@ -6,17 +6,12 @@ import Button from "./Button";
 /**
  * Capture an e-signature — round 2 §4.
  *
- * Both input methods the client's open question lists, because the answer is
- * not in yet and building one of them would be a guess that has to be redone:
- * **Draw** is a pointer track on a canvas, **Type** renders the name in the
- * footer serif. Either way the export is one PNG on transparency from the same
- * canvas, so the storage shape, the bucket's MIME whitelist and every render
- * site are identical whichever the client picks — dropping the losing tab later
- * is a UI deletion, not a data migration.
- *
- * Uploading an image of a wet signature is deliberately *not* offered. A file
- * picker accepts any image from anywhere; the two modes here can only produce a
- * mark the signer made in front of the screen.
+ * Three input methods: **Draw** is a pointer track on a canvas, **Type**
+ * renders the name in the footer serif, **Upload** (added per the client's
+ * 2026-09-06 confirmation) draws a picked image file onto the same canvas.
+ * Every mode exports one PNG on transparency from the same canvas, so the
+ * storage shape, the bucket's MIME whitelist and every render site are
+ * identical regardless of mode.
  *
  * The typed face is `--font-footer` (Inria Serif). Canvas cannot resolve a CSS
  * variable, so the family is read back off a probe element rather than
@@ -26,7 +21,7 @@ import Button from "./Button";
 const CANVAS = { width: 600, height: 200 };
 const STROKE = 2.5;
 
-export type SignatureMode = "draw" | "type";
+export type SignatureMode = "draw" | "type" | "upload";
 
 export default function SignaturePad({
   onChange,
@@ -41,12 +36,13 @@ export default function SignaturePad({
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const probeRef = useRef<HTMLSpanElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const drawing = useRef(false);
   const [mode, setMode] = useState<SignatureMode>("draw");
   const [typed, setTyped] = useState(defaultTypedValue);
-  // Only the drawn half needs remembering: in Type mode the text field already
-  // says whether there is a mark, so deriving it keeps the repaint effect free
-  // of setState.
+  // Only the drawn/uploaded half needs remembering: in Type mode the text
+  // field already says whether there is a mark, so deriving it keeps the
+  // repaint effect free of setState.
   const [drew, setDrew] = useState(false);
   const hasMark = mode === "type" ? typed.trim().length > 0 : drew;
 
@@ -159,7 +155,31 @@ export default function SignaturePad({
     wipe();
     setTyped("");
     setDrew(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
     onChange(null);
+  }
+
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const ctx = context();
+      URL.revokeObjectURL(url);
+      if (!ctx) return;
+
+      wipe();
+      // Fit within the canvas, centered, without distorting the aspect ratio.
+      const scale = Math.min(CANVAS.width / img.width, CANVAS.height / img.height);
+      const w = img.width * scale;
+      const h = img.height * scale;
+      ctx.drawImage(img, (CANVAS.width - w) / 2, (CANVAS.height - h) / 2, w, h);
+      setDrew(true);
+      publish();
+    };
+    img.src = url;
   }
 
   return (
@@ -189,7 +209,30 @@ export default function SignaturePad({
         >
           Type
         </Button>
+        <Button
+          variant={mode === "upload" ? "solid" : "ghost"}
+          size="md"
+          disabled={disabled}
+          aria-pressed={mode === "upload"}
+          onClick={() => switchMode("upload")}
+        >
+          Upload
+        </Button>
       </div>
+
+      {mode === "upload" && (
+        <label className="mt-[12px] block">
+          <span className="t-sm font-semibold text-black">Upload an image of your signature</span>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            disabled={disabled}
+            onChange={handleFile}
+            className="mt-[6px] block w-full text-regular text-black"
+          />
+        </label>
+      )}
 
       {mode === "type" && (
         <label className="mt-[12px] block">
@@ -213,6 +256,7 @@ export default function SignaturePad({
         onPointerUp={endStroke}
         onPointerCancel={endStroke}
         aria-label={mode === "draw" ? "Draw your signature" : "Signature preview"}
+        aria-hidden={mode === "upload" && !drew}
         className={`mt-[12px] w-full rounded-[var(--radius-md)] border border-dashed border-[color:var(--color-gray)]/50 bg-white ${
           mode === "draw" && !disabled ? "cursor-crosshair touch-none" : ""
         }`}
@@ -223,7 +267,9 @@ export default function SignaturePad({
         <p className="t-sm text-gray">
           {mode === "draw"
             ? "Sign inside the box with a mouse, trackpad or finger."
-            : "Typed signatures are rendered in the system's serif."}
+            : mode === "type"
+              ? "Typed signatures are rendered in the system's serif."
+              : "The uploaded image is fitted to the box above."}
         </p>
         <Button variant="link" disabled={disabled || !hasMark} onClick={clear}>
           Clear

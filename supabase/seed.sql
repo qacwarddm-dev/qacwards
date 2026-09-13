@@ -515,7 +515,7 @@ insert into public.programs (campus_id, college_id, name) values (
   (select id from public.campuses where slug = 'sta-mesa-manila'), (select id from public.colleges where code = 'COED'), 'Master of Arts in English Language Teaching')
   on conflict (campus_id, name) do update set college_id = excluded.college_id;
 insert into public.programs (campus_id, college_id, name) values (
-  (select id from public.campuses where slug = 'sta-mesa-manila'), (select id from public.colleges where code = 'COED'), 'Master of Arts in Physical Education and Sports')
+  (select id from public.campuses where slug = 'sta-mesa-manila'), (select id from public.colleges where code = 'CHK'), 'Master of Arts in Physical Education and Sports')
   on conflict (campus_id, name) do update set college_id = excluded.college_id;
 insert into public.programs (campus_id, college_id, name) values (
   (select id from public.campuses where slug = 'sta-mesa-manila'), (select id from public.colleges where code = 'COED'), 'Doctor of Philosophy in Education')

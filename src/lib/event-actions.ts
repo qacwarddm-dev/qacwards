@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { UserRole } from "@/lib/database.types";
-import { getMonthEvents } from "@/lib/events";
+import { getMonthEvents, manilaWallClockToUtcIso } from "@/lib/events";
 
 /** Writes behind the events calendar. QAC only, enforced by RLS. */
 export type ActionResult = { ok: true } | { ok: false; error: string };
@@ -43,13 +43,11 @@ export async function createEvent(formData: FormData): Promise<ActionResult> {
   // an empty selection is a real choice, not a mistake.
   const { error } = await supabase.rpc("create_event", {
     p_title: title,
-    // datetime-local gives a wall-clock string with no zone. It is the
-    // author's local time, so `new Date()` reads it in the server's zone —
-    // correct here because the author and this app are both Manila, and
-    // wrong the day either moves. Flagged rather than papered over.
-    p_start_time: new Date(startTime).toISOString(),
+    // datetime-local gives a wall-clock string with no zone — treat it as
+    // Manila (O-20) instead of trusting the server process's own zone.
+    p_start_time: manilaWallClockToUtcIso(startTime),
     ...(description ? { p_description: description } : {}),
-    ...(endTime ? { p_end_time: new Date(endTime).toISOString() } : {}),
+    ...(endTime ? { p_end_time: manilaWallClockToUtcIso(endTime) } : {}),
     p_kind: kind as "meeting" | "survey_visit" | "deadline" | "holiday" | "other",
     ...(roles.length > 0 ? { p_roles: roles } : {}),
   });

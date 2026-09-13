@@ -30,8 +30,9 @@ export async function createAssignment(
 ): Promise<{ ok: true; assignmentId: string } | { ok: false; error: string }> {
   const supabase = await createClient();
 
-  if (accreditorIds.length === 0) {
-    return { ok: false, error: "Choose at least one accreditor." };
+  // Client's call 2026-09-06: every assignment team is exactly 2 accreditors.
+  if (accreditorIds.length !== 2) {
+    return { ok: false, error: "Choose exactly 2 accreditors." };
   }
 
   const { data: submission } = await supabase
@@ -175,8 +176,9 @@ export async function reassignAssignment(
 ): Promise<ActionResult> {
   const supabase = await createClient();
 
-  if (accreditorIds.length === 0) {
-    return { ok: false, error: "Choose at least one accreditor." };
+  // Client's call 2026-09-06: every assignment team is exactly 2 accreditors.
+  if (accreditorIds.length !== 2) {
+    return { ok: false, error: "Choose exactly 2 accreditors." };
   }
 
   const { data: assignment } = await supabase
@@ -565,6 +567,7 @@ export async function createAssignmentForProgramLevel(
   programId: string,
   levelId: string,
   accreditorIds: string[],
+  dueDate: string | null = null,
 ): Promise<{ ok: true; assignmentId: string } | { ok: false; error: string }> {
   const supabase = await createClient();
 
@@ -578,7 +581,7 @@ export async function createAssignmentForProgramLevel(
     .maybeSingle();
 
   if (latest?.status === "submitted") {
-    return createAssignment(latest.id, accreditorIds, null);
+    return createAssignment(latest.id, accreditorIds, dueDate);
   }
 
   if (latest && ["under_evaluation", "evaluated"].includes(latest.status)) {
@@ -595,7 +598,7 @@ export async function createAssignmentForProgramLevel(
       .eq("id", latest.id);
 
     if (error) return { ok: false, error: error.message };
-    return createAssignment(latest.id, accreditorIds, null);
+    return createAssignment(latest.id, accreditorIds, dueDate);
   }
 
   const { data: cycle } = await supabase
@@ -622,5 +625,5 @@ export async function createAssignmentForProgramLevel(
 
   if (error) return { ok: false, error: error.message };
 
-  return createAssignment(created.id, accreditorIds, null);
+  return createAssignment(created.id, accreditorIds, dueDate);
 }

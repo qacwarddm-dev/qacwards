@@ -27,9 +27,9 @@ type Level = { id: string; code: string; name: string };
  * re-fetched by a server action as the programme changes rather than bulk-
  * loaded for all programmes up front.
  *
- * The frame has no due-date field, so `createAssignmentForProgramLevel` is
- * called with a null one — nothing here invents UI the Figma export doesn't
- * draw.
+ * The frame had no due-date field; one was added per the client's 2026-09-06
+ * confirmation that QAC sets a deadline per assignment, which now also shows
+ * up on the calendar (`getMonthEvents`, `src/lib/events.ts`).
  */
 export default function QacPersonnelCreateAssignment({
   campuses,
@@ -87,6 +87,7 @@ export default function QacPersonnelCreateAssignment({
 
   const [accreditors, setAccreditors] = useState<EligibleAccreditor[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [dueDate, setDueDate] = useState("");
 
   const [prevProgramId, setPrevProgramId] = useState(programId);
   if (programId !== prevProgramId) {
@@ -119,7 +120,12 @@ export default function QacPersonnelCreateAssignment({
     setError(null);
     if (!programId || !levelId) return;
     startTransition(async () => {
-      const result = await createAssignmentForProgramLevel(programId, levelId, [...selected]);
+      const result = await createAssignmentForProgramLevel(
+        programId,
+        levelId,
+        [...selected],
+        dueDate || null,
+      );
       if (!result.ok) setError(result.error);
       else router.push("/portal/assignment");
     });
@@ -192,6 +198,18 @@ export default function QacPersonnelCreateAssignment({
                 />
               </div>
             </div>
+            <div>
+              <FieldLabel note="Optional">Deadline</FieldLabel>
+              <div className="mt-[13px]">
+                <input
+                  type="date"
+                  aria-label="Deadline"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="h-[40px] w-full rounded-[10px] border border-[color:var(--color-gray)]/50 bg-transparent px-[22px] text-regular leading-none text-black outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon"
+                />
+              </div>
+            </div>
           </div>
         </Card>
 
@@ -200,6 +218,9 @@ export default function QacPersonnelCreateAssignment({
           <h2 className="text-subheading font-semibold leading-none text-black">
             Eligible Accreditors
           </h2>
+          <p className="mt-[6px] text-small leading-tight text-black/70">
+            Select exactly 2 ({selected.size}/2 selected).
+          </p>
           <div className="mt-[18px]">
             <AccreditorPicker
               accreditors={accreditors}
@@ -213,7 +234,7 @@ export default function QacPersonnelCreateAssignment({
         {error && <p className="mt-[18px] text-regular leading-tight text-maroon">{error}</p>}
 
         <div className="mt-[38px] flex justify-end">
-          <Button variant="solid" disabled={pending || selected.size === 0} onClick={submit}>
+          <Button variant="solid" disabled={pending || selected.size !== 2} onClick={submit}>
             Create Assignment
           </Button>
         </div>

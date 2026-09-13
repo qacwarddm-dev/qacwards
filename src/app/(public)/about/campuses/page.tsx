@@ -77,7 +77,7 @@ const CAMPUSES: Campus[] = [
   {
     name: "PUP MULANAY CAMPUS",
     photo: "/assets/campuses/mulanay.png",
-    body: "Mulanay Branch was established in 1993 through Republic Act No. 7645 to serve as the “Avenue of Knowledge in the Countryside” for the Bondoc Peninsula. It plays a critical role in rural development by providing accessible, state-subsidized education to students in remote municipalities of Quezon and nearby provinces. Currently, the campus offers undergraduate programs such as **Elementary Education**, **Agribusiness Management**, **Entrepreneurship**, and **Office Administration**.",
+    body: "Mulanay Branch was established in 1993 through **Republic Act No. 7645** to serve as the “Avenue of Knowledge in the Countryside” for the Bondoc Peninsula. It plays a critical role in rural development by providing accessible, state-subsidized education to students in remote municipalities of Quezon and nearby provinces. Currently, the campus offers undergraduate programs such as **Elementary Education**, **Agribusiness Management**, **Entrepreneurship**, and **Office Administration**.",
   },
   {
     name: "PUP PARAÑAQUE CAMPUS",
@@ -127,7 +127,7 @@ const CAMPUSES: Campus[] = [
   {
     name: "PUP STO. TOMAS CAMPUS",
     photo: "/assets/campuses/sto-tomas.jpg",
-    body: "Sto. Tomas Campus in Batangas was established in January 1992 to serve as a key educational hub for the province and neighboring Laguna. It holds a unique legal history, having been formally excluded from the Batangas State University system by __Republic Act No. 9472__ in 2007 to remain a steadfast branch of the “Sintang Paaralan”. As the largest PUP campus in Southern Luzon, it offers diverse programs in engineering, accountancy, and psychology, empowering thousands of students through affordable, high-quality state education.",
+    body: "Sto. Tomas Campus in Batangas was established in January 1992 to serve as a key educational hub for the province and neighboring Laguna. It holds a unique legal history, having been formally excluded from the Batangas State University system by **Republic Act No. 9472** in 2007 to remain a steadfast branch of the “Sintang Paaralan”. As the largest PUP campus in Southern Luzon, it offers diverse programs in engineering, accountancy, and psychology, empowering thousands of students through affordable, high-quality state education.",
   },
   {
     name: "PUP TAGUIG CAMPUS",

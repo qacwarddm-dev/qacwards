@@ -1,18 +1,21 @@
 "use client";
 
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { useState } from "react";
+
 /**
- * The accreditor specialty chooser — round 2 §3.
+ * The accreditor specialty chooser — round 2 §3, changed to a dropdown per the
+ * 2026-09-06 client note.
  *
  * In the kit because §3 is explicitly two surfaces on one field: the accreditor
  * editing their own Profile, and QAC Admin editing theirs from User Management.
  * The two must offer the same list and the same wording, so they share the
  * component and pass their own data into it.
  *
- * Chips rather than a multi-select `<select multiple>`: the list is ~20 areas
- * and an accreditor typically holds two or three, so what matters is seeing the
- * held ones at a glance. Each chip is a real checkbox underneath, so the whole
- * group is keyboard-reachable and announces its state without any ARIA of its
- * own.
+ * A multi-select dropdown rather than the always-visible chip row this
+ * replaced: closed, it reads as one field showing a comma list of what's held
+ * (`Field.tsx`'s `SelectMenu` shell); open, it drops the same checkbox list
+ * the chips used to be, just collapsed until touched.
  */
 export default function ExpertisePicker({
   areas,
@@ -27,6 +30,7 @@ export default function ExpertisePicker({
   disabled?: boolean;
   legend?: string;
 }) {
+  const [open, setOpen] = useState(false);
   const held = new Set(selected);
 
   function toggle(id: string) {
@@ -40,32 +44,83 @@ export default function ExpertisePicker({
     return <p className="t-sm text-gray">No expertise areas are on file yet.</p>;
   }
 
+  const summary =
+    selected.length === 0
+      ? "None selected"
+      : areas
+          .filter((a) => held.has(a.id))
+          .map((a) => a.name)
+          .join(", ");
+
+  const Chevron = open ? ChevronUp : ChevronDown;
+
   return (
-    <fieldset disabled={disabled} className="min-w-0">
-      <legend className="t-sm font-semibold text-black">{legend}</legend>
-      <div className="mt-[10px] flex flex-wrap gap-[8px]">
-        {areas.map((area) => {
-          const on = held.has(area.id);
-          return (
-            <label
-              key={area.id}
-              className={`inline-flex cursor-pointer items-center rounded-full border px-[12px] py-[6px] text-regular leading-none transition-colors ${
-                on
-                  ? "border-maroon bg-maroon text-white"
-                  : "border-[color:var(--color-gray)]/40 bg-white text-black"
-              } ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
+    <div className="min-w-0">
+      <span className="block whitespace-nowrap text-regular font-semibold leading-none text-maroon">
+        {legend}
+      </span>
+      <span className="relative mt-[10px] block">
+        <button
+          type="button"
+          disabled={disabled}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+          className={`flex h-[40px] w-full items-center rounded-[10px] border bg-transparent px-[22px] pr-[40px] text-left text-regular leading-none outline-none transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon ${
+            open ? "border-maroon" : "border-[color:var(--color-gray)]/50"
+          } ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
+        >
+          <span className="truncate text-black">{summary}</span>
+        </button>
+        <Chevron
+          className={`pointer-events-none absolute right-[14px] top-1/2 h-[17px] w-[17px] -translate-y-1/2 ${open ? "text-maroon" : "text-black"}`}
+          strokeWidth={2}
+          aria-hidden
+        />
+
+        {open && !disabled && (
+          <>
+            <button
+              type="button"
+              aria-hidden
+              tabIndex={-1}
+              onClick={() => setOpen(false)}
+              className="fixed inset-0 z-20 cursor-default"
+            />
+            <ul
+              role="listbox"
+              aria-multiselectable="true"
+              aria-label={legend}
+              className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 max-h-[240px] overflow-y-auto rounded-[10px] bg-white py-[6px] shadow-[0_8px_24px_rgba(0,0,0,0.14)]"
             >
-              <input
-                type="checkbox"
-                checked={on}
-                onChange={() => toggle(area.id)}
-                className="sr-only"
-              />
-              {area.name}
-            </label>
-          );
-        })}
-      </div>
-    </fieldset>
+              {areas.map((area) => {
+                const on = held.has(area.id);
+                return (
+                  <li key={area.id}>
+                    <label className="relative flex w-full cursor-pointer items-center gap-[10px] px-[22px] py-[11px] text-left text-regular leading-none text-black transition-colors hover:bg-highlight">
+                      {on && (
+                        <span
+                          className="absolute left-0 top-[6px] bottom-[6px] w-[4px] rounded-r-[3px] bg-maroon"
+                          aria-hidden
+                        />
+                      )}
+                      <input
+                        type="checkbox"
+                        role="option"
+                        aria-selected={on}
+                        checked={on}
+                        onChange={() => toggle(area.id)}
+                        className="h-[16px] w-[16px] accent-maroon"
+                      />
+                      <span className={`truncate ${on ? "font-semibold" : ""}`}>{area.name}</span>
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
+        )}
+      </span>
+    </div>
   );
 }

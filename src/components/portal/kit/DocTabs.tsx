@@ -109,9 +109,8 @@ export default function DocTabs({
             key={t.key}
             href={t.href}
             aria-current={isActive ? "page" : undefined}
-            className={`absolute top-0 flex h-[50px] items-center justify-center whitespace-nowrap font-bold leading-none ${
-              // The selected tab is set a step larger, not merely recoloured.
-              isActive ? "text-heading text-maroon" : "text-subheading text-white"
+            className={`absolute top-0 flex h-[50px] items-center justify-center whitespace-nowrap font-bold leading-none text-subheading ${
+              isActive ? "text-maroon" : "text-white"
             }`}
             style={{
               left: box[i].x + FLARE / 2,

@@ -95,7 +95,7 @@ export default function AssignmentReassign({
             </Button>
             <Button
               variant="solid"
-              disabled={pending || selected.size === 0}
+              disabled={pending || selected.size !== 2}
               onClick={submit}
             >
               {pending ? "Reassigning…" : "Reassign"}
@@ -122,13 +122,18 @@ export default function AssignmentReassign({
             <Spinner />
           </div>
         ) : (
-          <AccreditorPicker
+          <>
+            <p className="mb-[10px] t-sm leading-tight text-black/70">
+              Select exactly 2 ({selected.size}/2 selected).
+            </p>
+            <AccreditorPicker
             accreditors={accreditors}
             selected={selected}
             onToggle={toggle}
             disabled={pending}
             emptyMessage="No other accreditor is available for this programme."
           />
+          </>
         )}
 
         {error && <p className="mt-[16px] t-sm leading-tight text-maroon">{error}</p>}

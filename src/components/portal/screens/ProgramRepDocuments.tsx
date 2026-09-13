@@ -24,7 +24,10 @@ const TABS = [
 ];
 
 /** 4-up grid, 194px tiles on a 27px gutter, inside a 73/69 inset. */
-const GRID = "grid grid-cols-4 gap-x-[27px] gap-y-[27px]";
+// Fixed 194px columns (DocCard's own width) rather than `1fr` tracks — `1fr`
+// stretches to fill the row, which is what left a partial last row of cards
+// stranded at the left edge instead of centered under `justify-center`.
+const GRID = "grid grid-cols-[repeat(4,194px)] justify-center gap-x-[27px] gap-y-[27px]";
 
 /**
  * Program Representative → Documents. One panel, three tabs:
@@ -90,7 +93,7 @@ function LevelTemplatesTab({ level }: { level: string }) {
   return (
     <div className="px-[73px] pb-[43px] pt-[43px]">
       <div className="relative flex h-[24px] items-center justify-center">
-        <h2 className="text-heading font-bold leading-none text-black">{entry.heading}</h2>
+        <h2 className="text-subheading font-bold leading-none text-black">{entry.heading}</h2>
         <span className="absolute right-0">
           <BackLink href="/portal/documents" />
         </span>

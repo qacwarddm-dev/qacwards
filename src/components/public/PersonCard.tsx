@@ -16,13 +16,7 @@ export type Person = {
  * rows going ragged, which the old `flex-wrap` + `gap-x-[106px]` /
  * `gap-x-[130px]` pair could not do.
  */
-export function PersonCard({
-  person,
-  feature = false,
-}: {
-  person: Person;
-  feature?: boolean;
-}) {
+export function PersonCard({ person }: { person: Person }) {
   return (
     <figure className="group flex flex-col">
       <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[var(--radius-md)] bg-white/60">
@@ -31,7 +25,7 @@ export function PersonCard({
           alt=""
           width={person.width}
           height={person.height}
-          sizes={feature ? "(min-width: 768px) 320px, 70vw" : "(min-width: 1024px) 260px, (min-width: 640px) 40vw, 70vw"}
+          sizes="(min-width: 1024px) 260px, (min-width: 640px) 40vw, 70vw"
           className="absolute inset-0 h-full w-full object-contain object-bottom transition-transform duration-[var(--motion-slow)] ease-[var(--ease-out)] group-hover:scale-[1.03]"
         />
       </div>
@@ -39,13 +33,7 @@ export function PersonCard({
       <figcaption className="mt-4">
         {/* Two-line floor on the name so the roles sit on one baseline across a
             row; names here run one line or two and nothing else aligns them. */}
-        <p
-          className={`text-maroon ${
-            feature ? "t-h1" : "t-h2 sm:min-h-[2.6em]"
-          }`}
-        >
-          {person.name}
-        </p>
+        <p className="t-h2 text-maroon sm:min-h-[2.6em]">{person.name}</p>
         <p className="t-sm mt-1 text-black/70">{person.role}</p>
       </figcaption>
     </figure>
