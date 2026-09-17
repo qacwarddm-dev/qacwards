@@ -156,8 +156,26 @@ function LevelsPanel({
   program: string;
   levels: SubmissionLevel[];
 }) {
+  // Client backlog (2026-09-06 notes): the "QAC Service Evaluation" survey
+  // triggers once a level's documents are reviewed and approved, which this
+  // screen already tracks as `percent` reaching 100 — the same field the
+  // level row's own bar reads, not a second readiness check.
+  const doneLevel = levels.find((l) => l.percent === 100);
+
   return (
-    <Panel title="Accreditation Levels">
+    <Panel
+      title="Accreditation Levels"
+      footer={
+        doneLevel && (
+          <Button
+            variant="secondary"
+            href={`/portal/submission/evaluation?program=${program}&level=${doneLevel.levelId}`}
+          >
+            Rate QAC&apos;s Service
+          </Button>
+        )
+      }
+    >
       <RowList>
         {levels.map((level) => (
           <ProgressRow

@@ -31,6 +31,11 @@ export const STATUS = {
   disabled: { label: "Disabled", tone: "neutral" },
   signed: { label: "Signed", tone: "success" },
   unsigned: { label: "Not signed", tone: "warning" },
+  // Extension Monitoring phase cards — separate from the assignment
+  // `in_progress`/`assigned` pair above because the frame draws these in
+  // yellow/grey rather than the assignment workflow's blue/grey.
+  not_started: { label: "Not Started", tone: "neutral" },
+  phase_in_progress: { label: "In Progress", tone: "warning" },
 } as const satisfies Record<string, { label: string; tone: StatusTone }>;
 
 export type StatusKey = keyof typeof STATUS;

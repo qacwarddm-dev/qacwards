@@ -61,21 +61,106 @@ async function programLevelCounts(programIds?: string[]): Promise<LevelAwardCoun
  * QAC Personnel / QAC Admin
  * ---------------------------------------------------------------------- */
 
+/**
+ * Client revision (2026-09): the dashboard's stat row now shows the same five
+ * KPI tiles as `/portal/reports` (Academic Offered / Main Campus / Campuses /
+ * With COPC / Not Accreditable) rather than a level-by-level count, so it
+ * reads `getReportsStats()` directly instead of keeping a second tile set.
+ * `copcSeries` is unaffected — the chart still plots level counts.
+ */
 export async function getQacDashboard(): Promise<{ stats: Stat[]; copcSeries: number[] }> {
-  const counts = await programLevelCounts();
-  const overall = counts.I + counts.II + counts.III + counts.IV;
-  const note = asOfNow();
+  const [stats, counts] = await Promise.all([getReportsStats(), programLevelCounts()]);
+  return { stats, copcSeries: [counts.I, counts.II, counts.III, counts.IV] };
+}
 
-  return {
-    stats: [
-      { label: "LEVEL I", value: String(counts.I), note },
-      { label: "LEVEL II", value: String(counts.II), note },
-      { label: "LEVEL III", value: String(counts.III), note },
-      { label: "LEVEL IV", value: String(counts.IV), note },
-      { label: "OVERALL", value: String(overall), note },
-    ],
-    copcSeries: [counts.I, counts.II, counts.III, counts.IV],
-  };
+export type OngoingAccreditation = {
+  id: string;
+  campus: string;
+  program: string;
+  level: string;
+  accreditor: string;
+};
+
+/**
+ * QAC Dashboard's "On-Going Program Accreditation" table — every assignment
+ * not yet closed out, campus-wide (QAC sees all of them per RLS, same
+ * convention `assignments.ts` documents; no viewer filter belongs here).
+ */
+export async function getOngoingAccreditations(limit = 5): Promise<OngoingAccreditation[]> {
+  const supabase = await createClient();
+
+  const { data } = await supabase
+    .from("assignments")
+    .select(
+      `id, status,
+       submissions(programs(name, campuses(name)), accreditation_levels(name)),
+       assignment_accreditors(response, profiles(surname, given_name))`,
+    )
+    .neq("status", "score_returned")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  return (data ?? []).map((a) => ({
+    id: a.id,
+    campus: a.submissions?.programs?.campuses?.name ?? "—",
+    program: a.submissions?.programs?.name ?? "—",
+    level: a.submissions?.accreditation_levels?.name ?? "—",
+    accreditor:
+      (a.assignment_accreditors ?? [])
+        .map((m) => (m.profiles ? `${m.profiles.surname}, ${m.profiles.given_name}` : null))
+        .filter((n): n is string => Boolean(n))
+        .join("; ") || "—",
+  }));
+}
+
+export type EvaluationProgressRow = {
+  id: string;
+  campus: string;
+  program: string;
+  level: string;
+  readiness: number;
+};
+
+/**
+ * QAC Dashboard's "Evaluation Progress" table — same `submission_readiness`
+ * read as `IaDashboard.evaluationProgress`, but campus-wide rather than
+ * scoped to one accreditor's own assignments.
+ */
+export async function getEvaluationProgressAll(limit = 5): Promise<EvaluationProgressRow[]> {
+  const supabase = await createClient();
+
+  const { data: assignments } = await supabase
+    .from("assignments")
+    .select(
+      `id, submission_id,
+       submissions(programs(name, campuses(name)), accreditation_levels(name))`,
+    )
+    .neq("status", "score_returned")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  const submissionIds = (assignments ?? [])
+    .map((a) => a.submission_id)
+    .filter((id): id is string => Boolean(id));
+
+  const { data: readinessRows } = submissionIds.length
+    ? await supabase
+        .from("submission_readiness")
+        .select("submission_id, readiness_percent")
+        .in("submission_id", submissionIds)
+    : { data: [] as { submission_id: string | null; readiness_percent: number | null }[] };
+
+  const readinessBySubmission = new Map(
+    (readinessRows ?? []).map((r) => [r.submission_id, r.readiness_percent ?? 0]),
+  );
+
+  return (assignments ?? []).map((a) => ({
+    id: a.id,
+    campus: a.submissions?.programs?.campuses?.name ?? "—",
+    program: a.submissions?.programs?.name ?? "—",
+    level: a.submissions?.accreditation_levels?.name ?? "—",
+    readiness: a.submission_id ? (readinessBySubmission.get(a.submission_id) ?? 0) : 0,
+  }));
 }
 
 /**

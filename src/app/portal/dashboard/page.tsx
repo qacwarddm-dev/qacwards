@@ -2,8 +2,10 @@ import InternalAccreditorDashboard from "@/components/portal/screens/InternalAcc
 import ProgramRepDashboard from "@/components/portal/screens/ProgramRepDashboard";
 import QacPersonnelDashboard from "@/components/portal/screens/QacPersonnelDashboard";
 import {
+  getEvaluationProgressAll,
   getIaDashboard,
   getMiniCalendarData,
+  getOngoingAccreditations,
   getQacDashboard,
   getRepDashboard,
   getUpcomingSchedule,
@@ -35,6 +37,20 @@ export default async function DashboardPage() {
     return <InternalAccreditorDashboard data={data} schedule={schedule} calendar={calendar} />;
   }
 
-  const data = await getQacDashboard();
-  return <QacPersonnelDashboard data={data} />;
+  const [data, ongoing, evaluationProgress, schedule, calendar] = await Promise.all([
+    getQacDashboard(),
+    getOngoingAccreditations(),
+    getEvaluationProgressAll(),
+    getUpcomingSchedule(),
+    getMiniCalendarData(),
+  ]);
+  return (
+    <QacPersonnelDashboard
+      data={data}
+      ongoing={ongoing}
+      evaluationProgress={evaluationProgress}
+      schedule={schedule}
+      calendar={calendar}
+    />
+  );
 }

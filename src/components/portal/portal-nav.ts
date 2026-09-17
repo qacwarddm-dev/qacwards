@@ -2,6 +2,7 @@ import {
   Calendar,
   ClipboardList,
   FileChartColumn,
+  FileClock,
   FilePenLine,
   FileText,
   Folder,
@@ -9,6 +10,7 @@ import {
   LayoutDashboard,
   type LucideIcon,
   Settings,
+  Star,
   Upload,
 } from "lucide-react";
 
@@ -53,6 +55,12 @@ export type PortalNavItem = {
  * so only the items differ.
  */
 export const PORTAL_NAV: Partial<Record<PortalRole, PortalNavItem[]>> = {
+  /** Relabelled + widened 2026-09 per the client's new frames
+   *  (assets/new frames/QAC/new.png, .../Externsion Monitoring/*.png,
+   *  assets/new frames/EVENTS/*.png): "Documents" -> "AACCUP & COPC" and
+   *  "Assignment" -> "Accreditation" keep their hrefs and icons (a pure
+   *  rename, confirmed by the icons carrying over unchanged), and two new
+   *  items land either side of Reports. */
   qac_personnel: [
     {
       label: "Dashboard",
@@ -61,9 +69,11 @@ export const PORTAL_NAV: Partial<Record<PortalRole, PortalNavItem[]>> = {
       filled: true,
       size: 33,
     },
-    { label: "Documents", href: "/portal/documents", icon: Folder },
-    { label: "Assignment", href: "/portal/assignment", icon: ClipboardList },
+    { label: "AACCUP & COPC", href: "/portal/documents", icon: Folder },
+    { label: "Accreditation", href: "/portal/assignment", icon: ClipboardList },
+    { label: "Extension Monitoring", href: "/portal/extension-monitoring", icon: FileClock },
     { label: "Reports", href: "/portal/reports", icon: FileChartColumn },
+    { label: "Feedback", href: "/portal/feedback", icon: Star },
     { label: "Events", href: "/portal/events", icon: Calendar },
   ],
 
@@ -111,9 +121,11 @@ export const PORTAL_NAV: Partial<Record<PortalRole, PortalNavItem[]>> = {
  */
 const ADMIN_GROUP: Record<string, PortalNavItem["group"]> = {
   Dashboard: "Work",
-  Assignment: "Work",
-  Documents: "Library",
+  Accreditation: "Work",
+  "Extension Monitoring": "Work",
+  "AACCUP & COPC": "Library",
   Reports: "Library",
+  Feedback: "Library",
   Events: "Schedule",
 };
 

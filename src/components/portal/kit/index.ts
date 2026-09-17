@@ -40,6 +40,7 @@ export {
   TextInput,
 } from "./Field";
 export { default as ExpertisePicker } from "./ExpertisePicker";
+export { default as FilterBar, type FilterSpec } from "./FilterBar";
 export { default as FolderCard } from "./FolderCard";
 export { default as FolderGrid, type FolderEntry } from "./FolderGrid";
 export { default as MiniCalendar, type MeetingKind } from "./MiniCalendar";
@@ -55,6 +56,7 @@ export { default as PanelHeader } from "./PanelHeader";
 export { default as PortalPage } from "./PortalPage";
 export { default as PdfChip } from "./PdfChip";
 export { default as ProgressRow } from "./ProgressRow";
+export { default as RadialProgress } from "./RadialProgress";
 export { default as RowList } from "./RowList";
 export { default as SearchField } from "./SearchField";
 export { default as SectionHeading } from "./SectionHeading";
@@ -63,6 +65,7 @@ export { default as SignaturePad, type SignatureMode } from "./SignaturePad";
 export { default as Skeleton } from "./Skeleton";
 export { default as Spinner } from "./Spinner";
 export { default as SplitStat, type SplitStatHalf } from "./SplitStat";
+export { default as StarRating } from "./StarRating";
 export { default as StatCard, StatRow, type Stat } from "./StatCard";
 export { default as StatusBarChart, type StatusBar } from "./StatusBarChart";
 export { default as StatusPill, type DocStatus } from "./StatusPill";

@@ -61,7 +61,17 @@ export const SCREENS: Screen[] = [
   { name: "qp / main campus", route: "/portal/documents/main-campus", frame: "assets/FIGMA/qac_personnel/02.6-Document-MainCampus.png", role: "qac_personnel", budget: 10.2 },
   { name: "qp / assignment", route: "/portal/assignment", frame: "assets/FIGMA/qac_personnel/03-Accreditation Assignment.png", role: "qac_personnel", budget: 4.8 },
   { name: "qp / events", route: "/portal/events", frame: "assets/FIGMA/qac_personnel/04-Events.png", role: "qac_personnel", budget: 5.0 },
-  { name: "qp / reports", route: "/portal/reports", frame: "assets/FIGMA/qac_personnel/05-Reports.png", role: "qac_personnel", budget: 3.2 },
+  // qp / reports: removed 2026-09. The client's new frame (assets/new frames/
+  // EVENTS/Reports.png, a real 2x/1440 export) replaces 05-Reports.png's
+  // layout outright — the five KPI tiles moved to the Dashboard and the panel
+  // gained a search/year/type filter row — so the old export is superseded,
+  // same treatment Profile got above. Verified by hand against the new frame
+  // (real login, seeded qac@pup.edu.ph) rather than re-added here pixel-diffed:
+  // the new screens this session shipped (Reports, Feedback, Extension
+  // Monitoring, the service-evaluation form) are dynamic/data-driven or
+  // interactive-state screens the existing harness was never built to budget
+  // for a first pass; a follow-up can register them once their budgets are
+  // measured the way every entry above was.
 
   // --- program_representative ---------------------------------------------
   { name: "pr / dashboard", route: "/portal/dashboard", frame: "assets/FIGMA/program_representative/01-Dashboard.png", role: "program_representative", budget: 3.6, contentFromX: 250 },
