@@ -1,5 +1,6 @@
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
+import { getCurrentUser } from "@/lib/current-user";
 
 /**
  * The public site's chrome.
@@ -18,9 +19,11 @@ import Navbar from "@/components/Navbar";
  * fill the window and carry their own footnote, so the site footer would push
  * them into a scroll (plans/03-auth-role-gate.md §Migration step 3).
  */
-export default function PublicLayout({
+export default async function PublicLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const user = await getCurrentUser();
+
   return (
     <>
       {/* First focusable element on the page (09a §A.7) — there was none before. */}
@@ -30,7 +33,7 @@ export default function PublicLayout({
       >
         Skip to content
       </a>
-      <Navbar />
+      <Navbar isAuthenticated={Boolean(user)} />
       <main id="main" className="flex-1">
         {children}
       </main>

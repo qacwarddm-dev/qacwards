@@ -63,7 +63,7 @@ function isActive(pathname: string, href: string) {
  * its hairline and elevation once the page scrolls, so it reads as attached to
  * the hero rather than as a separate stripe above it.
  */
-export default function Navbar() {
+export default function Navbar({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
   const pathname = usePathname();
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -276,9 +276,15 @@ export default function Navbar() {
             {/* Was a bare 32px icon with only an aria-label — unlabelled to a
                 sighted visitor, who had no way to know the site had accounts.
                 The word ships from sm up; the icon alone remains on a phone,
-                where it sits beside the menu toggle. */}
+                where it sits beside the menu toggle.
+
+                This bar has no other way to know who's browsing — `(public)`
+                carries no middleware — so the label comes from a prop the
+                server layout resolves once via getCurrentUser(). Without it,
+                a signed-in visitor always saw "Sign in" here and had to
+                re-authenticate through /login just to get back to the portal. */}
             <Link
-              href="/login"
+              href={isAuthenticated ? "/portal/dashboard" : "/login"}
               className="flex items-center gap-2 rounded-full border border-[var(--hairline)] py-2 pl-3 pr-3 text-subheading font-semibold text-maroon transition-colors duration-[var(--motion-fast)] hover:border-maroon hover:bg-[var(--tint-maroon)] sm:pr-4"
             >
               <CircleUserRound
@@ -286,8 +292,12 @@ export default function Navbar() {
                 className="h-5 w-5 shrink-0"
                 strokeWidth={1.75}
               />
-              <span className="hidden sm:inline">Sign in</span>
-              <span className="sr-only sm:hidden">Sign in</span>
+              <span className="hidden sm:inline">
+                {isAuthenticated ? "My portal" : "Sign in"}
+              </span>
+              <span className="sr-only sm:hidden">
+                {isAuthenticated ? "My portal" : "Sign in"}
+              </span>
             </Link>
 
             <button
