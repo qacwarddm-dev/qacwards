@@ -18,9 +18,18 @@ export type DocTab = { key: string; label: string; href: string };
  * changes with the selection. That is what the three frames show.
  *
  * Slots are fixed — the tabs do not re-flow when the selection moves.
+ *
+ * `PANEL_W` is a *design-space* unit now, not a rendered pixel width — the
+ * panel itself went from a fixed 1000px to `w-full max-w-[var(--content-max)]`
+ * (client request: don't strand it small on a wide monitor), so this strip
+ * has to track the same fluid width. The SVG keeps its `0 0 1000 50` viewBox
+ * and stretches via `preserveAspectRatio="none"`, and the tab `<Link>`s are
+ * positioned in percentages of `PANEL_W` instead of raw px, so both layers
+ * scale together without either one knowing the actual rendered width.
  */
 const STRIP_H = 50;
 const PANEL_W = 1000;
+const PCT = (n: number) => `${(n / PANEL_W) * 100}%`;
 
 /**
  * The strip always begins 117px into the panel; the selected tab is 9px wider
@@ -83,12 +92,14 @@ export default function DocTabs({
     .reverse();
 
   return (
-    <div className="relative h-[50px]" style={{ width: PANEL_W }}>
+    <div
+      className="relative h-[50px] w-full min-w-[1000px]"
+      style={{ maxWidth: "var(--content-max)" }}
+    >
       <svg
         viewBox={`0 0 ${PANEL_W} ${STRIP_H}`}
-        width={PANEL_W}
-        height={STRIP_H}
-        className="absolute inset-0"
+        preserveAspectRatio="none"
+        className="absolute inset-0 h-full w-full"
         aria-hidden
       >
         {behind.map(({ i }) => (
@@ -113,8 +124,8 @@ export default function DocTabs({
               isActive ? "text-maroon" : "text-white"
             }`}
             style={{
-              left: box[i].x + FLARE / 2,
-              width: box[i].w,
+              left: PCT(box[i].x + FLARE / 2),
+              width: PCT(box[i].w),
               zIndex: isActive ? 10 : 10 - i,
             }}
           >

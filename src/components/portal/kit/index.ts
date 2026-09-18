@@ -5,6 +5,7 @@
  */
 export { default as AccreditorPicker } from "./AccreditorPicker";
 export { default as Alert, type AlertTone } from "./Alert";
+export { default as AvatarStack, type AvatarPerson } from "./AvatarStack";
 export { default as BackLink } from "./BackLink";
 export { default as Badge } from "./Badge";
 export { default as Breadcrumb, type Crumb } from "./Breadcrumb";
@@ -64,7 +65,6 @@ export { default as SignatureBlock } from "./SignatureBlock";
 export { default as SignaturePad, type SignatureMode } from "./SignaturePad";
 export { default as Skeleton } from "./Skeleton";
 export { default as Spinner } from "./Spinner";
-export { default as SplitStat, type SplitStatHalf } from "./SplitStat";
 export { default as StarRating } from "./StarRating";
 export { default as StatCard, StatRow, type Stat } from "./StatCard";
 export { default as StatusBarChart, type StatusBar } from "./StatusBarChart";

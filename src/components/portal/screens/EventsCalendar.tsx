@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import type { DayMark } from "../kit";
 import { CalendarLegend, Card, MonthCalendar } from "../kit";
 import { fetchMonthEvents } from "@/lib/event-actions";
+import EventsTabs from "./EventsTabs";
 
 type PortalEvent = {
   id: string;
@@ -14,7 +15,10 @@ type PortalEvent = {
 };
 
 /**
- * `/portal/events` — assets/FIGMA/qac_personnel/04-Events.png.
+ * `/portal/events` — assets/new frames/EVENTS/Event Calendar.png (previously
+ * assets/FIGMA/qac_personnel/04-Events.png before the 2026-09 client
+ * revision added the Calendar/Event Schedule tab pair — `EventsTabs`, sibling
+ * `/portal/events/schedule`).
  *
  * B9/task 2 made this the fetching half: `initialMonth`/`initialEvents` come
  * from `getMonthEvents()` (`src/lib/events.ts`) for the month the page loads
@@ -60,12 +64,12 @@ export default function EventsCalendar({
 
   return (
     <div className="px-[var(--page-gutter)] pb-[45px] pt-[45px] lg:px-[57px]">
-      <Card className="flex flex-col gap-[32px] px-[20px] py-[32px] sm:px-[32px] lg:flex-row lg:pb-[52px] lg:pt-[52px]">
+      <h1 className="sr-only">Events — Calendar</h1>
+      <EventsTabs active="calendar" />
+
+      <Card className="mt-[-1px] flex flex-col gap-[32px] px-[20px] py-[32px] sm:px-[32px] lg:flex-row lg:justify-center lg:pb-[52px] lg:pt-[52px]">
         <div className="shrink-0 lg:w-[175px]">
-          <h1 className="text-heading font-semibold leading-none text-black">Events</h1>
-          <div className="mt-[16px] lg:mt-[56px]">
-            <CalendarLegend />
-          </div>
+          <CalendarLegend />
         </div>
 
         <MonthCalendar

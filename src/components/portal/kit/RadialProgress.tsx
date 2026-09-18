@@ -1,12 +1,19 @@
 import StatusPill from "./StatusPill";
-import type { StatusKey } from "./status";
+import { STATUS, type StatusKey, type StatusTone } from "./status";
 
 /**
- * Ring gauge for the Extension Monitoring phase cards — four of these sit
- * side by side, each showing a phase's document-approval percentage.
- * Plain SVG stroke-dasharray, same "no chart dependency" convention as
- * `CopcChart`.
+ * Ring gauge for the Extension Monitoring phase cards and the Submission
+ * Readiness Scores — several of these sit side by side, each showing a
+ * percentage. Plain SVG stroke-dasharray, same "no chart dependency"
+ * convention as `CopcChart`.
  */
+const RING_STROKE: Record<StatusTone, string> = {
+  success: "var(--color-approved)",
+  warning: "var(--color-yellow)",
+  danger: "var(--color-maroon)",
+  info: "var(--color-holiday)",
+  neutral: "var(--color-gray)",
+};
 export default function RadialProgress({
   label,
   percent,
@@ -45,7 +52,7 @@ export default function RadialProgress({
             cy={size / 2}
             r={r}
             fill="none"
-            stroke="var(--color-yellow)"
+            stroke={RING_STROKE[STATUS[status].tone]}
             strokeWidth={stroke}
             strokeLinecap="round"
             strokeDasharray={c}

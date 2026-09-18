@@ -42,8 +42,10 @@ const GRID = "grid grid-cols-[repeat(4,194px)] justify-center gap-x-[27px] gap-y
  * | 05-AccreditationFiles           | AACCUP & COPC Reports, folder list |
  * | 06-AccreditationFiles&Folders   | AACCUP & COPC Reports, inside a folder |
  *
- * The panel is 1000x659 at y=130; the tab strip sits directly above it and is
- * drawn by `DocTabs`.
+ * The panel was a fixed 1000x659; it's now `w-full max-w-[var(--content-max)]`
+ * (client request: don't strand it small on a wide monitor) with a 659px
+ * `min-h`. The tab strip sits directly above it and is drawn by `DocTabs`,
+ * which tracks the same fluid width — see that component's own note.
  */
 export default function ProgramRepDocuments({
   tab = "templates",
@@ -69,13 +71,20 @@ export default function ProgramRepDocuments({
   repositoryFiles?: RepositoryFile[];
 }) {
   return (
-    <div className="pl-[95px] pr-[96px] pt-[20px] pb-[22px]">
+    <div className="flex flex-col items-center pt-[20px] pb-[22px]">
       <DocTabs tabs={TABS} active={tab} />
 
       {/* `min-h`, not a fixed `h` — a tall level grid (Level III's 7 cards
           across two sections) needs to grow the panel rather than spill its
-          last row past the rounded corners. */}
-      <div className="min-h-[659px] w-[1000px] rounded-[20px] bg-white shadow-card">
+          last row past the rounded corners. `flex flex-col` gives the
+          `h-full`/`flex-1` centering used by the empty NDA/common-docs states
+          something to resolve against — a `min-h`-only block parent has no
+          definite height, so a percentage-height child collapses to its
+          content size and sits pinned at the top instead of centering. */}
+      <div
+        className="flex w-full min-h-[659px] min-w-[1000px] flex-col rounded-[20px] bg-white shadow-card"
+        style={{ maxWidth: "var(--content-max)" }}
+      >
         {tab === "templates" && <TemplatesTab level={level} />}
         {tab === "common" &&
           (ndaSigned ? <CommonFilesTab documents={commonDocuments} /> : <NdaGate />)}
@@ -153,7 +162,7 @@ function TemplatesTab({ level }: { level?: string }) {
 function CommonFilesTab({ documents }: { documents: CommonDocument[] }) {
   if (documents.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex flex-1 items-center justify-center">
         <p className="text-subheading text-gray">
           No common documents have been published yet.
         </p>
@@ -177,7 +186,7 @@ function CommonFilesTab({ documents }: { documents: CommonDocument[] }) {
 /** Frame 03 — the tab is locked until the signed NDA is uploaded. */
 function NdaGate() {
   return (
-    <div className="flex h-full flex-col items-center justify-center">
+    <div className="flex flex-1 flex-col items-center justify-center">
       <p className="text-center text-subheading leading-[24px] text-gray">
         Please upload the signed Non-Disclosure Agreement Form
         <br />
@@ -244,7 +253,7 @@ function ReportsTab({
           <DocFileGrid files={files} />
         </>
       ) : (
-        <div className="mt-[78px] flex gap-[36px]">
+        <div className="mt-[78px] flex justify-center gap-[36px]">
           {PR_ACCREDITATION_FOLDERS.map((f) => (
             <Link
               key={f.label}

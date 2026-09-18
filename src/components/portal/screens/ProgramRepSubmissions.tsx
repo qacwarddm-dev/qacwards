@@ -1,5 +1,15 @@
 import { PR_PHASE_STEPS } from "../data";
-import { Alert, Breadcrumb, Button, Panel, ProgressRow, RowList, SplitStat, Stepper } from "../kit";
+import {
+  Alert,
+  Breadcrumb,
+  Button,
+  Panel,
+  ProgressRow,
+  RadialProgress,
+  RowList,
+  Stepper,
+  type StatusKey,
+} from "../kit";
 import SubmissionUploadModal, { type UploadSlot } from "./SubmissionUploadModal";
 
 /**
@@ -106,44 +116,35 @@ function ProgramsPanel({ programs }: { programs: SubmissionProgram[] }) {
   );
 }
 
-/**
- * OtherContext.txt gives 0 / 1-25 / 51-75 / 76-99 / 100 and skips 26-50 outright.
- * Open item O-2 assumes 1-50 is "Partially Ready" until corrected — the same
- * split `readiness_band()` uses in SQL, so the tile and any query agree.
- */
-function readinessBand(percent: number): string {
-  if (percent === 0) return "Not Started";
-  if (percent <= 50) return "Partially\nReady";
-  if (percent <= 75) return "Moderately\nReady";
-  if (percent <= 99) return "Nearly\nReady";
-  return "Ready for\nEvaluation";
+/** Mirrors Extension Monitoring's own three-state ring (not_started / phase_in_progress
+ *  / a "done" success state) rather than OtherContext.txt's five-band split — the
+ *  refreshed frame only ever draws Not Started, In Progress, or Ready for Evaluation. */
+function readinessStatus(percent: number): StatusKey {
+  if (percent === 0) return "not_started";
+  if (percent === 100) return "ready_for_evaluation";
+  return "phase_in_progress";
 }
 
 function ReadinessPanel({ levels }: { levels: SubmissionLevel[] }) {
   return (
     <Panel title="Readiness Scores">
-      <div className="flex gap-[25px]">
-        {levels.map((r) => (
-          <div key={r.levelId} className="flex flex-1 flex-col">
-            <span className="text-center text-regular font-semibold leading-none text-gray">
-              {r.code === "PSV" ? "PSV" : `LEVEL ${r.code}`}
-            </span>
-            <div className="mt-[14px] flex">
-              <SplitStat
-                left={{
-                  value: `${r.percent}%`,
-                  caption: readinessBand(r.percent),
-                  tone: "maroon",
-                }}
-                right={{
-                  value: `${Math.max(0, r.requiredCount - r.uploadedCount)}`,
-                  caption: "Missing\nDocuments",
-                  tone: "yellow",
-                }}
-              />
-            </div>
-          </div>
-        ))}
+      <div className="flex flex-wrap gap-[16px] sm:flex-nowrap">
+        {levels.map((r) => {
+          const missing = Math.max(0, r.requiredCount - r.uploadedCount);
+          return (
+            <RadialProgress
+              key={r.levelId}
+              label={r.code === "PSV" ? "PSV" : `LEVEL ${r.code}`}
+              percent={r.percent}
+              status={readinessStatus(r.percent)}
+              caption={
+                missing === 0
+                  ? "0 missing documents"
+                  : `${missing} missing document${missing === 1 ? "" : "s"}`
+              }
+            />
+          );
+        })}
       </div>
     </Panel>
   );

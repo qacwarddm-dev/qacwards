@@ -20,17 +20,44 @@ import {
  * `title` tooltip (no separate Tooltip primitive needed for one word), and a
  * `< md` off-canvas `Drawer` triggered from the top bar's hamburger.
  *
- * The active row's clip-path notch is gone (09-ui-refactor §5.2): a Figma
- * artifact that cost a `drop-shadow` filter per row and read as a rendering
- * glitch at non-integer zoom. The 2px maroon bar carries the active mark alone
- * now. Log Out moved to the top bar's identity menu; the rail foot is empty
- * (a collapse toggle is a `xl+`-only nicety, not built this phase).
+ * The active row's clip-path notch was dropped once (09-ui-refactor §5.2) — a
+ * Figma artifact that cost a `drop-shadow` filter per row and read as a
+ * rendering glitch at non-integer zoom, since `clip-path` on the row itself
+ * has to line up exactly with the page's own background at every zoom level.
+ * Back now as `NotchFlag`, a small filled SVG triangle painted *over* the
+ * white rail in `--color-surface` (the page's own grey) instead of clipping
+ * the row — same "draw the shape, don't clip the box" convention `DocTabs`/
+ * `EventsTabs` already use for their curves, and it sidesteps the seam
+ * entirely since nothing is being clipped against anything. Full rail only
+ * (`lg+`); the `md` icon rail is too narrow to spare the width for it.
  */
 const ROW = "relative flex h-[60px] items-center pl-[87px] text-maroon";
 const ROW_ICON_ONLY = "relative flex h-[60px] w-full items-center justify-center text-maroon";
 const ICON = "absolute left-[57.5px] -translate-x-1/2";
 const ICON_SIZE = 29;
 const ICON_STROKE = 1.25;
+const NOTCH_W = 24;
+const NOTCH_H = 32;
+
+/** A triangular bite out of the rail's own right edge, tip pointing inward —
+ *  measured off the client's reference shot at roughly 24px deep by 32px
+ *  tall. Filled with the page background, not clipped out of the row. */
+function NotchFlag() {
+  return (
+    <svg
+      width={NOTCH_W}
+      height={NOTCH_H}
+      viewBox={`0 0 ${NOTCH_W} ${NOTCH_H}`}
+      className="absolute right-0 top-1/2 -translate-y-1/2"
+      aria-hidden
+    >
+      <path
+        d={`M ${NOTCH_W} 0 L 0 ${NOTCH_H / 2} L ${NOTCH_W} ${NOTCH_H} Z`}
+        fill="var(--color-surface)"
+      />
+    </svg>
+  );
+}
 
 function NavRow({
   item,
@@ -59,6 +86,7 @@ function NavRow({
           className={`absolute top-1/2 h-[42px] w-[2px] -translate-y-1/2 bg-maroon ${iconOnly ? "left-[6px]" : "left-[28px]"}`}
         />
       )}
+      {active && !iconOnly && <NotchFlag />}
 
       <Icon
         className={iconOnly ? undefined : ICON}
@@ -165,7 +193,7 @@ export default function PortalSidebar({ user }: { user: PortalUser }) {
   return (
     <nav
       aria-label="Portal"
-      className="hidden w-[72px] shrink-0 flex-col bg-white pt-[16px] pb-[35px] shadow-sidebar md:flex lg:w-[250px]"
+      className="hidden w-[72px] shrink-0 flex-col overflow-y-auto bg-white pt-[16px] pb-[35px] shadow-sidebar md:flex lg:w-[250px]"
     >
       <div className="md:hidden lg:contents">
         <NavList items={items} pathname={pathname} />

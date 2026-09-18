@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { BUCKETS, signedUrl } from "@/lib/storage";
+import type { StatusKey } from "@/components/portal/kit";
 
 /**
  * Reads behind `/portal/events`, `MonthCalendar` and the dashboard `MiniCalendar`s.
@@ -150,4 +152,139 @@ export async function getUpcomingEvents(limit = 5): Promise<PortalEvent[]> {
   return [...rows, ...deadlines]
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, limit);
+}
+
+const AVATAR_FALLBACK = "/assets/portal/avatar-placeholder.png";
+
+export type ScheduleParticipant = { id: string; name: string; avatar: string };
+
+export type ScheduleEvent = {
+  id: string;
+  /** ISO instant — the table formats and sorts off this, never a pre-formatted string. */
+  sortKey: string;
+  date: string;
+  title: string;
+  program: string;
+  /** "COLLEGE - Campus, City", or "—" for a university-wide event with no
+   *  linked programme (§ getUpcomingSchedule's format, reused so the same
+   *  event reads identically on the dashboard and here). */
+  collegeCampus: string;
+  /** Plain campus name for the Campus filter — `collegeCampus`'s compound
+   *  string would make for a useless dropdown. */
+  campus: string;
+  status: StatusKey;
+  participants: ScheduleParticipant[];
+};
+
+/** Time-derived, not a workflow state — a `meeting`/`survey_visit` compares
+ *  `now` against its start/end window; a deadline (no window, just a date)
+ *  is only ever upcoming or completed, never "ongoing". */
+function computeScheduleStatus(start: string, end: string | null, now: Date): StatusKey {
+  const startsAt = new Date(start);
+  const endsAt = end ? new Date(end) : startsAt;
+  if (now < startsAt) return "upcoming";
+  if (now > endsAt) return "completed";
+  return "ongoing";
+}
+
+function manilaLongDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", {
+    timeZone: MANILA,
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+async function resolveAvatar(supabase: Awaited<ReturnType<typeof createClient>>, path: string | null) {
+  if (!path) return AVATAR_FALLBACK;
+  const signed = await signedUrl(supabase, BUCKETS.avatars, path);
+  return signed.data ?? AVATAR_FALLBACK;
+}
+
+/**
+ * The merged Calendar/Event Schedule list — same two sources `getEvents` reads
+ * (`events`, plus per-assignment `due_date`s), enriched with what the Event
+ * Schedule table shows that the calendar day-grid doesn't need: a status
+ * derived from time rather than stored, a programme, and — for a deadline
+ * row only, since that's the one case with a real assigned team — the
+ * accreditors on that assignment as participant avatars. A plain `events` row
+ * has no participant concept in the schema (no attendee list anywhere), so it
+ * renders with none rather than inventing one — same call Reports made for
+ * its empty report list (Decision 18, O-7).
+ */
+export async function getEventSchedule(): Promise<ScheduleEvent[]> {
+  const supabase = await createClient();
+  const now = new Date();
+
+  const { data: events } = await supabase
+    .from("events")
+    .select(
+      "id, title, start_time, end_time, event_programs(programs(name, campuses(name), colleges(code)))",
+    )
+    .is("cancelled_at", null)
+    .order("start_time");
+
+  const eventRows: ScheduleEvent[] = (events ?? []).map((e) => {
+    const first = e.event_programs?.[0]?.programs ?? null;
+    return {
+      id: e.id,
+      sortKey: e.start_time,
+      date: manilaLongDate(e.start_time),
+      title: e.title,
+      program: first?.name ?? "University-wide",
+      collegeCampus: first ? `${first.colleges?.code ?? "—"} - ${first.campuses?.name ?? "—"}` : "—",
+      campus: first?.campuses?.name ?? "—",
+      status: computeScheduleStatus(e.start_time, e.end_time, now),
+      participants: [],
+    };
+  });
+
+  const { data: assignments } = await supabase
+    .from("assignments")
+    .select(
+      `id, due_date,
+       submissions(is_revalidation, programs(name, campuses(name), colleges(code)), accreditation_levels(name)),
+       assignment_accreditors(profile_id, profiles(surname, given_name, avatar_path))`,
+    )
+    .not("due_date", "is", null)
+    .order("due_date");
+
+  const deadlineRows: ScheduleEvent[] = await Promise.all(
+    (assignments ?? []).map(async (a) => {
+      // `assignment_id` -> `submission_id` is unique (round 2 §2: "Reassign
+      // REPLACES team on same assignment"), so this join is 1:1 — a plain
+      // object, same as `getAssignments()` (assignments.ts) reads it.
+      const submission = a.submissions;
+      const program = submission?.programs;
+      const level = submission?.accreditation_levels;
+      const kind = submission?.is_revalidation ? "Re-Accreditation" : "Initial Accreditation";
+
+      const participants = await Promise.all(
+        (a.assignment_accreditors ?? []).map(async (m) => ({
+          id: m.profile_id,
+          name: m.profiles ? `${m.profiles.surname}, ${m.profiles.given_name}` : "—",
+          avatar: await resolveAvatar(supabase, m.profiles?.avatar_path ?? null),
+        })),
+      );
+
+      const dueDate = a.due_date as string;
+      return {
+        id: `assignment-deadline:${a.id}`,
+        sortKey: dueDate,
+        // `due_date` is a plain DATE, not timestamptz — parsed as UTC
+        // midnight, +8h to Manila never rolls it back a day, so no zone
+        // conversion is needed the way a real instant would require.
+        date: manilaLongDate(dueDate),
+        title: `${kind} for ${level?.name ?? "Accreditation"}`,
+        program: program?.name ?? "Assignment",
+        collegeCampus: program ? `${program.colleges?.code ?? "—"} - ${program.campuses?.name ?? "—"}` : "—",
+        campus: program?.campuses?.name ?? "—",
+        status: manilaDate(new Date().toISOString()) > dueDate ? "completed" : "upcoming",
+        participants,
+      };
+    }),
+  );
+
+  return [...eventRows, ...deadlineRows].sort((a, b) => a.sortKey.localeCompare(b.sortKey));
 }

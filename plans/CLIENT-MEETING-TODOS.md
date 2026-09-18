@@ -11,37 +11,65 @@ Go through one at a time.
 
 ## Build backlog — scope locked, not implemented yet
 
-Everything below is decided; none of it is coded. Not started in this session per the user's
-call (2026-09-13) — implement in a separate task.
+Everything below was decided 2026-09-13. Status as of 2026-09-18:
 
-- Survey Instrument (new feature, whole section)
-- Program Rep Documents tab: center + shrink level labels (PSV-Lvl2/Lvl3/Lvl4), smaller active
-  tab font
-- Program Rep Calendar UI (once client sends frames)
-- 2-accreditor / PSV-100%-before-Level-1 gate (new rule in `assignment-transitions.ts`)
-- Internal Accreditor: e-sign upload (3rd method), Discipline Expertise → real dropdown
-- Internal Accreditor Assignment/Evaluation/Events UI (once client sends frames)
-- QAC Admin/Personnel UI update (once client sends frames) + new admin editor for
-  Fullname/Campus/Position
-- QAC per-assignment deadline field, surfaced on the calendar
-- Session Token logout bug — investigate Supabase Auth session/refresh handling
-- About page: SANJAY P. CLAUDIO text/photo container sizing
-- Navbar border/edge alignment: match public (white) navbar to the portal (maroon) one
-- O-10: remove demotion-on-failed-revalidation logic (`apply_award_on_release`)
-- O-18b: move "Master of Arts in Physical Education and Sports" from COED to CHK
-- O-20: hard-pin Asia/Manila across event datetime handling
+- [x] Program Rep Documents tab: center + shrink level labels, smaller active tab font
+- [x] 2-accreditor / PSV-100%-before-Level-1 gate (`assignment-transitions.ts`)
+- [x] Internal Accreditor: e-sign upload (3rd method), Discipline Expertise → real dropdown
+- [x] QAC per-assignment deadline field, surfaced on the calendar
+- [x] About page: SANJAY P. CLAUDIO text/photo container sizing
+- [x] Navbar border/edge alignment: public (white) navbar now matches the portal (maroon) one
+- [x] O-10: demotion-on-failed-revalidation logic removed (`apply_award_on_release`), migration run
+- [x] O-18b: "Master of Arts in Physical Education and Sports" moved from COED to CHK
+- [x] O-20: Asia/Manila hard-pinned across event datetime handling
+- [ ] Survey Instrument (new feature, whole section) — still not started. **Distinct from** the QAC
+      Service Evaluation shipped 2026-09-18 below: this one is filled by the accreditor on-site,
+      not by the program rep rating QAC. No frames for it yet either.
+- [x] QAC Events UI (Calendar + Event Schedule tabs) — shipped 2026-09-18 (later), see the section
+      below. **Program Rep and Internal Accreditor still each need their own Events/Calendar
+      frame** — this only covers the QAC-role screen the EVENTS folder's sidebar showed.
+- [ ] Internal Accreditor Assignment/Evaluation/Events UI — still waiting on frames
+      (`assets/new frames/Internal Accreditor/` arrived empty on 2026-09-18).
+- [ ] QAC Admin/Personnel UI update — still waiting on frames (none arrived 2026-09-18 either).
+- [ ] QAC Admin editor for Fullname/Campus/Position — net-new, backend already allows it
+      (`guard_profile_privileged_columns`); no frame needed, just not built yet. Next candidate
+      that doesn't require waiting on the client.
+- [ ] Session Token logout bug — investigated 2026-09-13, no code gap found in `src/proxy.ts`.
+      Needs **the user's own check** of the remote Supabase project's Auth session-timeout
+      settings — not something further code investigation can resolve.
 
-Already done in this session: campus stat-band color (no-op, already correct), statute bold
-normalization (MULANAY + STO. TOMAS).
+## 2026-09-18 — `assets/new frames/` delivered and implemented
+
+Shipped: QAC nav widened (AACCUP & COPC / Accreditation renamed, Extension Monitoring + Feedback
+added), QAC Dashboard revamp (On-Going Accreditation + Evaluation Progress tables, schedule +
+calendar), Reports filter row, net-new Extension Monitoring workflow (phases, doc
+approve/reject/return), net-new Feedback screen, and the net-new "QAC Service Evaluation" form
+(program rep rates QAC's service, reached from the Levels list once a level hits 100%). Details
+and file pointers in `.claude/session-state.md`. All presentational/fixture-backed where no table
+exists yet (Extension Monitoring, Feedback) — flagged in code, not silently faked.
+
+**Folder-naming trap found (2026-09-18), resolved same day:** the first drop of
+`assets/new frames/EVENTS/` had `Event Calendar.png` and `Event Schedule.png` byte-identical to
+`Feedbacks.png` (client naming slip, three copies of the Feedback export). Flagged to the client;
+they re-exported the correct pair same day. Implemented: `/portal/events` (Calendar, existing
+`MonthCalendar`) and new `/portal/events/schedule` (stat tiles + filter + table), switched by a new
+`EventsTabs` component. Real data throughout — `getEventSchedule()` (`src/lib/events.ts`) merges
+`events` and per-assignment due dates same as the calendar already did, adds a time-derived
+Upcoming/Ongoing/Completed status, and pulls real participant avatars for deadline rows via
+`assignment_accreditors`. This is the **QAC-role** Events screen only — Program Rep and Internal
+Accreditor still need their own frame (unchanged, see below).
 
 ## Pending assets from client — track these, don't lose them
 
-- [ ] **Events UI** — new screen design screenshot. Drop in `design/client-screenshots/events/`
-      when it arrives.
-- [ ] **Internal Accreditor — Assignment/Evaluation/Events** — updated frames for these 3 screens.
-      Drop in `design/client-screenshots/internal-accreditor/`.
-- [ ] **QAC Admin/Personnel** — frames showing the intended "Update UI" + how Personnel should be
-      standardized to match Admin. Drop in `design/client-screenshots/qac-admin-personnel/`.
+- [x] **QAC Events UI** — delivered 2026-09-18 (re-export, see the section above) and implemented
+      same day.
+- [ ] **Program Rep Calendar UI** — still not delivered, its own frame (not covered by the QAC
+      EVENTS re-export above). Drop in `design/client-screenshots/events/` when it arrives.
+- [ ] **Internal Accreditor — Assignment/Evaluation/Events** — still not delivered
+      (`assets/new frames/Internal Accreditor/` was empty 2026-09-18). Drop in
+      `design/client-screenshots/internal-accreditor/`.
+- [ ] **QAC Admin/Personnel** — still not delivered. Drop in
+      `design/client-screenshots/qac-admin-personnel/`.
 
 ## 2026-09-06 meeting notes (decoded)
 
@@ -58,10 +86,13 @@ normalization (MULANAY + STO. TOMAS).
       existing signed PDF output at `src/lib/evaluation-form.ts` / `/api/evaluations/[id]/form`)
       or something about that existing output. **Raise directly with the client**, don't assume.
 
-### Events — CONFIRMED, waiting on asset
-- [ ] Client will send a **screenshot of the new Events UI** to work from. Drop it in
-      `design/client-screenshots/events/` when it arrives and reference it here before starting
-      implementation. Not a polish pass on the existing calendar — a new design.
+### Events — CONFIRMED, partly delivered
+- [x] QAC's Events UI arrived (`assets/new frames/EVENTS/`, re-exported 2026-09-18) and is
+      implemented — Calendar/Event Schedule tabs on `/portal/events`, see the 2026-09-18 section
+      above.
+- [ ] Program Rep and Internal Accreditor still need their own Events frame — not a polish pass on
+      the existing calendar, a new design, per the original note. Drop in
+      `design/client-screenshots/events/` when it arrives.
 
 ### Document counts per level — CONFIRMED, O-17 CLOSED
 - [x] Client confirmed: **PSV = 28 docs, Level 2 = 28 docs (each separately, not combined),
