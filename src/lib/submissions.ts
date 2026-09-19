@@ -62,7 +62,7 @@ export async function getLevelReadiness(
 ): Promise<LevelReadiness[]> {
   const supabase = await createClient();
 
-  const [{ data: levels }, { data: submissions }, { data: readiness }] =
+  const [{ data: levels }, { data: submissions }, { data: readiness }, { data: psvAward }] =
     await Promise.all([
       supabase
         .from("accreditation_levels")
@@ -77,6 +77,13 @@ export async function getLevelReadiness(
         .from("submission_readiness")
         .select("submission_id, level_id, required_count, uploaded_count, readiness_percent")
         .eq("program_id", programId),
+      supabase
+        .from("program_accreditations")
+        .select("id, accreditation_levels!inner(code)")
+        .eq("program_id", programId)
+        .eq("status", "active")
+        .eq("accreditation_levels.code", "PSV")
+        .maybeSingle(),
     ]);
 
   void cycleId; // cycles scope submissions; the picker lands in a later pass
@@ -91,9 +98,17 @@ export async function getLevelReadiness(
     (readiness ?? []).map((r) => [r.submission_id, r]),
   );
 
+  // Client's call 2026-09-19: PSV must be fully passed (same "active award"
+  // check ensureSubmission gates Level I's creation on) before ANY level
+  // above it shows progress — a level someone got docs into ahead of PSV
+  // clearing still reads as untouched until PSV does.
+  const psvOrdinal = (levels ?? []).find((l) => l.code === "PSV")?.ordinal ?? 0;
+  const psvCleared = Boolean(psvAward);
+
   return (levels ?? []).map((level) => {
     const submission = byLevel.get(level.id) ?? null;
     const stats = submission ? readinessBySubmission.get(submission.id) : undefined;
+    const gated = level.ordinal > psvOrdinal && !psvCleared;
 
     return {
       levelId: level.id,
@@ -101,10 +116,10 @@ export async function getLevelReadiness(
       label: level.name,
       ordinal: level.ordinal,
       submissionId: submission?.id ?? null,
-      percent: stats?.readiness_percent ?? 0,
+      percent: gated ? 0 : (stats?.readiness_percent ?? 0),
       requiredCount: stats?.required_count ?? 0,
       uploadedCount: stats?.uploaded_count ?? 0,
-      status: submission?.status ?? "not_started",
+      status: gated ? "not_started" : (submission?.status ?? "not_started"),
     };
   });
 }

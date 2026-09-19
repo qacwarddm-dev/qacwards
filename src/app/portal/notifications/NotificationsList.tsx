@@ -1,9 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { EmptyState } from "@/components/portal/kit";
+import { EmptyState, NotificationRow } from "@/components/portal/kit";
 import type { PortalNotification } from "@/components/portal/data";
 import {
   markAllNotificationsRead,
@@ -60,34 +59,9 @@ export default function NotificationsList({
         return (
           <div key={section} className="mt-[var(--space-5)]" role="log" aria-label={section}>
             <h2 className="t-h3 text-black">{section === "new" ? "New" : "Earlier"}</h2>
-            <div className="mt-[var(--space-2)] flex flex-col">
+            <div className="mt-[var(--space-2)] flex flex-col gap-[8px]">
               {rows.map((n) => (
-                <button
-                  key={n.id}
-                  type="button"
-                  onClick={() => openRow(n)}
-                  className={`flex items-start gap-[16px] rounded-[16px] px-[20px] py-[14px] text-left transition-opacity hover:opacity-85 ${
-                    n.unread ? "bg-highlight" : ""
-                  }`}
-                >
-                  <Image
-                    src={n.avatar}
-                    alt=""
-                    width={94}
-                    height={94}
-                    className="h-[47px] w-[47px] shrink-0 rounded-full object-cover"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-subheading leading-[20px] text-black">
-                      {n.name && <span className="font-bold">{n.name} </span>}
-                      {n.body}
-                    </p>
-                    <p className="mt-[6px] text-regular leading-none text-link">{n.time}</p>
-                  </div>
-                  {n.unread && (
-                    <span className="mt-[3px] h-[10px] w-[10px] shrink-0 self-center rounded-full bg-link" />
-                  )}
-                </button>
+                <NotificationRow key={n.id} notification={n} onOpen={openRow} />
               ))}
             </div>
           </div>

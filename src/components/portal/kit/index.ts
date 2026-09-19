@@ -51,6 +51,7 @@ export {
   default as MonthCalendar,
   type DayMark,
 } from "./MonthCalendar";
+export { default as NotificationRow } from "./NotificationRow";
 export { default as PageHeader } from "./PageHeader";
 export { default as Panel } from "./Panel";
 export { default as PanelHeader } from "./PanelHeader";

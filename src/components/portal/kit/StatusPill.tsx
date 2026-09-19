@@ -4,7 +4,7 @@ import { STATUS, TONE_FILL, TONE_TEXT, type StatusKey } from "./status";
 export type DocStatus = "pending" | "approved" | "disapproved";
 
 const SIZE = {
-  sm: "h-[16px] px-[6px] text-micro",
+  sm: "h-[18px] px-[8px] text-micro",
   md: "h-[20px] px-[7px] text-small",
 } as const;
 

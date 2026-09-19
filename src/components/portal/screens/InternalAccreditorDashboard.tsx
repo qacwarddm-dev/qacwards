@@ -44,7 +44,12 @@ export default function InternalAccreditorDashboard({
 }: {
   data: IaDashboard;
   schedule: { id: string; date: string; title: string; program: string; collegeCampus: string }[];
-  calendar: { month: Date; today: number; marks: Record<number, MeetingKind> };
+  calendar: {
+    month: Date;
+    today: number;
+    marks: Record<number, MeetingKind>;
+    hrefs: Record<number, string>;
+  };
 }) {
   const evaluationRows = data.assignedEvaluations.map((a) => ({
     id: a.id,
@@ -147,7 +152,12 @@ export default function InternalAccreditorDashboard({
           </div>
         </Card>
 
-        <MiniCalendar month={calendar.month} today={calendar.today} marks={calendar.marks} />
+        <MiniCalendar
+          month={calendar.month}
+          today={calendar.today}
+          marks={calendar.marks}
+          hrefs={calendar.hrefs}
+        />
       </div>
     </div>
   );

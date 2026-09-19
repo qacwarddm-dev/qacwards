@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export type MeetingKind = "psv" | "copc";
 
 const DOT: Record<MeetingKind, string> = {
@@ -20,6 +22,9 @@ export type MiniCalendarProps = {
   today?: number;
   /** Meeting marks keyed by day-of-month; drawn as a filled circle. */
   marks?: Record<number, MeetingKind>;
+  /** Where clicking a marked day navigates — a day with no entry here (or no
+   *  mark at all) renders as plain, unclickable text. */
+  hrefs?: Record<number, string>;
 };
 
 /**
@@ -32,7 +37,7 @@ export type MiniCalendarProps = {
  * Days before `today` render dimmed. That is the rule the frame implies — it
  * draws "1" grey while 2..7 are black, with 2 circled as today.
  */
-export default function MiniCalendar({ month, today, marks = {} }: MiniCalendarProps) {
+export default function MiniCalendar({ month, today, marks = {}, hrefs = {} }: MiniCalendarProps) {
   const year = month.getFullYear();
   const m = month.getMonth();
   const daysInMonth = new Date(year, m + 1, 0).getDate();
@@ -62,20 +67,25 @@ export default function MiniCalendar({ month, today, marks = {} }: MiniCalendarP
         {cells.map((c, i) => {
           const isToday = c.inMonth && today !== undefined && c.day === today;
           const mark = c.inMonth ? marks[c.day] : undefined;
+          const href = c.inMonth ? hrefs[c.day] : undefined;
           const dim = !c.inMonth || (today !== undefined && c.day < today);
+
+          const dayClass = `flex h-[22px] w-[22px] items-center justify-center rounded-full text-subheading leading-none ${
+            isToday ? "bg-gray text-white" : mark ? `${DOT[mark]} text-black` : ""
+          } ${dim && !isToday ? "text-[color:var(--color-gray)]/50" : ""}`;
 
           return (
             <span
               key={`${c.day}-${i}`}
               className="flex h-[32px] items-center justify-center"
             >
-              <span
-                className={`flex h-[22px] w-[22px] items-center justify-center rounded-full text-subheading leading-none ${
-                  isToday ? "bg-gray text-white" : mark ? `${DOT[mark]} text-black` : ""
-                } ${dim && !isToday ? "text-[color:var(--color-gray)]/50" : ""}`}
-              >
-                {c.day}
-              </span>
+              {href ? (
+                <Link href={href} className={`${dayClass} transition-opacity hover:opacity-75`}>
+                  {c.day}
+                </Link>
+              ) : (
+                <span className={dayClass}>{c.day}</span>
+              )}
             </span>
           );
         })}

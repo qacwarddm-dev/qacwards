@@ -1,10 +1,10 @@
 "use client";
 
 import { Bell } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import { NotificationRow } from "./kit";
 import type { PortalNotification } from "./data";
 import {
   markAllNotificationsRead,
@@ -133,36 +133,9 @@ export default function NotificationBell({
                   <h3 className="text-regular font-bold leading-none text-black">
                     {section === "new" ? "New" : "Earlier"}
                   </h3>
-                  <div className="mt-[8px] flex flex-col">
+                  <div className="mt-[8px] flex flex-col gap-[8px]">
                     {rows.map((n) => (
-                      <button
-                        key={n.id}
-                        type="button"
-                        onClick={() => openRow(n)}
-                        className={`flex items-start gap-[16px] rounded-[16px] px-[20px] py-[14px] text-left transition-opacity hover:opacity-85 ${
-                          n.unread ? "bg-highlight" : ""
-                        }`}
-                      >
-                        <Image
-                          src={n.avatar}
-                          alt=""
-                          width={94}
-                          height={94}
-                          className="h-[47px] w-[47px] shrink-0 rounded-full object-cover"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-subheading leading-[20px] text-black">
-                            {n.name && <span className="font-bold">{n.name} </span>}
-                            {n.body}
-                          </p>
-                          <p className="mt-[6px] text-regular leading-none text-link">
-                            {n.time}
-                          </p>
-                        </div>
-                        {n.unread && (
-                          <span className="mt-[3px] h-[10px] w-[10px] shrink-0 self-center rounded-full bg-link" />
-                        )}
-                      </button>
+                      <NotificationRow key={n.id} notification={n} onOpen={openRow} />
                     ))}
                   </div>
                 </div>

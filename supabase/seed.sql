@@ -1045,6 +1045,9 @@ insert into public.phase_documents (phase_id, ordinal, name, is_optional) values
   (select id from public.phases where ordinal = 2), 5, 'Narrative Report', false)
   on conflict (phase_id, ordinal) do update set name = excluded.name, is_optional = excluded.is_optional;
 insert into public.phase_documents (phase_id, ordinal, name, is_optional) values (
+  (select id from public.phases where ordinal = 2), 6, 'Memorandum of Agreement (MOA)', false)
+  on conflict (phase_id, ordinal) do update set name = excluded.name, is_optional = excluded.is_optional;
+insert into public.phase_documents (phase_id, ordinal, name, is_optional) values (
   (select id from public.phases where ordinal = 3), 1, 'Monitoring Report', false)
   on conflict (phase_id, ordinal) do update set name = excluded.name, is_optional = excluded.is_optional;
 insert into public.phase_documents (phase_id, ordinal, name, is_optional) values (

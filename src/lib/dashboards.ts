@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { getMyPrograms } from "@/lib/submissions";
+import { getMyPrograms, programSlug } from "@/lib/submissions";
 import { getMonthEvents } from "@/lib/events";
 import type { DocStatus, MeetingKind, Stat, StatusBar, Upload } from "@/components/portal/kit";
 
@@ -237,6 +237,29 @@ const EMPTY_REP_DASHBOARD: RepDashboard = {
  * to each represented programme's college — or campus, for satellite
  * programmes without a college (O-1).
  */
+/** Where clicking a "Recent Uploads" row goes — the phase or requirement-area
+ *  slot the document was uploaded against, same screen `SubmissionUploadModal`
+ *  opens it from (a doc is always one or the other, never both — B4's upload
+ *  route sets exactly one of `phase_document_id` / `requirement_area_id`). */
+function recentUploadHref(
+  doc: { submission_id: string; phase_document_id: string | null; requirement_area_id: string | null },
+  submissionLocation: Map<string, { programId: string; levelId: string }>,
+  slugByProgramId: Map<string, string>,
+): string | undefined {
+  const location = submissionLocation.get(doc.submission_id);
+  if (!location) return undefined;
+  const slug = slugByProgramId.get(location.programId);
+  if (!slug) return undefined;
+
+  if (doc.requirement_area_id) {
+    return `/portal/submission?program=${slug}&view=requirements&level=${location.levelId}&area=${doc.requirement_area_id}`;
+  }
+  if (doc.phase_document_id) {
+    return `/portal/submission?program=${slug}&view=phases&level=${location.levelId}`;
+  }
+  return `/portal/submission?program=${slug}`;
+}
+
 export async function getRepDashboard(): Promise<RepDashboard> {
   const supabase = await createClient();
   const note = asOfNow();
@@ -281,10 +304,14 @@ export async function getRepDashboard(): Promise<RepDashboard> {
 
   const [levelCounts, { data: submissions }] = await Promise.all([
     programLevelCounts(siblingIds),
-    supabase.from("submissions").select("id").in("program_id", programIds),
+    supabase.from("submissions").select("id, program_id, level_id").in("program_id", programIds),
   ]);
 
   const submissionIds = (submissions ?? []).map((s) => s.id);
+  const submissionLocation = new Map(
+    (submissions ?? []).map((s) => [s.id, { programId: s.program_id, levelId: s.level_id }]),
+  );
+  const slugByProgramId = new Map(programs.map((p) => [p.id, p.slug]));
 
   const { data: readinessRows } = submissionIds.length
     ? await supabase
@@ -301,7 +328,9 @@ export async function getRepDashboard(): Promise<RepDashboard> {
   const { data: docs } = submissionIds.length
     ? await supabase
         .from("submission_documents")
-        .select("id, title, uploaded_at, uploaded_by(surname, given_name)")
+        .select(
+          "id, title, uploaded_at, uploaded_by(surname, given_name), submission_id, phase_document_id, requirement_area_id",
+        )
         .in("submission_id", submissionIds)
         .eq("is_current", true)
         .order("uploaded_at", { ascending: false })
@@ -311,6 +340,9 @@ export async function getRepDashboard(): Promise<RepDashboard> {
           title: string;
           uploaded_at: string;
           uploaded_by: { surname: string; given_name: string } | null;
+          submission_id: string;
+          phase_document_id: string | null;
+          requirement_area_id: string | null;
         }[],
       };
 
@@ -342,6 +374,7 @@ export async function getRepDashboard(): Promise<RepDashboard> {
     title: d.title,
     uploadedBy: d.uploaded_by ? `${d.uploaded_by.given_name} ${d.uploaded_by.surname}` : "—",
     when: relativeTime(d.uploaded_at),
+    href: recentUploadHref(d, submissionLocation, slugByProgramId),
     status: (decisionById.get(d.id) ?? "pending") as DocStatus,
     kind: "file",
   }));
@@ -565,6 +598,9 @@ export async function getMiniCalendarData(): Promise<{
   month: Date;
   today: number;
   marks: Record<number, MeetingKind>;
+  /** Where clicking a marked day goes — the Event Schedule row for that day's
+   *  event, which is the only screen either kind has a real per-item view on. */
+  hrefs: Record<number, string>;
 }> {
   const nowManila = new Date(new Date().toLocaleString("en-US", { timeZone: MANILA }));
   const year = nowManila.getFullYear();
@@ -572,12 +608,15 @@ export async function getMiniCalendarData(): Promise<{
   const events = await getMonthEvents(year, month);
 
   const marks: Record<number, MeetingKind> = {};
+  const hrefs: Record<number, string> = {};
   for (const e of events) {
     if (e.cancelled) continue;
     const day = Number(e.date.slice(-2));
     if (e.kind === "survey_visit") marks[day] = "psv";
     else if (e.kind === "meeting") marks[day] = "copc";
+    else continue;
+    hrefs[day] = "/portal/events/schedule";
   }
 
-  return { month: new Date(year, month - 1, 1), today: nowManila.getDate(), marks };
+  return { month: new Date(year, month - 1, 1), today: nowManila.getDate(), marks, hrefs };
 }

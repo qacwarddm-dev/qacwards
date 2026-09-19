@@ -43,7 +43,12 @@ export default function ProgramRepDashboard({
   calendar,
 }: {
   data: RepDashboard;
-  calendar: { month: Date; today: number; marks: Record<number, MeetingKind> };
+  calendar: {
+    month: Date;
+    today: number;
+    marks: Record<number, MeetingKind>;
+    hrefs: Record<number, string>;
+  };
 }) {
   const rows = data.ongoing.map((a) => ({
     id: a.id,
@@ -111,7 +116,12 @@ export default function ProgramRepDashboard({
           </div>
         </Card>
 
-        <MiniCalendar month={calendar.month} today={calendar.today} marks={calendar.marks} />
+        <MiniCalendar
+          month={calendar.month}
+          today={calendar.today}
+          marks={calendar.marks}
+          hrefs={calendar.hrefs}
+        />
       </div>
     </div>
   );
