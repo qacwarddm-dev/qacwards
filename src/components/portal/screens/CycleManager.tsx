@@ -24,9 +24,9 @@ type Cycle = {
 
 const COLUMNS = [
   { key: "name", header: "Cycle", width: "flex-1" },
-  { key: "dates", header: "Window", width: "w-[220px]" },
-  { key: "status", header: "Status", width: "w-[110px]" },
-  { key: "actions", header: "", width: "w-[190px]", align: "center" as const },
+  { key: "dates", header: "Window", width: "w-[180px]" },
+  { key: "status", header: "Status", width: "w-[100px]" },
+  { key: "actions", header: "", width: "w-[130px]", align: "center" as const },
 ];
 
 /** Dates are stored as `date`, so they carry no zone and must not be run through

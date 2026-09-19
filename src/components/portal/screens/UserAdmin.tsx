@@ -44,10 +44,16 @@ const ROLES: UserRole[] = [
 
 const COLUMNS = [
   { key: "name", header: "Name", width: "flex-1" },
-  { key: "role", header: "Role", width: "w-[230px]" },
-  { key: "second", header: "Second role", width: "w-[120px]", align: "center" as const },
-  { key: "status", header: "Status", width: "w-[100px]" },
-  { key: "actions", header: "", width: "w-[220px]", align: "center" as const },
+  { key: "role", header: "Role", width: "w-[190px]" },
+  {
+    key: "second",
+    header: "Second role",
+    width: "w-[120px]",
+    align: "center" as const,
+    hideBelow: "lg" as const,
+  },
+  { key: "status", header: "Status", width: "w-[90px]" },
+  { key: "actions", header: "", width: "w-[200px]", align: "center" as const },
 ];
 
 export default function UserAdmin({
@@ -124,7 +130,7 @@ export default function UserAdmin({
             value={user.role}
             disabled={pending || isSelf}
             onChange={(e) => changeRole(user.id, e.target.value as UserRole)}
-            className="h-[32px] w-[210px] rounded-[10px] border border-[color:var(--color-gray)]/50 bg-white px-[10px] text-regular text-black disabled:opacity-50"
+            className="h-[32px] w-[180px] rounded-[10px] border border-[color:var(--color-gray)]/50 bg-white px-[10px] text-regular text-black disabled:opacity-50"
           >
             {ROLES.map((role) => (
               <option key={role} value={role}>

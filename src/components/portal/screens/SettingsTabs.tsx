@@ -28,14 +28,14 @@ export default function SettingsTabs() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex gap-[8px] rounded-full bg-white p-[6px] shadow-card">
+    <nav className="flex gap-[8px] overflow-x-auto rounded-full bg-white p-[6px] shadow-card [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {TABS.map((tab) => {
         const active = pathname.startsWith(tab.href);
         return (
           <Link
             key={tab.href}
             href={tab.href}
-            className={`flex h-[35px] items-center rounded-full px-[16px] text-subheading font-semibold leading-none transition-opacity hover:opacity-90 ${
+            className={`flex h-[35px] shrink-0 items-center whitespace-nowrap rounded-full px-[16px] text-subheading font-semibold leading-none transition-opacity hover:opacity-90 ${
               active ? "bg-maroon text-white" : "text-gray"
             }`}
           >

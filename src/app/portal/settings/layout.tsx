@@ -17,7 +17,7 @@ export default async function SettingsLayout({
   if (user.role !== "qac_admin") notFound();
 
   return (
-    <div className="px-[81px] pt-[19px] pb-[16px]">
+    <div className="px-[20px] pt-[19px] pb-[16px] md:px-[32px] lg:px-[81px]">
       <SettingsTabs />
       <div className="mt-[18px]">{children}</div>
     </div>
