@@ -209,6 +209,15 @@ function PhasesPanel({
   const allPhasesComplete = phases.length > 0 && phases.every((p) => p.percent === 100);
   const levelParam = levelId ? `&level=${levelId}` : "";
 
+  // Client's call 2026-09-19: phases go in order — a phase is reachable only
+  // once every phase before it reads 100%. Phase 1 is always reachable.
+  const unlockedOrdinals = new Set<number>();
+  let stillUnlocked = true;
+  for (const p of phases) {
+    if (stillUnlocked) unlockedOrdinals.add(p.ordinal);
+    if (p.percent !== 100) stillUnlocked = false;
+  }
+
   return (
     <Panel
       title="Pre-Accreditation Phases"
@@ -227,16 +236,17 @@ function PhasesPanel({
         {phases.map((p) => {
           const n = p.ordinal;
           const open = phase === n;
+          const unlocked = unlockedOrdinals.has(n);
           const base = `/portal/submission?program=${program}&view=phases${levelParam}`;
           return (
             <div key={p.label}>
               <ProgressRow
                 label={p.label}
                 percent={p.percent}
-                href={`${base}&phase=${n}&modal=add`}
-                markerHref={open ? base : `${base}&phase=${n}`}
+                href={unlocked ? `${base}&phase=${n}&modal=add` : undefined}
+                markerHref={unlocked ? (open ? base : `${base}&phase=${n}`) : undefined}
               />
-              {open && (
+              {open && unlocked && (
                 <div className="pl-[43px] pr-[58px]">
                   <Stepper steps={PR_PHASE_STEPS} variant="levels" />
                 </div>
@@ -383,7 +393,13 @@ export default function ProgramRepSubmissions({
         )}
       </div>
 
-      {modal === "add" && view === "phases" && programId && levelId && (
+      {modal === "add" &&
+        view === "phases" &&
+        programId &&
+        levelId &&
+        data.phases
+          .filter((p) => p.ordinal < (phase ?? 1))
+          .every((p) => p.percent === 100) && (
         <SubmissionUploadModal
           title="Add Document"
           scrollBox
