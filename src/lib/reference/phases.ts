@@ -1,13 +1,17 @@
 /**
- * The four pre-accreditation phases and their 18 documents, verbatim from
- * `docs/OtherContext.txt` "PRE-ACCREDITATION PHASES" (5 + 5 + 4 + 4 = 18).
+ * The four pre-accreditation phases and their documents, originally 18
+ * verbatim from `docs/OtherContext.txt` "PRE-ACCREDITATION PHASES"
+ * (5 + 5 + 4 + 4), plus MOA added to Phase 2 on 2026-09-19 (client meeting
+ * backlog) for 19.
  *
- * These 18 are the same for every level. They are the constant half of the
- * readiness denominator: 18 + the level's own areas, which is what makes the
- * level cards read 28 / 22 / 23 (BACKEND.md §2.1).
+ * These are the same for every level — the constant half of the readiness
+ * denominator: this count + the level's own areas (BACKEND.md §2.1). Adding
+ * MOA moved every level's total up by one from the O-17-confirmed 28/28/22/23
+ * — see the migration that added it (20260919000100_moa_phase_document.sql)
+ * and `plans/CLIENT-MEETING-TODOS.md`.
  *
  * `isOptional` marks "Site visit report (if conducted)". It still counts toward
- * the denominator of 18 — the level-card totals only work if it does — which is
+ * the denominator — the level-card totals only work if it does — which is
  * open item O-3, flagged for confirmation rather than quietly resolved.
  */
 export type PhaseSeed = {
@@ -42,6 +46,7 @@ export const PHASE_DOCUMENTS: PhaseDocumentSeed[] = [
   { phase: 2, ordinal: 3, name: "Attendance", isOptional: false },
   { phase: 2, ordinal: 4, name: "Photos", isOptional: false },
   { phase: 2, ordinal: 5, name: "Narrative Report", isOptional: false },
+  { phase: 2, ordinal: 6, name: "Memorandum of Agreement (MOA)", isOptional: false },
 
   { phase: 3, ordinal: 1, name: "Monitoring Report", isOptional: false },
   { phase: 3, ordinal: 2, name: "Progress Report", isOptional: false },

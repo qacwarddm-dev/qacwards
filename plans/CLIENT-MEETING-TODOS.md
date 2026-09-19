@@ -61,58 +61,110 @@ Accreditor still need their own frame (unchanged, see below).
 
 ## 2026-09-19 meeting notes — new asks, not yet implemented
 
-### Dashboard navigation — CONFIRMED
-- [ ] Event Calendar (dashboard widget): clicking an event should navigate straight to that event's
-      tab/page, not just highlight it. Ties into `getEvents()`/`getEventSchedule()`
-      (`src/lib/events.ts`) — needs a per-event target route (which type → which screen).
-- [ ] Recents (dashboard widget): clicking a recent item should open wherever that item actually
-      lives (the correct tab/section for that specific item), not a generic view. Check
-      `dashboards.ts` for what "recent item" types exist and what each should route to.
+### Dashboard navigation — CONFIRMED, shipped 2026-09-19
+- [x] Event Calendar (dashboard widget): a marked day (PSV/COPC) on `MiniCalendar` is now a link to
+      `/portal/events/schedule` — the only screen either kind has a real per-item view on.
+      `getMiniCalendarData()` (`src/lib/dashboards.ts`) returns `hrefs` alongside `marks`;
+      `MiniCalendar` (`src/components/portal/kit/MiniCalendar.tsx`) renders a marked day as a `Link`
+      when one is present, plain text otherwise. Deadline/holiday/other stay unmarked exactly as
+      before (see that function's existing comment) — nothing to click, so no href needed for them.
+- [x] Recents (dashboard widget = Program Rep's "Recent Uploads"): a row now links to the document's
+      real phase/requirement-area slot on `/portal/submission` (`?view=phases` or
+      `?view=requirements&area=<id>`, scoped to the right `program`/`level`). `getRepDashboard()`
+      extended its `submission_documents` read with `submission_id`/`phase_document_id`/
+      `requirement_area_id` to build the link (`recentUploadHref()`, `src/lib/dashboards.ts`).
+      `UploadList` (kit) takes an optional `href` per row; QAC/IA dashboards have no "Recents"
+      widget of their own (only Program Rep does), so this is scoped to that one screen.
 
-### Documents — Phase 2, CONFIRMED
-- [ ] Add **MOA (Memorandum of Agreement)** as a new document/sub-category in Phase 2.
-- [ ] Existing docs (Notice of Meeting, Minutes of Meeting, Project Proposal, Action Plan, Budget
-      Proposal) stay exactly where they are — this is additive, not a reshuffle.
+### Documents — Phase 2, CONFIRMED, shipped 2026-09-19
+- [x] Added **MOA (Memorandum of Agreement)** to Phase 2 (Implementation) as `phase_documents`
+      ordinal 6 — migration `20260919000100_moa_phase_document.sql` (**not yet applied to the
+      remote DB** — blocked by the harness's own production-deploy guard; run it yourself, see
+      session note below), mirrored into `supabase/seed.sql` and `src/lib/reference/phases.ts`.
+- [x] Existing docs (Notice of Meeting, Minutes of Meeting, Project Proposal, Action Plan, Budget
+      Proposal — all Phase 1) are untouched, confirming this was additive.
+- ⚠️ **Side effect, flagged rather than silently absorbed**: `phase_documents` is shared across
+      every level (`submission_readiness`'s denominator is `count(phase_documents) + level areas`,
+      not per-level), so this moves every level's required-doc total up by one from the
+      O-17-confirmed 28/28/22/23 to **29/29/23/24**. This is a consequence of a *new* 2026-09-19
+      ask made after O-17 was closed, not a reopening of O-17 — but the client should know their
+      earlier-confirmed numbers just moved. `PR_LEVEL_CARDS` (`src/components/portal/data.ts`,
+      Templates tab copy) updated to match.
 
-### Notification — spacing polish, CONFIRMED
-- [ ] Fix spacing inside the notification border/card.
-- [ ] Fix text spacing inside notifications so it reads cleaner.
+### Notification — spacing polish, CONFIRMED, shipped 2026-09-19
+- [x] Fixed spacing inside the notification border/card: rows had **no gap between them**
+      (`flex flex-col` with no `gap`), so consecutive unread (grey) rows visually merged into one
+      blobby shape with no visible border between them — confirmed by screenshot
+      (`.shots/current-notifications-page.png` before/after). Added `gap-[8px]` between rows in
+      both the bell popover and `/portal/notifications`.
+- [x] Fixed text spacing inside each row: body line-height 20px→22px, message-to-timestamp gap
+      6px→8px. Also extracted the row markup — previously duplicated verbatim in both
+      `NotificationBell.tsx` and `NotificationsList.tsx` — into a shared
+      `src/components/portal/kit/NotificationRow.tsx` per the kit rule.
 
-### Accreditation Assignment — spacing polish, CONFIRMED
-- [ ] Fix letter-spacing/text-spacing in the Accreditation Assignment section.
+### Accreditation Assignment — spacing polish, CONFIRMED, shipped 2026-09-19
+- [x] Found via screenshot zoom (`.shots/current-assignment-zoom.png`): the `StatusPill` `sm` size
+      (used by both `InternalAccreditorAssignment.tsx` and `QacPersonnelAssignment.tsx`'s Status
+      column) had only `px-[6px]` at a 9px font, so a longer label like "In progress" pressed
+      against the pill's edges. Widened to `h-[18px] px-[8px]`
+      (`src/components/portal/kit/StatusPill.tsx`) — table column layout itself already matched the
+      frame (`assets/FIGMA/internal_accreditor/02-Accreditation.png`) and needed no change.
 
-### Program reassignment (drag and drop) — new feature, CONFIRMED
-Lives in **QAC Admin → Program Management**.
-- [ ] Admin/QAC Personnel can drag-and-drop a program from one college/unit to another.
-- [ ] On drop, the program is re-tagged to the new college — its college/unit field updates, it's
-      not just visually moved.
-- [ ] On transfer, the program's accreditation documents and records move with it — no manual
-      re-upload. Example given: a Graduate School PhD program reassigned to its home college keeps
-      its existing docs.
+### Program reassignment (drag and drop) — new feature, CONFIRMED, shipped 2026-09-19
+Lives in **QAC Admin → Program Management** (`/portal/settings/programs`, new tab in
+`SettingsTabs.tsx`).
+- [x] Admin/QAC Personnel can drag-and-drop a program from one college's column to another
+      (`ProgramManagement.tsx`, native HTML5 drag-and-drop — no new dependency added).
+- [x] On drop, `reassignProgramCollege()` (`src/lib/admin.ts`) updates `programs.college_id` for
+      real (optimistic move, rolled back on write failure).
+- [x] Docs/records need no separate "carry over" step: `submission_documents` and `submissions` key
+      on `program_id`, which a college reassignment never touches — this was already true of the
+      schema, not new work.
+- ⚠️ **Access-scope assumption**: `/portal/settings/*` is gated to `qac_admin` only
+      (`settings/layout.tsx`), so Program Management inherits that even though the note says
+      "Admin/QAC Personnel." The new RLS policy (`20260919000200_qac_reassigns_program_college.sql`,
+      also unapplied — see below) grants the *write* to both roles already, so opening a QAC
+      Personnel nav entry point later needs no further backend work — only a UI decision on where
+      it should live for that role, which the note doesn't specify.
 
-### User Management — QAC Admin, new feature (stub only for now), CONFIRMED
-Lives in **QAC Admin → User Management**. Scope for this pass: **UI modal only** — no email actually
-sent, no invite/account-creation backend wired up yet.
-- [ ] "Invite user" modal: email input field + a role dropdown (the invited user's role).
-- [ ] Submitting the modal does not need to send a real email or create a pending-invite record —
-      just the modal UI or a fixture-backed submit.
+### User Management — QAC Admin, new feature (stub only for now), CONFIRMED, shipped 2026-09-19
+Lives in **QAC Admin → User Management** (`/portal/settings/users`).
+- [x] "Invite user" modal: email + role dropdown (`InviteUserModal.tsx`), opened via
+      `?modal=invite` — the same URL-driven overlay convention every other modal in the kit uses.
+- [x] Submit is a stub: no `invites` table, no email — it pushes a confirmation toast ("would be
+      invited as …, sending isn't wired up yet") and closes. Flagged in the component's own
+      comment, same convention as Extension Monitoring/Feedback's fixture-backed screens.
 
-### Internal Accreditor → QAC service evaluation form — new reference, needs scoping
+### Internal Accreditor → QAC service evaluation form — SCOPED, not built this pass
 Client supplied a sample form ("Survey Visit - EVALUATION FORM"): a satisfaction survey filled by
 the internal accreditor about QAC's assistance during a visit. **Distinct from both** existing
 things: not the Program Rep "QAC Service Evaluation" shipped 2026-09-18
 (`/portal/submission/evaluation` — program rep rates QAC), and not the still-open "Survey
 Instrument" (accreditor evaluates the *program* on-site). This is a third form: accreditor rates
 *QAC's* assistance after a visit.
-- [ ] Visit-type selector: Preliminary Survey Visit / Level 1-4 (Level 3 & 4 each split Phase 1/2) /
-      Application for COPC / Other (free text).
-- [ ] 5-point satisfaction scale (5 Extremely satisfied → 1 Not satisfied at all) across two rated
-      groups: Assistance quality (Usefulness, Relevance, Responsiveness, Clarity, Impact) and Staff
-      manner (Courtesy, Promptness, Friendliness, Sensitivity to Client's Needs, Helpfulness).
-- [ ] Free-text Comments and Suggestions field.
-- [ ] Evaluator fields: Name, Designation/Academic Rank, Branch/Campus, Date Accomplished.
-- [ ] Open question for the client: what triggers this (after visit completion? per level?) and is
-      it required or optional — not stated in the notes, don't assume.
+**2026-09-19: scoped, deliberately not built.** The `/goal` run that shipped the six items above
+was asked to "scope" this one rather than "implement" it, and the note's own open question is
+exactly the thing a build would have to guess: what triggers the form and whether it's required.
+Building the fields without that would mean either inventing a trigger (the thing "don't assume"
+was written to prevent) or shipping a form nobody is ever routed to. Everything decidable without
+the client is nailed down below so a future pass can build it in one sitting:
+- [ ] Fields, all confirmed from the sample form, unchanged from the original read:
+  - Visit-type selector: Preliminary Survey Visit / Level 1-4 (Level 3 & 4 each split Phase 1/2) /
+    Application for COPC / Other (free text).
+  - 5-point satisfaction scale (5 Extremely satisfied → 1 Not satisfied at all) across two rated
+    groups: Assistance quality (Usefulness, Relevance, Responsiveness, Clarity, Impact) and Staff
+    manner (Courtesy, Promptness, Friendliness, Sensitivity to Client's Needs, Helpfulness).
+  - Free-text Comments and Suggestions field.
+  - Evaluator fields: Name, Designation/Academic Rank, Branch/Campus, Date Accomplished.
+- [ ] Proposed shape for the build, decided so it doesn't need re-deriving: a new
+      `qac_assistance_evaluations` table (mirroring `submission_evaluations`' shape — see
+      `/portal/submission/evaluation`'s backing table — one row per accreditor per visit); a new
+      screen off the Internal Accreditor's Evaluation nav item, same `StarRating`/`SelectField` kit
+      pieces `ProgramRepServiceEvaluation.tsx` already uses for the Program Rep's own QAC rating.
+- [ ] Still open, raise with the client directly: what triggers this (after visit completion? per
+      level?) and whether it's required or optional. Until answered, do **not** guess a gate — an
+      ungated, always-reachable entry point is a real UX regression the client would need to
+      approve, not a safe default.
 
 ## Pending assets from client — track these, don't lose them
 

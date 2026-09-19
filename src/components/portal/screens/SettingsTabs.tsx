@@ -20,6 +20,7 @@ import { usePathname } from "next/navigation";
 const TABS = [
   { href: "/portal/settings/cycles", label: "Accreditation Cycles" },
   { href: "/portal/settings/reps", label: "Program Representatives" },
+  { href: "/portal/settings/programs", label: "Program Management" },
   { href: "/portal/settings/users", label: "Users" },
 ];
 

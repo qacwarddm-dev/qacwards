@@ -214,22 +214,22 @@ export const PR_LEVEL_CARDS = [
     label: "PSV - LEVEL II",
     description:
       "Template toolkit for Preliminary Survey Visit, Level I, and Level II requirements.",
-    total: "28 REQUIRED TEMPLATE (Each)",
-    breakdown: "18 Pre-Accreditation\n10 Accreditation Requirements",
+    total: "29 REQUIRED TEMPLATE (Each)",
+    breakdown: "19 Pre-Accreditation\n10 Accreditation Requirements",
   },
   {
     key: "level3",
     label: "LEVEL III",
     description: "Template toolkit for Level III accreditation requirements.",
-    total: "22 REQUIRED TEMPLATE",
-    breakdown: "18 Pre-Accreditation\n4 Accreditation Requirements",
+    total: "23 REQUIRED TEMPLATE",
+    breakdown: "19 Pre-Accreditation\n4 Accreditation Requirements",
   },
   {
     key: "level4",
     label: "LEVEL IV",
     description: "Template toolkit for Level IV accreditation requirements.",
-    total: "23 REQUIRED TEMPLATE",
-    breakdown: "18 Pre-Accreditation\n5 Accreditation Requirements",
+    total: "24 REQUIRED TEMPLATE",
+    breakdown: "19 Pre-Accreditation\n5 Accreditation Requirements",
   },
 ];
 

@@ -1,7 +1,9 @@
 "use client";
 
+import { UserPlus } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { Badge, Button, ConfirmDialog, DataTable } from "@/components/portal/kit";
+import InviteUserModal from "./InviteUserModal";
 import UserAccreditorEditor from "./UserAccreditorEditor";
 import { searchUsers, setUserActive, setUserRole } from "@/lib/admin";
 import { ROLE_LABELS } from "@/lib/role-labels";
@@ -51,9 +53,11 @@ const COLUMNS = [
 export default function UserAdmin({
   users,
   currentUserId,
+  inviteOpen = false,
 }: {
   users: User[];
   currentUserId: string;
+  inviteOpen?: boolean;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -162,10 +166,20 @@ export default function UserAdmin({
 
   return (
     <>
-      <p className="mt-[13px] text-regular text-gray">
-        Deactivating an account locks it out on its next request, not at its next
-        login.
-      </p>
+      <div className="mt-[13px] flex items-start justify-between gap-[16px]">
+        <p className="text-regular text-gray">
+          Deactivating an account locks it out on its next request, not at its next
+          login.
+        </p>
+        <Button
+          variant="secondary"
+          size="sm"
+          iconStart={UserPlus}
+          href="/portal/settings/users?modal=invite"
+        >
+          Invite User
+        </Button>
+      </div>
 
       {error && (
         <p className="mt-[13px] text-regular leading-tight text-maroon">{error}</p>
@@ -196,6 +210,8 @@ export default function UserAdmin({
           if (confirmDeactivate) return toggleActive(confirmDeactivate);
         }}
       />
+
+      {inviteOpen && <InviteUserModal closeHref="/portal/settings/users" />}
     </>
   );
 }

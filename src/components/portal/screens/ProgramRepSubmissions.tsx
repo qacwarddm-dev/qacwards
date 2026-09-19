@@ -386,7 +386,6 @@ export default function ProgramRepSubmissions({
       {modal === "add" && view === "phases" && programId && levelId && (
         <SubmissionUploadModal
           title="Add Document"
-          submitLabel="Save"
           scrollBox
           programId={programId}
           levelId={levelId}
@@ -405,7 +404,6 @@ export default function ProgramRepSubmissions({
       {modal === "add" && view === "requirements" && areaId && programId && levelId && (
         <SubmissionUploadModal
           title="Add Document"
-          submitLabel="Upload"
           programId={programId}
           levelId={levelId}
           submissionId={currentLevel?.submissionId ?? null}

@@ -225,6 +225,65 @@ export async function searchUsers(query: string): Promise<UserSearchRow[]> {
   }));
 }
 
+export type CollegeWithPrograms = {
+  id: string;
+  code: string;
+  name: string;
+  programs: { id: string; name: string; campus: string }[];
+};
+
+/**
+ * Program Management (2026-09-19 client meeting): every main-campus college
+ * and the programmes currently tagged to it. Off-main-campus programmes carry
+ * no `college_id` (comment on `public.colleges`) and have no college to be
+ * dragged between, so they are left out rather than shown as an orphan bucket
+ * with no matching frame.
+ */
+export async function getProgramsByCollege(): Promise<CollegeWithPrograms[]> {
+  const supabase = await createClient();
+
+  const [{ data: colleges }, { data: programs }] = await Promise.all([
+    supabase.from("colleges").select("id, code, name").order("name"),
+    supabase
+      .from("programs")
+      .select("id, name, college_id, campuses(name)")
+      .not("college_id", "is", null)
+      .order("name"),
+  ]);
+
+  return (colleges ?? []).map((c) => ({
+    id: c.id,
+    code: c.code,
+    name: c.name,
+    programs: (programs ?? [])
+      .filter((p) => p.college_id === c.id)
+      .map((p) => ({ id: p.id, name: p.name, campus: p.campuses?.name ?? "—" })),
+  }));
+}
+
+/**
+ * The drop handler: re-tags a programme's college. Its accreditation
+ * documents and records need no separate move — `submission_documents` and
+ * `submissions` key on `program_id`, which this does not touch, so they carry
+ * over automatically (schema guarantee, not a copy step).
+ */
+export async function reassignProgramCollege(
+  programId: string,
+  collegeId: string,
+): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("programs")
+    .update({ college_id: collegeId })
+    .eq("id", programId);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/portal/settings/programs");
+  return { ok: true };
+}
+
 export type DrainActionResult =
   | ({ ok: true } & DrainResult)
   | { ok: false; error: string };

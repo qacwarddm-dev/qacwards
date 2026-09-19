@@ -62,9 +62,14 @@ export async function ensureSubmission(
   // programme can start Level I. Only gates the PSV→I transition — nothing
   // downstream in the assignment/submission state machines expressed it.
   if (level?.code === "I") {
+    // `!level_id` disambiguates the embed: program_accreditations has two FKs
+    // into accreditation_levels (level_id, demoted_from_level_id), and an
+    // unqualified embed errors as ambiguous — which came back as a silently
+    // empty `data` here rather than a thrown exception, so this gate was
+    // failing closed for every programme, even ones that genuinely passed PSV.
     const { data: psv } = await supabase
       .from("program_accreditations")
-      .select("id, accreditation_levels!inner(code)")
+      .select("id, accreditation_levels!level_id!inner(code)")
       .eq("program_id", programId)
       .eq("status", "active")
       .eq("accreditation_levels.code", "PSV")

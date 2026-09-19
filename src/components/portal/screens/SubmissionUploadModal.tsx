@@ -9,10 +9,16 @@ import { Button, FieldLabel, Modal, SelectInput, TextInput } from "../kit";
 /**
  * The upload half of the Add Document modals (07.6-Requirements-modal.png and
  * its Phases variant). B4 left the fields presentational with no submit path;
- * this is the client-side piece that was missing — everything else about the
- * two modals (layout, the scrolling box on the Phases variant, "Upload" vs
- * "Save" wording) stays exactly as `ProgramRepSubmissions.tsx` already drew
- * it, so this file owns only the interactive slot list and the POST.
+ * this is the client-side piece that was missing.
+ *
+ * Client's call 2026-09-19: both variants get the same three buttons —
+ * Cancel, Save Draft, Upload — replacing the old single Upload/Save button
+ * that differed only in label between the two call sites. Save Draft uploads
+ * whatever files are currently chosen without requiring every required slot
+ * to be filled (there's no separate draft state to persist — an uploaded
+ * document row already *is* the saved state, same as today). Upload does the
+ * same POST but stays disabled until every required slot has a file, so it
+ * only ever fires when the "full" submission is actually complete.
  */
 export type UploadSlot = {
   key: string;
@@ -115,7 +121,6 @@ function SlotField({
 export default function SubmissionUploadModal({
   title,
   closeHref,
-  submitLabel,
   slots,
   submissionId,
   programId,
@@ -124,7 +129,6 @@ export default function SubmissionUploadModal({
 }: {
   title: string;
   closeHref: string;
-  submitLabel: "Upload" | "Save";
   slots: UploadSlot[];
   /** Null when this level has no submission row yet — created on first upload
    *  (D-14: submissions are created lazily, not pre-seeded). */
@@ -144,14 +148,19 @@ export default function SubmissionUploadModal({
     setFields((prev) => ({ ...prev, [key]: { ...prev[key], ...next } }));
   }
 
-  function submit() {
+  const allRequiredFilled = slots.every((s) => !s.required || Boolean(fields[s.key]?.file));
+
+  function submit(draft: boolean) {
     setFormError(null);
 
     const toUpload = slots.filter((s) => fields[s.key]?.file);
-    const missingRequired = slots.find((s) => s.required && !fields[s.key]?.file);
-    if (missingRequired) {
-      patch(missingRequired.key, { error: "Choose a file." });
-      return;
+
+    if (!draft) {
+      const missingRequired = slots.find((s) => s.required && !fields[s.key]?.file);
+      if (missingRequired) {
+        patch(missingRequired.key, { error: "Choose a file." });
+        return;
+      }
     }
     if (toUpload.length === 0) {
       setFormError("Choose at least one file.");
@@ -221,12 +230,15 @@ export default function SubmissionUploadModal({
         <Button variant="ghost" href={closeHref}>
           Cancel
         </Button>
+        <Button variant="secondary" disabled={pending} onClick={() => submit(true)}>
+          Save Draft
+        </Button>
         <Button
-          variant={submitLabel === "Save" ? "solid" : "muted"}
-          disabled={pending}
-          onClick={submit}
+          variant="primary"
+          disabled={pending || !allRequiredFilled}
+          onClick={() => submit(false)}
         >
-          {pending ? "Uploading…" : submitLabel}
+          {pending ? "Uploading…" : "Upload"}
         </Button>
       </div>
     </Modal>

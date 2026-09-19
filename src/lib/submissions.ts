@@ -79,7 +79,11 @@ export async function getLevelReadiness(
         .eq("program_id", programId),
       supabase
         .from("program_accreditations")
-        .select("id, accreditation_levels!inner(code)")
+        // `!level_id` disambiguates the embed: program_accreditations has two
+        // FKs into accreditation_levels (level_id, demoted_from_level_id), and
+        // an unqualified embed errors as ambiguous — which came back as a
+        // silently-null `data` here, not a thrown exception.
+        .select("id, accreditation_levels!level_id!inner(code)")
         .eq("program_id", programId)
         .eq("status", "active")
         .eq("accreditation_levels.code", "PSV")

@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { getMyPrograms, programSlug } from "@/lib/submissions";
+import { getMyPrograms } from "@/lib/submissions";
 import { getMonthEvents } from "@/lib/events";
 import type { DocStatus, MeetingKind, Stat, StatusBar, Upload } from "@/components/portal/kit";
 

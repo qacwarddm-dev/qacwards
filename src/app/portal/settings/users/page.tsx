@@ -11,9 +11,14 @@ import UserAdmin from "@/components/portal/screens/UserAdmin";
  * RLS policy: flipping it here must lock the person out on their very next
  * request, not at their next login.
  */
-export default async function UsersSettingsPage() {
+export default async function UsersSettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ modal?: string }>;
+}) {
   const me = await requireCurrentUser();
   const supabase = await createClient();
+  const { modal } = await searchParams;
 
   const { data: users } = await supabase
     .from("profiles")
@@ -26,6 +31,7 @@ export default async function UsersSettingsPage() {
       <SectionHeading icon={IdCard}>USERS</SectionHeading>
       <UserAdmin
         currentUserId={me.id}
+        inviteOpen={modal === "invite"}
         users={(users ?? []).map((u) => ({
           id: u.id,
           name: `${u.surname}, ${u.given_name}`,
