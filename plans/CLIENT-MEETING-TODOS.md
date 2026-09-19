@@ -59,6 +59,61 @@ Upcoming/Ongoing/Completed status, and pulls real participant avatars for deadli
 `assignment_accreditors`. This is the **QAC-role** Events screen only — Program Rep and Internal
 Accreditor still need their own frame (unchanged, see below).
 
+## 2026-09-19 meeting notes — new asks, not yet implemented
+
+### Dashboard navigation — CONFIRMED
+- [ ] Event Calendar (dashboard widget): clicking an event should navigate straight to that event's
+      tab/page, not just highlight it. Ties into `getEvents()`/`getEventSchedule()`
+      (`src/lib/events.ts`) — needs a per-event target route (which type → which screen).
+- [ ] Recents (dashboard widget): clicking a recent item should open wherever that item actually
+      lives (the correct tab/section for that specific item), not a generic view. Check
+      `dashboards.ts` for what "recent item" types exist and what each should route to.
+
+### Documents — Phase 2, CONFIRMED
+- [ ] Add **MOA (Memorandum of Agreement)** as a new document/sub-category in Phase 2.
+- [ ] Existing docs (Notice of Meeting, Minutes of Meeting, Project Proposal, Action Plan, Budget
+      Proposal) stay exactly where they are — this is additive, not a reshuffle.
+
+### Notification — spacing polish, CONFIRMED
+- [ ] Fix spacing inside the notification border/card.
+- [ ] Fix text spacing inside notifications so it reads cleaner.
+
+### Accreditation Assignment — spacing polish, CONFIRMED
+- [ ] Fix letter-spacing/text-spacing in the Accreditation Assignment section.
+
+### Program reassignment (drag and drop) — new feature, CONFIRMED
+Lives in **QAC Admin → Program Management**.
+- [ ] Admin/QAC Personnel can drag-and-drop a program from one college/unit to another.
+- [ ] On drop, the program is re-tagged to the new college — its college/unit field updates, it's
+      not just visually moved.
+- [ ] On transfer, the program's accreditation documents and records move with it — no manual
+      re-upload. Example given: a Graduate School PhD program reassigned to its home college keeps
+      its existing docs.
+
+### User Management — QAC Admin, new feature (stub only for now), CONFIRMED
+Lives in **QAC Admin → User Management**. Scope for this pass: **UI modal only** — no email actually
+sent, no invite/account-creation backend wired up yet.
+- [ ] "Invite user" modal: email input field + a role dropdown (the invited user's role).
+- [ ] Submitting the modal does not need to send a real email or create a pending-invite record —
+      just the modal UI or a fixture-backed submit.
+
+### Internal Accreditor → QAC service evaluation form — new reference, needs scoping
+Client supplied a sample form ("Survey Visit - EVALUATION FORM"): a satisfaction survey filled by
+the internal accreditor about QAC's assistance during a visit. **Distinct from both** existing
+things: not the Program Rep "QAC Service Evaluation" shipped 2026-09-18
+(`/portal/submission/evaluation` — program rep rates QAC), and not the still-open "Survey
+Instrument" (accreditor evaluates the *program* on-site). This is a third form: accreditor rates
+*QAC's* assistance after a visit.
+- [ ] Visit-type selector: Preliminary Survey Visit / Level 1-4 (Level 3 & 4 each split Phase 1/2) /
+      Application for COPC / Other (free text).
+- [ ] 5-point satisfaction scale (5 Extremely satisfied → 1 Not satisfied at all) across two rated
+      groups: Assistance quality (Usefulness, Relevance, Responsiveness, Clarity, Impact) and Staff
+      manner (Courtesy, Promptness, Friendliness, Sensitivity to Client's Needs, Helpfulness).
+- [ ] Free-text Comments and Suggestions field.
+- [ ] Evaluator fields: Name, Designation/Academic Rank, Branch/Campus, Date Accomplished.
+- [ ] Open question for the client: what triggers this (after visit completion? per level?) and is
+      it required or optional — not stated in the notes, don't assume.
+
 ## Pending assets from client — track these, don't lose them
 
 - [x] **QAC Events UI** — delivered 2026-09-18 (re-export, see the section above) and implemented
