@@ -1,38 +1,35 @@
 import { notFound } from "next/navigation";
-import InternalAccreditorEvaluationDetail from "@/components/portal/screens/InternalAccreditorEvaluationDetail";
+import InternalAccreditorRequirements from "@/components/portal/screens/InternalAccreditorRequirements";
 import EvaluationLocked from "@/components/portal/screens/EvaluationLocked";
-import { getAssignmentDetail, getEvaluation, scoreDisplay } from "@/lib/assignments";
-import { getSignatories } from "@/lib/accreditor";
-import { ensureEvaluation, ensureEvaluationItems } from "@/lib/assignment-actions";
+import SubmissionUploadModal from "@/components/portal/screens/SubmissionUploadModal";
+import { getAssignmentDetail, getAssignmentRequirements } from "@/lib/assignments";
+import { getIaDashboard } from "@/lib/dashboards";
+import { requireCurrentUser } from "@/lib/current-user";
 
 /**
- * `/portal/evaluation/[id]` — the per-document evaluation sheet
- * (internal_accreditor/03.1 = `?state=review`, 03.2 = `?state=done`).
+ * `/portal/evaluation/[id]` — client revision: the flat Narrative/Compliance/
+ * Website sheet (`InternalAccreditorEvaluationDetail`, still used by nothing
+ * else and kept as-is) is now fronted by an "Accreditation Requirements"
+ * Areas grid, one program's 10 requirement areas with a summary/back-link
+ * header and a Return/Approve (or, once past `in_progress`, a disabled
+ * "Evaluate") footer. An area row's chevron opens the same "Add Document"
+ * modal the Program Representative's own Requirements list already uses
+ * (`SubmissionUploadModal`) — the client's reference for it is byte-identical
+ * to that one, just reached from `/portal/evaluation/[id]` instead of
+ * `/portal/submission`.
  *
- * Both frames are 1x exports and cannot be pixel-verified; the screen is
- * transcribed by eye and flagged for re-export.
- *
- * The sheet (`evaluations` + its `evaluation_items`) is created lazily on
- * first open, same reasoning as submissions (D-14): most assignments are
- * never opened by every team member on day one.
- *
- * Round 2 §1 puts a gate in front of that: an invited accreditor who has not
- * answered yet gets the accept/decline card instead of the sheet, and one who
- * declined gets nothing to work on. Accepting is what unblocks the flow, which
- * is the whole point of the invitation. QAC is not on the team and so has no
- * invitation to answer — `myResponse` is null for them and they pass straight
- * through.
+ * Round 2 §1's gate is unchanged: an invited accreditor who has not answered
+ * yet gets the accept/decline card instead.
  */
 export default async function EvaluationDetailPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
+  searchParams: Promise<{ modal?: string; area?: string }>;
 }) {
   const { id } = await params;
-  const query = await searchParams;
-  const state = query.state === "done" ? "done" : "review";
+  const { modal, area } = await searchParams;
 
   const detail = await getAssignmentDetail(id);
   if (!detail) notFound();
@@ -46,24 +43,37 @@ export default async function EvaluationDetailPage({
     );
   }
 
-  const ensured = await ensureEvaluation(id);
-  if (ensured.ok) await ensureEvaluationItems(id, ensured.evaluationId);
-
-  const [evaluation, signatories] = await Promise.all([
-    getEvaluation(id),
-    getSignatories(id),
+  const user = await requireCurrentUser();
+  const [requirements, { stats }] = await Promise.all([
+    getAssignmentRequirements(id),
+    getIaDashboard(user.id),
   ]);
+  if (!requirements) notFound();
+
+  const closeHref = `/portal/evaluation/${id}`;
 
   return (
     <>
       <h1 className="sr-only">Evaluation Detail</h1>
-      <InternalAccreditorEvaluationDetail
-        state={state}
-        detail={detail}
-        items={evaluation?.evaluation_items ?? []}
-        score={scoreDisplay(evaluation ?? null)}
-        signatories={signatories}
-      />
+      <InternalAccreditorRequirements assignmentId={id} stats={stats} data={requirements} />
+
+      {modal === "add" && area && detail.programId && detail.levelId && (
+        <SubmissionUploadModal
+          title="Add Document"
+          programId={detail.programId}
+          levelId={detail.levelId}
+          submissionId={detail.submissionId}
+          slots={[
+            { key: "document", label: "Document", required: true, requirementAreaId: area },
+            {
+              key: "additional",
+              label: "Additional Document (Optional)",
+              requirementAreaId: area,
+            },
+          ]}
+          closeHref={closeHref}
+        />
+      )}
     </>
   );
 }

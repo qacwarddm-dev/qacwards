@@ -1,5 +1,6 @@
 import InternalAccreditorEvaluation from "@/components/portal/screens/InternalAccreditorEvaluation";
-import { getMyEvaluationAssignments } from "@/lib/assignments";
+import { getIaDashboard } from "@/lib/dashboards";
+import { requireCurrentUser } from "@/lib/current-user";
 
 /**
  * `/portal/evaluation` — only the Internal Accreditor's sidebar links here, so
@@ -7,11 +8,12 @@ import { getMyEvaluationAssignments } from "@/lib/assignments";
  * becomes the same `getCurrentUser()` switch as `/portal/dashboard`.
  */
 export default async function EvaluationPage() {
-  const rows = await getMyEvaluationAssignments();
+  const user = await requireCurrentUser();
+  const data = await getIaDashboard(user.id);
   return (
     <>
       <h1 className="sr-only">Evaluation</h1>
-      <InternalAccreditorEvaluation rows={rows} />
+      <InternalAccreditorEvaluation data={data} />
     </>
   );
 }

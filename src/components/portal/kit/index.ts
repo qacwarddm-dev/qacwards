@@ -28,6 +28,7 @@ export { default as Dialog } from "./Dialog";
 export { default as DocumentBrowser } from "./DocumentBrowser";
 export { default as Drawer } from "./Drawer";
 export { default as EmptyState } from "./EmptyState";
+export { default as EvaluationSummary } from "./EvaluationSummary";
 export {
   FieldLabel,
   PasswordField,

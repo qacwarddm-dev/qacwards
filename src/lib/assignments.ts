@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getRequirementAreas } from "@/lib/submissions";
 
 /**
  * Reads behind `/portal/assignment` and `/portal/evaluation`.
@@ -204,94 +205,6 @@ export function scoreDisplay(evaluation: {
   return evaluation.outcome ?? "Released";
 }
 
-/** Behind `/portal/evaluation` — the accreditor's own assignments, one row
- *  per assignment, with the same score-visibility rule the fake data drew:
- *  "Not yet released" until `evaluations.released_at` is set. */
-export type EvaluationListRow = {
-  id: string;
-  campus: string;
-  college: string;
-  program: string;
-  level: string;
-  accreditor: string;
-  status: string;
-  score: string;
-  /** The caller's own invitation. Round 2 §1 makes acceptance what unblocks the
-   *  sheet, so the list has to know whether this row is workable yet. */
-  myResponse: string;
-};
-
-/**
- * The caller's own evaluation queue.
- *
- * Filtered on team membership here rather than left to RLS. RLS was enough
- * while only the `internal_accreditor` role could reach this screen — the
- * accreditor policy returns exactly their assignments. Round 2 §2 lets a QAC
- * Personnel act as an accreditor too, and QAC's policy returns *every*
- * assignment, so without this filter a dual-role account's evaluation list
- * would be the whole system's.
- */
-export async function getMyEvaluationAssignments(): Promise<EvaluationListRow[]> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return [];
-
-  const { data: mine } = await supabase
-    .from("assignment_accreditors")
-    .select("assignment_id, response")
-    .eq("profile_id", user.id);
-
-  const myResponses = new Map((mine ?? []).map((m) => [m.assignment_id, m.response]));
-  if (myResponses.size === 0) return [];
-
-  const { data: assignments } = await supabase
-    .from("assignments")
-    .select(
-      `id, status,
-       submissions(programs(name, campuses(name), colleges(code)), accreditation_levels(name)),
-       assignment_accreditors(profiles(surname, given_name))`,
-    )
-    .in("id", [...myResponses.keys()])
-    .order("created_at", { ascending: false });
-
-  const ids = (assignments ?? []).map((a) => a.id);
-
-  const { data: evaluations } = ids.length
-    ? await supabase
-        .from("evaluations")
-        .select("assignment_id, score, outcome, released_at")
-        .in("assignment_id", ids)
-    : {
-        data: [] as {
-          assignment_id: string;
-          score: number | null;
-          outcome: string | null;
-          released_at: string | null;
-        }[],
-      };
-
-  const evalByAssignment = new Map((evaluations ?? []).map((e) => [e.assignment_id, e]));
-
-  return (assignments ?? []).map((a) => ({
-    id: a.id,
-    campus: a.submissions?.programs?.campuses?.name ?? "—",
-    college: a.submissions?.programs?.colleges?.code ?? "—",
-    program: a.submissions?.programs?.name ?? "—",
-    level: a.submissions?.accreditation_levels?.name ?? "—",
-    accreditor:
-      (a.assignment_accreditors ?? [])
-        .map((m) => (m.profiles ? `${m.profiles.surname}, ${m.profiles.given_name}` : null))
-        .filter((n): n is string => Boolean(n))
-        .join("; ") || "—",
-    status: a.status,
-    score: scoreDisplay(evalByAssignment.get(a.id) ?? null),
-    myResponse: myResponses.get(a.id) ?? "pending",
-  }));
-}
-
 /** Behind `/portal/evaluation/[id]` — one assignment's identifying details.
  *  Item-level data (the sheet itself) stays on `getEvaluation`. */
 export type AssignmentDetail = {
@@ -310,6 +223,12 @@ export type AssignmentDetail = {
   /** The team as people, for the sign-off block — round 2 §4 prints who signed
    *  rather than a joined string of names. */
   signatories: { id: string; name: string; response: string }[];
+  /** Needed to pull that submission's requirement areas / readiness — not
+   *  displayed, so kept out of every existing render's props by staying at
+   *  the end. Null only if the assignment's submission was deleted. */
+  submissionId: string | null;
+  levelId: string | null;
+  programId: string | null;
 };
 
 export async function getAssignmentDetail(assignmentId: string): Promise<AssignmentDetail | null> {
@@ -319,8 +238,8 @@ export async function getAssignmentDetail(assignmentId: string): Promise<Assignm
     supabase
       .from("assignments")
       .select(
-        `id, status,
-         submissions(website_url, programs(name, campuses(name), colleges(code)), accreditation_levels(name)),
+        `id, status, submission_id,
+         submissions(website_url, level_id, programs(id, name, campuses(name), colleges(code)), accreditation_levels(name)),
          assignment_accreditors(profile_id, response, profiles(surname, given_name))`,
       )
       .eq("id", assignmentId)
@@ -347,5 +266,40 @@ export async function getAssignmentDetail(assignmentId: string): Promise<Assignm
     websiteUrl: data.submissions?.website_url ?? null,
     myResponse: signatories.find((m) => m.id === auth.user?.id)?.response ?? null,
     signatories,
+    submissionId: data.submission_id,
+    levelId: data.submissions?.level_id ?? null,
+    programId: data.submissions?.programs?.id ?? null,
   };
+}
+
+/** Behind `/portal/evaluation/[id]` — the Areas grid that now fronts the
+ *  sheet (client revision, same situation as `InternalAccreditorEvaluation`).
+ *  `readiness` is the same `submission_readiness` number the Programs list
+ *  already shows for this assignment; areas reuse the Program Rep's own
+ *  `getRequirementAreas` query verbatim — same table, same shape. */
+export type AssignmentRequirements = {
+  detail: AssignmentDetail;
+  areas: { id: string; name: string; isOptional: boolean; uploaded: boolean }[];
+  readiness: number;
+};
+
+export async function getAssignmentRequirements(
+  assignmentId: string,
+): Promise<AssignmentRequirements | null> {
+  const supabase = await createClient();
+  const detail = await getAssignmentDetail(assignmentId);
+  if (!detail) return null;
+
+  const [areas, { data: readinessRow }] = await Promise.all([
+    detail.levelId ? getRequirementAreas(detail.levelId, detail.submissionId) : [],
+    detail.submissionId
+      ? supabase
+          .from("submission_readiness")
+          .select("readiness_percent")
+          .eq("submission_id", detail.submissionId)
+          .maybeSingle()
+      : Promise.resolve({ data: null as { readiness_percent: number | null } | null }),
+  ]);
+
+  return { detail, areas, readiness: readinessRow?.readiness_percent ?? 0 };
 }
