@@ -1,19 +1,12 @@
-import { ArrowDownUp, CircleArrowLeft } from "lucide-react";
+import { Download } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
-import {
-  PR_ACCREDITATION_FOLDERS,
-  PR_LEVEL_CARDS,
-  PR_LEVEL_TEMPLATES,
-} from "../data";
-import { BackLink, Button, CoverCard, DocCard, DocFileGrid, DocTabs, SearchField, ViewToggle } from "../kit";
+import { PR_LEVEL_CARDS, PR_LEVEL_TEMPLATES } from "../data";
+import { BackLink, CoverCard, DocCard, DocTabs } from "../kit";
 import NdaUpload from "./NdaUpload";
+import RepReportsBrowser, { type ReportsFile, type ReportsFolder } from "./RepReportsBrowser";
 
 /** One common document, as read from the database. */
 export type CommonDocument = { id: string; title: string };
-
-/** One file inside an AACCUP/COPC repository folder. */
-export type RepositoryFile = { id: string; title: string };
 
 export type DocsTab = "templates" | "common" | "reports";
 
@@ -42,6 +35,9 @@ const GRID = "grid grid-cols-[repeat(4,194px)] justify-center gap-x-[27px] gap-y
  * | 05-AccreditationFiles           | AACCUP & COPC Reports, folder list |
  * | 06-AccreditationFiles&Folders   | AACCUP & COPC Reports, inside a folder |
  *
+ * Templates and Common Documents are view-only for a representative, so their
+ * tiles carry no ⋮ menu (client, 2026-09-27).
+ *
  * The panel was a fixed 1000x659; it's now `w-full max-w-[var(--content-max)]`
  * (client request: don't strand it small on a wide monitor) with a 659px
  * `min-h`. The tab strip sits directly above it and is drawn by `DocTabs`,
@@ -51,9 +47,8 @@ export default function ProgramRepDocuments({
   tab = "templates",
   level,
   ndaSigned = false,
-  folder,
   commonDocuments = [],
-  repositoryFiles = [],
+  reports,
 }: {
   tab?: DocsTab;
   /** Set ⇒ inside one of the three `PR_LEVEL_TEMPLATES` grids (02.1–02.3). */
@@ -65,10 +60,13 @@ export default function ProgramRepDocuments({
    * they already know. UI hiding is not access control (§B10).
    */
   ndaSigned?: boolean;
-  /** Set ⇒ inside a folder on the reports tab (frame 06). */
-  folder?: string;
   commonDocuments?: CommonDocument[];
-  repositoryFiles?: RepositoryFile[];
+  reports?: {
+    programId: string | null;
+    folders: ReportsFolder[];
+    folder: ReportsFolder | null;
+    files: ReportsFile[];
+  };
 }) {
   return (
     <div className="flex flex-col items-center pt-[20px] pb-[22px]">
@@ -88,7 +86,7 @@ export default function ProgramRepDocuments({
         {tab === "templates" && <TemplatesTab level={level} />}
         {tab === "common" &&
           (ndaSigned ? <CommonFilesTab documents={commonDocuments} /> : <NdaGate />)}
-        {tab === "reports" && <ReportsTab folder={folder} files={repositoryFiles} />}
+        {tab === "reports" && reports && <RepReportsBrowser {...reports} />}
       </div>
     </div>
   );
@@ -159,36 +157,51 @@ function TemplatesTab({ level }: { level?: string }) {
   );
 }
 
-function CommonFilesTab({ documents }: { documents: CommonDocument[] }) {
-  if (documents.length === 0) {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <p className="text-subheading text-gray">
-          No common documents have been published yet.
-        </p>
-      </div>
-    );
-  }
-
+function NdaFormLink() {
   return (
-    <div className={`px-[73px] pb-[43px] pt-[43px] ${GRID}`}>
-      {documents.map((d) => (
-        <DocCard
-          key={d.id}
-          title={d.title}
-          href={`/api/documents/download?source=common&id=${d.id}`}
-        />
-      ))}
+    <a
+      href="/api/documents/nda-template"
+      className="flex items-center gap-[6px] text-regular leading-none text-maroon underline"
+    >
+      <Download className="h-[13px] w-[13px]" strokeWidth={2.5} aria-hidden />
+      Download NDA Form
+    </a>
+  );
+}
+
+function CommonFilesTab({ documents }: { documents: CommonDocument[] }) {
+  return (
+    <div className="flex flex-1 flex-col px-[73px] pb-[43px] pt-[30px]">
+      <div className="flex justify-end">
+        <NdaFormLink />
+      </div>
+      {documents.length === 0 ? (
+        <div className="flex flex-1 items-center justify-center">
+          <p className="text-subheading text-gray">
+            No common documents have been published yet.
+          </p>
+        </div>
+      ) : (
+        <div className={`mt-[20px] ${GRID}`}>
+          {documents.map((d) => (
+            <DocCard
+              key={d.id}
+              title={d.title}
+              href={`/api/documents/download?source=common&id=${d.id}`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-/** Frame 03 — the tab is locked until the signed NDA is uploaded. */
+/** Frame 03 — locked until a signed, notarized NDA passes `uploadNda`'s checks. */
 function NdaGate() {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center">
+    <div className="flex flex-1 flex-col items-center justify-center py-[30px]">
       <p className="text-center text-subheading leading-[24px] text-gray">
-        Please upload the signed Non-Disclosure Agreement Form
+        Please upload the signed and notarized Non-Disclosure Agreement Form
         <br />
         before you can access the Common Documents.
       </p>
@@ -202,78 +215,6 @@ function NdaGate() {
       />
 
       <NdaUpload />
-
-      <Link
-        href="#"
-        className="mt-[16px] flex items-center gap-[6px] text-micro leading-none text-maroon underline"
-      >
-        <span className="flex h-[11px] w-[11px] items-center justify-center rounded-[2px] bg-[color:var(--color-pdf)] text-[4px] font-bold text-white">
-          PDF
-        </span>
-        Download NDA Form
-      </Link>
-    </div>
-  );
-}
-
-/** Frames 05 and 06 — folder list, then the documents inside one. */
-function ReportsTab({
-  folder,
-  files,
-}: {
-  folder?: string;
-  files: RepositoryFile[];
-}) {
-  return (
-    // Reports uses a 54px inset, not Templates' 73 — measured per tab.
-    <div className="px-[54px] pb-[42px] pt-[42px]">
-      <div className="flex h-[43px] items-center">
-        <div className="w-[494px]">
-          <SearchField />
-        </div>
-        <div className="ml-auto flex items-center gap-[7px]">
-          <ViewToggle />
-          <Button variant="solid" icon={ArrowDownUp}>
-            Sort
-          </Button>
-        </div>
-      </div>
-
-      {folder ? (
-        <>
-          <div className="mt-[18px] flex justify-end">
-            <Link
-              href="/portal/documents?tab=reports"
-              className="flex items-center gap-[7px] text-regular leading-none text-gray transition-opacity hover:opacity-70"
-            >
-              <CircleArrowLeft className="h-[15px] w-[15px]" strokeWidth={2} aria-hidden />
-              Back
-            </Link>
-          </div>
-          <DocFileGrid files={files} />
-        </>
-      ) : (
-        <div className="mt-[78px] flex justify-center gap-[36px]">
-          {PR_ACCREDITATION_FOLDERS.map((f) => (
-            <Link
-              key={f.label}
-              href={`/portal/documents?tab=reports&folder=${encodeURIComponent(f.label)}`}
-              className="w-[119px] transition-opacity hover:opacity-80"
-            >
-              <Image
-                src={f.art}
-                alt=""
-                width={238}
-                height={192}
-                className="h-[96px] w-[119px] object-contain"
-              />
-              <span className="mt-[5px] block text-center text-micro leading-[13px] text-black">
-                {f.label}
-              </span>
-            </Link>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

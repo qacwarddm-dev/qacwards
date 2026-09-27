@@ -1,5 +1,9 @@
 import CopcChart from "@/components/portal/CopcChart";
-import type { EvaluationProgressRow, OngoingAccreditation } from "@/lib/dashboards";
+import type {
+  EvaluationProgressRow,
+  OngoingAccreditation,
+  RecentUploads as RecentUploadsData,
+} from "@/lib/dashboards";
 import {
   Card,
   CardTitleBar,
@@ -7,6 +11,10 @@ import {
   DataTable,
   MiniCalendar,
   type MeetingKind,
+  RecentUploads,
+  RecentUploadsDialog,
+  type ScheduleEntry,
+  UpcomingSchedule,
   StatRow,
   type Stat,
 } from "@/components/portal/kit";
@@ -39,23 +47,22 @@ const PROGRESS_COLUMNS: Column[] = [
   { key: "readiness", header: "Readiness", width: "w-[240px]" },
 ];
 
-const SCHEDULE_COLUMNS: Column[] = [
-  { key: "date", header: "Date", width: "w-[160px]" },
-  { key: "title", header: "Event Title", width: "w-[180px]" },
-  { key: "program", header: "Program", width: "flex-1", align: "left" },
-];
 
 export default function QacPersonnelDashboard({
   data,
   ongoing,
   evaluationProgress,
   schedule,
+  uploads,
+  uploadsOpen = false,
   calendar,
 }: {
   data: { stats: Stat[]; copcSeries: number[] };
   ongoing: OngoingAccreditation[];
   evaluationProgress: EvaluationProgressRow[];
-  schedule: { id: string; date: string; title: string; program: string; collegeCampus: string }[];
+  schedule: ScheduleEntry[];
+  uploads: RecentUploadsData;
+  uploadsOpen?: boolean;
   calendar: {
     month: Date;
     today: number;
@@ -93,21 +100,6 @@ export default function QacPersonnelDashboard({
     },
   }));
 
-  const scheduleRows = schedule.map((s) => ({
-    id: s.id,
-    cells: {
-      date: s.date,
-      title: <span className="whitespace-normal">{s.title}</span>,
-      program: (
-        <span className="block whitespace-normal">
-          {s.program}
-          <span className="block text-regular italic leading-none text-gray">
-            {s.collegeCampus}
-          </span>
-        </span>
-      ),
-    },
-  }));
 
   return (
     <div className="px-[var(--page-gutter)] pb-[86px] pt-[45px] lg:px-[57px]">
@@ -158,19 +150,10 @@ export default function QacPersonnelDashboard({
         </div>
       </Card>
 
+      <RecentUploads uploads={uploads.list} viewAllHref="/portal/dashboard?uploads=all" layout="full" />
+
       <div className="mt-[20px] flex flex-col gap-[21px] lg:flex-row">
-        <Card className="min-h-[294px] min-w-0 flex-1">
-          <CardTitleBar title="Upcoming Schedule" />
-          <div className="mt-[4px] px-[25px] pb-[25px]">
-            <DataTable
-              caption="Upcoming schedule"
-              columns={SCHEDULE_COLUMNS}
-              rows={scheduleRows}
-              variant="outlined"
-              bodyRowH="py-[14px]"
-            />
-          </div>
-        </Card>
+        <UpcomingSchedule entries={schedule} viewAllHref="/portal/events/schedule" />
 
         <MiniCalendar
           month={calendar.month}
@@ -179,6 +162,10 @@ export default function QacPersonnelDashboard({
           hrefs={calendar.hrefs}
         />
       </div>
+
+      {uploadsOpen && (
+        <RecentUploadsDialog entries={uploads.log} closeHref="/portal/dashboard" />
+      )}
     </div>
   );
 }

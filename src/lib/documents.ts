@@ -62,13 +62,53 @@ export async function getRepositoryFiles(programId: string | string[], folderId:
 
   const { data } = await supabase
     .from("repository_files")
-    .select("id, title, storage_path, file_size, doc_uuid, created_at, programs(name)")
+    .select(
+      "id, title, storage_path, file_size, doc_uuid, created_at, programs(name), uploaded_by(given_name, surname)",
+    )
     .in("program_id", ids)
     .eq("folder_id", folderId)
     .eq("is_archived", false)
     .order("created_at", { ascending: false });
 
-  return (data ?? []).map((f) => ({ ...f, programName: f.programs?.name ?? null }));
+  return (data ?? []).map((f) => ({
+    ...f,
+    programName: f.programs?.name ?? null,
+    ownerName: f.uploaded_by ? `${f.uploaded_by.given_name} ${f.uploaded_by.surname}` : null,
+  }));
+}
+
+export type RepFolder = RepositoryFolder & { displayName: string; lastModified: string | null };
+
+/** One programme's folders as its representative sees them: renamed or hidden per `repository_folder_prefs`. */
+export async function getRepFolders(programId: string): Promise<RepFolder[]> {
+  const supabase = await createClient();
+  const [folders, { data: prefs }, { data: latest }] = await Promise.all([
+    getRepositoryFolders(programId),
+    supabase
+      .from("repository_folder_prefs")
+      .select("folder_id, display_name, hidden")
+      .eq("program_id", programId),
+    supabase
+      .from("repository_files")
+      .select("folder_id, created_at")
+      .eq("program_id", programId)
+      .eq("is_archived", false)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  const prefByFolder = new Map((prefs ?? []).map((p) => [p.folder_id, p]));
+  const latestByFolder = new Map<string, string>();
+  for (const f of latest ?? []) {
+    if (!latestByFolder.has(f.folder_id)) latestByFolder.set(f.folder_id, f.created_at);
+  }
+
+  return folders
+    .filter((f) => !prefByFolder.get(f.id)?.hidden)
+    .map((f) => ({
+      ...f,
+      displayName: prefByFolder.get(f.id)?.display_name ?? f.name,
+      lastModified: latestByFolder.get(f.id) ?? null,
+    }));
 }
 
 export type RepositoryScopeProgram = { id: string; name: string };
@@ -117,11 +157,11 @@ export async function hasNda(): Promise<boolean> {
 
   const { data } = await supabase
     .from("ndas")
-    .select("profile_id")
+    .select("file_id")
     .eq("profile_id", user.id)
     .maybeSingle();
 
-  return Boolean(data);
+  return Boolean(data?.file_id);
 }
 
 export async function getCommonDocuments() {

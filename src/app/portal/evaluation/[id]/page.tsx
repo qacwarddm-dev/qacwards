@@ -51,6 +51,7 @@ export default async function EvaluationDetailPage({
   if (!requirements) notFound();
 
   const closeHref = `/portal/evaluation/${id}`;
+  const areaName = requirements.areas.find((a) => a.id === area)?.name ?? "Document";
 
   return (
     <>
@@ -63,11 +64,28 @@ export default async function EvaluationDetailPage({
           programId={detail.programId}
           levelId={detail.levelId}
           submissionId={detail.submissionId}
+          programs={[
+            {
+              slug: detail.programId,
+              label: detail.program,
+              college: detail.college,
+              campus: detail.campus,
+              href: `${closeHref}?modal=add&area=${area}`,
+            },
+          ]}
+          currentProgram={detail.programId}
           slots={[
-            { key: "document", label: "Document", required: true, requirementAreaId: area },
+            {
+              key: "document",
+              label: "Document",
+              documentName: areaName,
+              required: true,
+              requirementAreaId: area,
+            },
             {
               key: "additional",
               label: "Additional Document (Optional)",
+              documentName: `${areaName} - Additional Document`,
               requirementAreaId: area,
             },
           ]}

@@ -1,7 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { getMyPrograms } from "@/lib/submissions";
 import { getMonthEvents } from "@/lib/events";
-import type { DocStatus, MeetingKind, Stat, StatusBar, Upload } from "@/components/portal/kit";
+import type {
+  DocStatus,
+  MeetingKind,
+  Stat,
+  StatusBar,
+  Upload,
+  UploadLogEntry,
+} from "@/components/portal/kit";
 
 /**
  * Reads behind the three role dashboards (B9). Scoped by RLS throughout, same
@@ -205,12 +212,12 @@ export async function getReportsStats(): Promise<Stat[]> {
  * Program Representative
  * ---------------------------------------------------------------------- */
 
+export type RecentUploads = { list: Upload[]; log: UploadLogEntry[] };
+
 export type RepDashboard = {
   stats: Stat[];
   docStatus: StatusBar[];
   docStatusMax: number;
-  recentUploads: Upload[];
-  ongoing: { id: string; program: string; level: string; accreditor: string }[];
 };
 
 const EMPTY_REP_DASHBOARD: RepDashboard = {
@@ -227,8 +234,6 @@ const EMPTY_REP_DASHBOARD: RepDashboard = {
     { status: "disapproved", value: 0 },
   ],
   docStatusMax: 1,
-  recentUploads: [],
-  ongoing: [],
 };
 
 /**
@@ -267,7 +272,6 @@ export async function getRepDashboard(): Promise<RepDashboard> {
   const programs = await getMyPrograms();
   const programIds = programs.map((p) => p.id);
   if (programIds.length === 0) return EMPTY_REP_DASHBOARD;
-  const programSet = new Set(programIds);
 
   const { data: programRows } = await supabase
     .from("programs")
@@ -308,10 +312,6 @@ export async function getRepDashboard(): Promise<RepDashboard> {
   ]);
 
   const submissionIds = (submissions ?? []).map((s) => s.id);
-  const submissionLocation = new Map(
-    (submissions ?? []).map((s) => [s.id, { programId: s.program_id, levelId: s.level_id }]),
-  );
-  const slugByProgramId = new Map(programs.map((p) => [p.id, p.slug]));
 
   const { data: readinessRows } = submissionIds.length
     ? await supabase
@@ -328,23 +328,10 @@ export async function getRepDashboard(): Promise<RepDashboard> {
   const { data: docs } = submissionIds.length
     ? await supabase
         .from("submission_documents")
-        .select(
-          "id, title, uploaded_at, uploaded_by(surname, given_name), submission_id, phase_document_id, requirement_area_id",
-        )
+        .select("id")
         .in("submission_id", submissionIds)
         .eq("is_current", true)
-        .order("uploaded_at", { ascending: false })
-    : {
-        data: [] as {
-          id: string;
-          title: string;
-          uploaded_at: string;
-          uploaded_by: { surname: string; given_name: string } | null;
-          submission_id: string;
-          phase_document_id: string | null;
-          requirement_area_id: string | null;
-        }[],
-      };
+    : { data: [] as { id: string }[] };
 
   const docIds = (docs ?? []).map((d) => d.id);
 
@@ -369,43 +356,6 @@ export async function getRepDashboard(): Promise<RepDashboard> {
     else pending++;
   }
 
-  const recentUploads: Upload[] = (docs ?? []).slice(0, 4).map((d) => ({
-    id: d.id,
-    title: d.title,
-    uploadedBy: d.uploaded_by ? `${d.uploaded_by.given_name} ${d.uploaded_by.surname}` : "—",
-    when: relativeTime(d.uploaded_at),
-    href: recentUploadHref(d, submissionLocation, slugByProgramId),
-    status: (decisionById.get(d.id) ?? "pending") as DocStatus,
-    kind: "file",
-  }));
-
-  const { data: assignments } = await supabase
-    .from("assignments")
-    .select(
-      `id, status,
-       submissions(program_id, programs(name), accreditation_levels(name)),
-       assignment_accreditors(response, profiles(surname, given_name))`,
-    )
-    .neq("status", "score_returned")
-    .order("created_at", { ascending: false });
-
-  const ongoing = (assignments ?? [])
-    .filter((a) => {
-      const pid = a.submissions?.program_id;
-      return pid ? programSet.has(pid) : false;
-    })
-    .slice(0, 5)
-    .map((a) => ({
-      id: a.id,
-      program: a.submissions?.programs?.name ?? "—",
-      level: a.submissions?.accreditation_levels?.name ?? "—",
-      accreditor:
-        (a.assignment_accreditors ?? [])
-          .map((m) => (m.profiles ? `${m.profiles.surname}, ${m.profiles.given_name}` : null))
-          .filter((n): n is string => Boolean(n))
-          .join("; ") || "—",
-    }));
-
   return {
     stats: [
       { label: "COMPLETION RATE", value: `${completionRate}%`, note },
@@ -420,9 +370,93 @@ export async function getRepDashboard(): Promise<RepDashboard> {
       { status: "disapproved", value: disapproved },
     ],
     docStatusMax: Math.max(approved, pending, disapproved, 1),
-    recentUploads,
-    ongoing,
   };
+}
+
+/**
+ * The newest current documents the caller can see — RLS alone scopes it: a rep
+ * sees their programmes', an accreditor their assigned submissions', QAC all.
+ * `withRepLinks` adds the rep's own submission-slot link to each row.
+ */
+export async function getRecentUploads(
+  { withRepLinks = false, limit = 50 }: { withRepLinks?: boolean; limit?: number } = {},
+): Promise<RecentUploads> {
+  const supabase = await createClient();
+
+  const { data: docs } = await supabase
+    .from("submission_documents")
+    .select(
+      `id, title, uploaded_at, submission_id, phase_document_id, requirement_area_id,
+       uploaded_by(surname, given_name),
+       submissions(program_id, level_id, programs(name), accreditation_levels(code))`,
+    )
+    .eq("is_current", true)
+    .order("uploaded_at", { ascending: false })
+    .limit(limit);
+
+  const rows = docs ?? [];
+  const ids = rows.map((d) => d.id);
+
+  const [{ data: statuses }, programs] = await Promise.all([
+    ids.length
+      ? supabase
+          .from("submission_document_status")
+          .select("submission_document_id, decision")
+          .in("submission_document_id", ids)
+      : Promise.resolve({
+          data: [] as { submission_document_id: string | null; decision: DocStatus | null }[],
+        }),
+    withRepLinks ? getMyPrograms() : Promise.resolve([]),
+  ]);
+
+  const decisionById = new Map(
+    (statuses ?? []).map((s) => [s.submission_document_id, s.decision ?? "pending"]),
+  );
+  const slugByProgramId = new Map(programs.map((p) => [p.id, p.slug]));
+  const submissionLocation = new Map(
+    rows
+      .filter((d) => d.submissions)
+      .map((d) => [
+        d.submission_id,
+        { programId: d.submissions!.program_id, levelId: d.submissions!.level_id },
+      ]),
+  );
+
+  const list: Upload[] = [];
+  const log: UploadLogEntry[] = [];
+  for (const d of rows) {
+    const status = (decisionById.get(d.id) ?? "pending") as DocStatus;
+    const who = d.uploaded_by ? `${d.uploaded_by.given_name} ${d.uploaded_by.surname}` : "—";
+    const href = withRepLinks ? recentUploadHref(d, submissionLocation, slugByProgramId) : undefined;
+    list.push({
+      id: d.id,
+      title: d.title,
+      uploadedBy: who,
+      when: relativeTime(d.uploaded_at),
+      href,
+      status,
+      kind: "file",
+    });
+    log.push({
+      id: d.id,
+      program: d.submissions?.programs?.name ?? "—",
+      level: d.submissions?.accreditation_levels?.code ?? "—",
+      modifiedBy: who,
+      timestamp: new Date(d.uploaded_at).toLocaleString("en-US", {
+        timeZone: MANILA,
+        month: "short",
+        day: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }),
+      status,
+      href,
+    });
+  }
+
+  return { list, log };
 }
 
 /* --------------------------------------------------------------------------

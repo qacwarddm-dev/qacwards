@@ -72,7 +72,12 @@ export default async function SubmissionPage({
         levelId={levelId ?? undefined}
         areaId={typeof params.area === "string" ? params.area : undefined}
         data={{
-          programs: programs.map((p) => ({ slug: p.slug, label: p.label })),
+          programs: programs.map((p) => ({
+            slug: p.slug,
+            label: p.label,
+            college: p.college,
+            campus: p.campus,
+          })),
           levels: levels.map((l) => ({
             levelId: l.levelId,
             label: l.label,

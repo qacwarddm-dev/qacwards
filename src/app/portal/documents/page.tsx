@@ -4,7 +4,7 @@ import ProgramRepDocuments, {
 import { requireCurrentUser } from "@/lib/current-user";
 import { CoverCard } from "@/components/portal/kit";
 import { DOC_COVER_PREVIEW } from "@/components/portal/data";
-import { getCommonDocuments, getRepositoryFiles, getRepositoryFolders, hasNda } from "@/lib/documents";
+import { getCommonDocuments, getRepFolders, getRepositoryFiles, hasNda } from "@/lib/documents";
 import { getMyPrograms } from "@/lib/submissions";
 
 /** Documents landing — assets/FIGMA/qac_personnel/02-Documents.png */
@@ -26,29 +26,44 @@ export default async function DocumentsPage({
   if (user.role === "program_representative") {
     const activeTab = TABS.includes(tab as DocsTab) ? (tab as DocsTab) : "templates";
 
-    // `?nda=1` used to fake the unlocked state for the static screens. The real
-    // answer is a row in `ndas`, and the query param is gone — a URL cannot let
-    // anyone past the gate, which was always an RLS policy underneath.
     void nda;
     const ndaSigned = activeTab === "common" ? await hasNda() : false;
     const commonDocuments = ndaSigned ? await getCommonDocuments() : [];
 
-    let repositoryFiles: { id: string; title: string }[] = [];
-    if (activeTab === "reports" && folder) {
-      const [programs, folders] = await Promise.all([
-        getMyPrograms(),
-        getRepositoryFolders(null),
-      ]);
-      const folderRow = folders.find((f) => f.slug === folder);
+    let reports;
+    if (activeTab === "reports") {
       // A representative can hold several programmes; the repository tree is
       // per programme, so this shows the first until the picker lands.
-      const programId = programs[0]?.id ?? null;
-      if (folderRow && programId) {
-        repositoryFiles = (await getRepositoryFiles(programId, folderRow.id)).map((f) => ({
+      const programId = (await getMyPrograms())[0]?.id ?? null;
+      const folders = programId ? await getRepFolders(programId) : [];
+      const current = folders.find((f) => f.slug === folder) ?? null;
+      const files =
+        current && programId ? await getRepositoryFiles(programId, current.id) : [];
+
+      reports = {
+        programId,
+        folders: folders.map((f) => ({
+          id: f.id,
+          slug: f.slug,
+          name: f.displayName,
+          fileCount: f.fileCount,
+          lastModified: f.lastModified,
+        })),
+        folder: current && {
+          id: current.id,
+          slug: current.slug,
+          name: current.displayName,
+          fileCount: current.fileCount,
+          lastModified: current.lastModified,
+        },
+        files: files.map((f) => ({
           id: f.id,
           title: f.title,
-        }));
-      }
+          owner: f.ownerName,
+          createdAt: f.created_at,
+          size: f.file_size,
+        })),
+      };
     }
 
     return (
@@ -58,9 +73,8 @@ export default async function DocumentsPage({
           tab={activeTab}
           level={level}
           ndaSigned={ndaSigned}
-          folder={folder}
           commonDocuments={commonDocuments.map((d) => ({ id: d.id, title: d.title }))}
-          repositoryFiles={repositoryFiles}
+          reports={reports}
         />
       </>
     );

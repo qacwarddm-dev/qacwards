@@ -10,7 +10,7 @@ import {
   Stepper,
   type StatusKey,
 } from "../kit";
-import SubmissionUploadModal, { type UploadSlot } from "./SubmissionUploadModal";
+import SubmissionUploadModal, { type ProgramChoice, type UploadSlot } from "./SubmissionUploadModal";
 
 /**
  * Program Representative → Submission. One screen, query-param states:
@@ -52,7 +52,12 @@ export type SubmissionView = "levels" | "phases" | "requirements";
  * keeping the screen presentational — the swap is a page-level change, and every
  * measured piece of geometry here is untouched by it.
  */
-export type SubmissionProgram = { slug: string; label: string };
+export type SubmissionProgram = {
+  slug: string;
+  label: string;
+  college: string | null;
+  campus: string | null;
+};
 
 export type SubmissionLevel = {
   levelId: string;
@@ -248,7 +253,13 @@ function PhasesPanel({
               />
               {open && unlocked && (
                 <div className="pl-[43px] pr-[58px]">
-                  <Stepper steps={PR_PHASE_STEPS} variant="levels" />
+                  <Stepper
+                    steps={PR_PHASE_STEPS.map((step, i) =>
+                      i === 1 ? { ...step, done: p.percent === 100 } : step,
+                    )}
+                    variant="levels"
+                    legend
+                  />
                 </div>
               )}
             </div>
@@ -343,6 +354,15 @@ export default function ProgramRepSubmissions({
 
   const currentLevel = data.levels.find((l) => l.levelId === levelId);
   const levelParam = levelId ? `&level=${levelId}` : "";
+  const modalQuery = (slug: string) =>
+    view === "phases"
+      ? `/portal/submission?program=${slug}&view=phases${levelParam}${phase ? `&phase=${phase}` : ""}&modal=add`
+      : `/portal/submission?program=${slug}&view=requirements${levelParam}&modal=add&area=${areaId ?? ""}`;
+  const programChoices: ProgramChoice[] = data.programs.map((p) => ({
+    ...p,
+    href: modalQuery(p.slug),
+  }));
+  const currentArea = data.areas.find((a) => a.id === areaId);
   const levelsHref = `/portal/submission?program=${program}`;
   const phasesHref = `/portal/submission?program=${program}&view=phases${levelParam}`;
 
@@ -406,10 +426,13 @@ export default function ProgramRepSubmissions({
           programId={programId}
           levelId={levelId}
           submissionId={currentLevel?.submissionId ?? null}
+          programs={programChoices}
+          currentProgram={program}
           slots={(data.phases.find((p) => p.ordinal === (phase ?? 1))?.documents ?? []).map(
             (d): UploadSlot => ({
               key: d.id,
               label: d.name,
+              documentName: d.name,
               required: true,
               phaseDocumentId: d.id,
             }),
@@ -423,11 +446,20 @@ export default function ProgramRepSubmissions({
           programId={programId}
           levelId={levelId}
           submissionId={currentLevel?.submissionId ?? null}
+          programs={programChoices}
+          currentProgram={program}
           slots={[
-            { key: "document", label: "Document", required: true, requirementAreaId: areaId },
+            {
+              key: "document",
+              label: "Document",
+              documentName: currentArea?.name ?? "Document",
+              required: true,
+              requirementAreaId: areaId,
+            },
             {
               key: "additional",
               label: "Additional Document (Optional)",
+              documentName: `${currentArea?.name ?? "Document"} - Additional Document`,
               requirementAreaId: areaId,
             },
           ]}

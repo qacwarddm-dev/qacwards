@@ -68,7 +68,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
 
-  const signed = await signedUrl(supabase, bucket as BucketName, row.storage_path);
+  const asAttachment = request.nextUrl.searchParams.get("download") === "1";
+  const signed = await signedUrl(
+    supabase,
+    bucket as BucketName,
+    row.storage_path,
+    undefined,
+    asAttachment,
+  );
   if (signed.data === null) {
     return NextResponse.json({ error: signed.error }, { status: 500 });
   }

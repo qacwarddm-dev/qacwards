@@ -63,10 +63,11 @@ export async function signedUrl(
   bucket: BucketName,
   path: string,
   expiresIn: number = SIGNED_URL_TTL_SECONDS,
+  download?: string | boolean,
 ): Promise<StorageResult<string>> {
   const { data, error } = await supabase.storage
     .from(bucket)
-    .createSignedUrl(path, expiresIn);
+    .createSignedUrl(path, expiresIn, download ? { download } : undefined);
 
   if (error) return { data: null, error: error.message };
   return { data: data.signedUrl, error: null };

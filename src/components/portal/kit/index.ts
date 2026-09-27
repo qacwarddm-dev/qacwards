@@ -4,6 +4,7 @@
  * components own their own spacing, radius, colour and type.
  */
 export { default as AccreditorPicker } from "./AccreditorPicker";
+export { default as ActionMenu, type MenuItem } from "./ActionMenu";
 export { default as Alert, type AlertTone } from "./Alert";
 export { default as AvatarStack, type AvatarPerson } from "./AvatarStack";
 export { default as BackLink } from "./BackLink";
@@ -43,6 +44,7 @@ export {
 } from "./Field";
 export { default as ExpertisePicker } from "./ExpertisePicker";
 export { default as FilterBar, type FilterSpec } from "./FilterBar";
+export { default as FileList, type FileListEntry } from "./FileList";
 export { default as FolderCard } from "./FolderCard";
 export { default as FolderGrid, type FolderEntry } from "./FolderGrid";
 export { default as MiniCalendar, type MeetingKind } from "./MiniCalendar";
@@ -59,6 +61,8 @@ export { default as PanelHeader } from "./PanelHeader";
 export { default as PortalPage } from "./PortalPage";
 export { default as PdfChip } from "./PdfChip";
 export { default as ProgressRow } from "./ProgressRow";
+export { default as RecentUploads } from "./RecentUploads";
+export { default as RecentUploadsDialog, type UploadLogEntry } from "./RecentUploadsDialog";
 export { default as RadialProgress } from "./RadialProgress";
 export { default as RowList } from "./RowList";
 export { default as SearchField } from "./SearchField";
@@ -66,6 +70,12 @@ export { default as SectionHeading } from "./SectionHeading";
 export { default as SignatureBlock } from "./SignatureBlock";
 export { default as SignaturePad, type SignatureMode } from "./SignaturePad";
 export { default as Skeleton } from "./Skeleton";
+export {
+  default as SortMenu,
+  type SortDir,
+  type SortKey,
+  type SortState,
+} from "./SortMenu";
 export { default as Spinner } from "./Spinner";
 export { default as StarRating } from "./StarRating";
 export { default as StatCard, StatRow, type Stat } from "./StatCard";
@@ -74,6 +84,8 @@ export { default as StatusPill, type DocStatus } from "./StatusPill";
 export { STATUS, type StatusKey, type StatusTone } from "./status";
 export { default as Stepper, type Step } from "./Stepper";
 export { default as ToastProvider, useToast, type Toast } from "./ToastProvider";
+export { default as UpcomingSchedule, type ScheduleEntry } from "./UpcomingSchedule";
 export { default as UploadList, type Upload } from "./UploadList";
+export { default as ViewAllLink } from "./ViewAllLink";
 export { default as ViewToggle, type BrowserView } from "./ViewToggle";
 export { default as VisuallyHidden } from "./VisuallyHidden";

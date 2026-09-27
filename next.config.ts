@@ -6,6 +6,12 @@ const nextConfig: NextConfig = {
   // Lets HMR's websocket through when the dev server is reached over LAN
   // (phone/tablet testing) instead of localhost.
   allowedDevOrigins: ["192.168.100.49"],
+  // Bundled, pdfjs looks for pdf.worker.mjs beside its chunk and fails with
+  // "Setting up fake worker failed" inside server actions.
+  serverExternalPackages: ["pdf-parse", "pdfjs-dist"],
+  outputFileTracingIncludes: {
+    "/api/documents/nda-template": ["./templates/qac-nda.pdf"],
+  },
   // `/portal/settings` -> `/portal/settings/cycles` used to be a page
   // component whose entire body was `redirect()`. Next 16's dev-mode RSC
   // performance instrumentation throws `cannot have a negative time stamp`

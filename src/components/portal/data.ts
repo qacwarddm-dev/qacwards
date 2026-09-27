@@ -301,14 +301,15 @@ export const PR_COMMON_DOCUMENTS = Array.from({ length: 12 }, () => "Document Na
  * 05-AccreditationFiles.png. The artwork is lifted from the frame at 2x —
  * folder and seal are one image because they are one drawing in the prototype.
  */
-export const PR_ACCREDITATION_FOLDERS = [
-  { label: "AACCUP Certificate", art: "/assets/portal/folders/aaccup-certificate.png" },
-  { label: "AACCUP Summary of Findings and Recommendation", art: "/assets/portal/folders/aaccup-summary.png" },
-  { label: "AACCUP Technical Review", art: "/assets/portal/folders/aaccup-technical-review.png" },
-  { label: "Certificate of Compliance (COPC) Certificate", art: "/assets/portal/folders/copc-certificate.png" },
-  { label: "Certificate of Compliance (COPC) Evaluation", art: "/assets/portal/folders/copc-evaluation.png" },
-  { label: "Other Files", art: "/assets/portal/folders/other-files.png" },
-];
+/** Folder art per `repository_folders.slug` (supabase/seed.sql). */
+export const PR_ACCREDITATION_FOLDER_ART: Record<string, string> = {
+  "aaccup-certificate": "/assets/portal/folders/aaccup-certificate.png",
+  "aaccup-summary-of-findings-and-recommendation": "/assets/portal/folders/aaccup-summary.png",
+  "aaccup-technical-review": "/assets/portal/folders/aaccup-technical-review.png",
+  "certificate-of-compliance-copc-certificate": "/assets/portal/folders/copc-certificate.png",
+  "certificate-of-compliance-copc-evaluation": "/assets/portal/folders/copc-evaluation.png",
+  "other-files": "/assets/portal/folders/other-files.png",
+};
 
 /* ---------------------------------------------------------------------------
  * internal_accreditor — assets/FIGMA/internal_accreditor/

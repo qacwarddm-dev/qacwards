@@ -793,23 +793,74 @@ export type Database = {
           },
         ]
       }
+      nda_issuances: {
+        Row: {
+          file_id: string
+          issued_at: string
+          profile_id: string
+        }
+        Insert: {
+          file_id: string
+          issued_at?: string
+          profile_id: string
+        }
+        Update: {
+          file_id?: string
+          issued_at?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nda_issuances_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ndas: {
         Row: {
+          file_id: string | null
+          notary_attorney: string | null
+          notary_book_no: string | null
+          notary_doc_no: string | null
+          notary_page_no: string | null
+          notary_series: number | null
           profile_id: string
           storage_path: string
           uploaded_at: string
         }
         Insert: {
+          file_id?: string | null
+          notary_attorney?: string | null
+          notary_book_no?: string | null
+          notary_doc_no?: string | null
+          notary_page_no?: string | null
+          notary_series?: number | null
           profile_id: string
           storage_path: string
           uploaded_at?: string
         }
         Update: {
+          file_id?: string | null
+          notary_attorney?: string | null
+          notary_book_no?: string | null
+          notary_doc_no?: string | null
+          notary_page_no?: string | null
+          notary_series?: number | null
           profile_id?: string
           storage_path?: string
           uploaded_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ndas_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "nda_issuances"
+            referencedColumns: ["file_id"]
+          },
           {
             foreignKeyName: "ndas_profile_id_fkey"
             columns: ["profile_id"]
@@ -1217,6 +1268,42 @@ export type Database = {
           route?: string
         }
         Relationships: []
+      }
+      repository_folder_prefs: {
+        Row: {
+          display_name: string | null
+          folder_id: string
+          hidden: boolean
+          program_id: string
+        }
+        Insert: {
+          display_name?: string | null
+          folder_id: string
+          hidden?: boolean
+          program_id: string
+        }
+        Update: {
+          display_name?: string | null
+          folder_id?: string
+          hidden?: boolean
+          program_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "repository_folder_prefs_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "repository_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repository_folder_prefs_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       repository_files: {
         Row: {
@@ -1865,6 +1952,7 @@ export type Database = {
         | "event_scheduled"
         | "award_expiring"
         | "account"
+        | "document_uploaded"
       position_scope: "program" | "qac"
       submission_status:
         | "not_started"
@@ -2039,6 +2127,7 @@ export const Constants = {
         "event_scheduled",
         "award_expiring",
         "account",
+        "document_uploaded",
       ],
       position_scope: ["program", "qac"],
       submission_status: [

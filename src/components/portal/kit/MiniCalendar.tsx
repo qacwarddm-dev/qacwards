@@ -25,6 +25,7 @@ export type MiniCalendarProps = {
   /** Where clicking a marked day navigates — a day with no entry here (or no
    *  mark at all) renders as plain, unclickable text. */
   hrefs?: Record<number, string>;
+  radius?: 10 | 20;
 };
 
 /**
@@ -37,7 +38,13 @@ export type MiniCalendarProps = {
  * Days before `today` render dimmed. That is the rule the frame implies — it
  * draws "1" grey while 2..7 are black, with 2 circled as today.
  */
-export default function MiniCalendar({ month, today, marks = {}, hrefs = {} }: MiniCalendarProps) {
+export default function MiniCalendar({
+  month,
+  today,
+  marks = {},
+  hrefs = {},
+  radius = 20,
+}: MiniCalendarProps) {
   const year = month.getFullYear();
   const m = month.getMonth();
   const daysInMonth = new Date(year, m + 1, 0).getDate();
@@ -51,7 +58,7 @@ export default function MiniCalendar({ month, today, marks = {}, hrefs = {} }: M
   while (cells.length % 7 !== 0) cells.push({ day: cells.length - lead - daysInMonth + 1, inMonth: false });
 
   return (
-    <div className="flex h-[294px] w-full max-w-[450px] flex-col rounded-[20px] border border-maroon bg-white px-[20px] pt-[25px]">
+    <div className={`flex h-[294px] w-full max-w-[450px] flex-col ${radius === 10 ? "rounded-md" : "rounded-[20px]"} border border-maroon bg-white px-[20px] pt-[25px]`}>
       <h3 className="text-subheading font-semibold leading-none text-black">
         {month.toLocaleDateString("en-US", { month: "long" })}
       </h3>

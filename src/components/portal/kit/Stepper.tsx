@@ -46,9 +46,12 @@ const VARIANTS = {
 export default function Stepper({
   steps,
   variant = "assignment",
+  legend = false,
 }: {
   steps: Step[];
   variant?: keyof typeof VARIANTS;
+  /** Key under the track explaining yellow (done) vs grey (pending). */
+  legend?: boolean;
 }) {
   const v = VARIANTS[variant];
   const last = steps.length - 1;
@@ -57,7 +60,7 @@ export default function Stepper({
   const at = (i: number) => (last > 0 ? (i / last) * 100 : 0);
   const trackTop = v.dotTop + (v.dot - 8) / 2;
 
-  return (
+  const track = (
     <div className="relative" style={{ marginInline: v.dot / 2, height: v.height }}>
       <div
         className={`absolute inset-x-0 h-[8px] rounded-full ${v.idle}`}
@@ -86,6 +89,24 @@ export default function Stepper({
           </span>
         </div>
       ))}
+    </div>
+  );
+
+  if (!legend) return track;
+
+  return (
+    <div>
+      {track}
+      <div className="flex items-center justify-center gap-[22px] pb-[14px] text-regular leading-none text-black">
+        <span className="flex items-center gap-[8px]">
+          <span className="h-[11px] w-[11px] rounded-full bg-yellow" aria-hidden />
+          Completed
+        </span>
+        <span className="flex items-center gap-[8px]">
+          <span className={`h-[11px] w-[11px] rounded-full ${v.idle}`} aria-hidden />
+          Pending
+        </span>
+      </div>
     </div>
   );
 }

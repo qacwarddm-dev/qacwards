@@ -1,0 +1,112 @@
+Problem-Requirements Matrix
+
+Problem Requirements
+
+The accreditation process relies on
+manual review of submitted documents,
+resulting in lengthy evaluation
+procedures.
+
+The system shall provide a digital
+evaluation module that enables
+evaluators to review, assess, and record
+evaluation results within the system.
+
+Accreditation documents are stored
+across multiple locations, making
+document retrieval and management
+inefficient.
+
+The system shall provide a centralized
+repository for accreditation-related
+documents and records
+
+The absence of document tracking
+mechanisms makes it difficult to monitor
+document updates and submission
+history.
+
+The system shall provide document
+tracking and activity logging functionalities
+to monitor document submissions and
+updates.
+
+Duplicate submission of accreditation
+documents leads to redundant records
+and inefficient storage management.
+
+The system shall provide mechanisms for
+managing duplicate submissions and
+maintaining document consistency.
+
+Program representatives repeatedly
+upload the same accreditation documents
+for succeeding accreditation cycles.
+
+The system shall allow the reuse of
+previously approved accreditation
+documents when applicable.
+
+Administrators experience difficulty
+monitoring accreditation progress and
+readiness status.
+
+The system shall include real-time
+accreditation progress tracking and an
+automated analytics dashboard to
+calculate readiness percentages.
+
+24
+
+Continuation of Table 4
+
+Problem Requirements
+
+Internal evaluators must type remarks into
+external documents and email them back
+and forth, resulting in a disconnected
+feedback loop.
+
+The system shall provide a native
+evaluation form with real-time text entries
+and direct feedback routing to eliminate
+external manual loops.
+
+Forcing users to register separate,
+isolated credentials creates password
+fatigue and expands duplicate databases.
+
+The system shall connect with the official
+PUP Single Sign-On (SSO) portal to
+authenticate users through existing
+university accounts.
+
+Managing accounts through
+over-complicated paper workflows
+requires users to scan signed physical
+letters just to secure basic system sign-up
+approvals.
+
+The system shall simplify account
+provisioning by granting automatic,
+pre-defined user access managed directly
+by QAC administrative tools.
+
+Manual handling of deadlines, evaluation
+timelines, and core activities leads to
+communication bottlenecks and missed
+milestones.
+
+The system shall feature an integrated
+events scheduling module with automated
+email notifications and system alert
+triggers.
+
+Important university accreditation records
+are at risk of permanent loss due to a lack
+of structural data backup systems.
+
+The system shall implement automated
+backup routines and secure cloud
+recovery protocols for file preservation
+and permanent data security.

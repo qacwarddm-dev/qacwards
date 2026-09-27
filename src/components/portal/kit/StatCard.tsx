@@ -16,10 +16,18 @@ export type Stat = {
  * same `Stat` shape, no shadow/trend, a much larger maroon value. Added as a
  * variant rather than a fork per the kit rule: same data, different look.
  */
-export default function StatCard({ label, value, note, trend, variant = "card" }: Stat & { variant?: "card" | "outline" }) {
+export default function StatCard({
+  label,
+  value,
+  note,
+  trend,
+  variant = "card",
+  radius = 8,
+}: Stat & { variant?: "card" | "outline"; radius?: 8 | 10 }) {
+  const shape = radius === 10 ? "rounded-md" : "rounded-lg";
   if (variant === "outline") {
     return (
-      <article className="flex-1 rounded-lg border border-[color:var(--color-gray)]/20 px-[20px] py-[20px] text-center">
+      <article className={`flex-1 ${shape} border border-[color:var(--color-gray)]/20 px-[20px] py-[20px] text-center`}>
         <h2 className="text-regular font-semibold uppercase leading-none text-gray">{label}</h2>
         <p className="mt-[14px] text-title font-bold leading-none text-maroon">{value}</p>
         <p className="mt-[10px] text-regular leading-none text-gray">{note}</p>
@@ -28,7 +36,7 @@ export default function StatCard({ label, value, note, trend, variant = "card" }
   }
 
   return (
-    <article className="h-[104px] flex-1 rounded-lg bg-white px-[20px] pt-[16px] shadow-card">
+    <article className={`h-[104px] flex-1 ${shape} bg-white px-[20px] pt-[16px] shadow-card`}>
       <h2 className="text-regular leading-none text-gray">{label}</h2>
       <p className="mt-[13px] text-heading font-bold leading-none">{value}</p>
       <p className="-ml-[4px] mt-[10px] flex h-[22px] items-center gap-[4px] text-regular leading-none">
@@ -54,15 +62,17 @@ export function StatRow({
   stats,
   gap = 14,
   variant,
+  radius,
 }: {
   stats: Stat[];
   gap?: number;
   variant?: "card" | "outline";
+  radius?: 8 | 10;
 }) {
   return (
     <div className="flex" style={{ gap }}>
       {stats.map((s) => (
-        <StatCard key={s.label} {...s} variant={variant} />
+        <StatCard key={s.label} {...s} variant={variant} radius={radius} />
       ))}
     </div>
   );

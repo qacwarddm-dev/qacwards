@@ -9,7 +9,13 @@ import { createClient } from "@/lib/supabase/server";
  * filtered list (§1). The queries below therefore look unguarded and are not.
  */
 
-export type ProgramOption = { id: string; slug: string; label: string };
+export type ProgramOption = {
+  id: string;
+  slug: string;
+  label: string;
+  college: string | null;
+  campus: string | null;
+};
 
 /** Slug is derived, not stored — the built screen keys its URLs on one, and the
  *  programmes table has no slug column because programme names are not unique
@@ -28,13 +34,19 @@ export async function getMyPrograms(): Promise<ProgramOption[]> {
 
   const { data } = await supabase
     .from("program_reps")
-    .select("programs(id, name)")
+    .select("programs(id, name, colleges(name), campuses(name))")
     .order("program_id");
 
   return (data ?? [])
     .map((row) => row.programs)
-    .filter((p): p is { id: string; name: string } => Boolean(p))
-    .map((p) => ({ id: p.id, slug: programSlug(p.id, p.name), label: p.name }));
+    .filter((p) => p !== null)
+    .map((p) => ({
+      id: p.id,
+      slug: programSlug(p.id, p.name),
+      label: p.name,
+      college: p.colleges?.name ?? null,
+      campus: p.campuses?.name ?? null,
+    }));
 }
 
 export type LevelReadiness = {

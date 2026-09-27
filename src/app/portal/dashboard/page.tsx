@@ -7,6 +7,7 @@ import {
   getMiniCalendarData,
   getOngoingAccreditations,
   getQacDashboard,
+  getRecentUploads,
   getRepDashboard,
   getUpcomingSchedule,
 } from "@/lib/dashboards";
@@ -20,28 +21,56 @@ import { requireCurrentUser } from "@/lib/current-user";
  * Screens live in `components/portal/screens/` and are presentational — this
  * is the fetching half (B9), same split as `/portal/submission`.
  */
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ uploads?: string }>;
+}) {
   const user = await requireCurrentUser();
+  const uploadsOpen = (await searchParams).uploads === "all";
 
   if (user.role === "program_representative") {
-    const [data, calendar] = await Promise.all([getRepDashboard(), getMiniCalendarData()]);
-    return <ProgramRepDashboard data={data} calendar={calendar} />;
-  }
-
-  if (user.role === "internal_accreditor") {
-    const [data, schedule, calendar] = await Promise.all([
-      getIaDashboard(user.id),
+    const [data, uploads, schedule, calendar] = await Promise.all([
+      getRepDashboard(),
+      getRecentUploads({ withRepLinks: true }),
       getUpcomingSchedule(),
       getMiniCalendarData(),
     ]);
-    return <InternalAccreditorDashboard data={data} schedule={schedule} calendar={calendar} />;
+    return (
+      <ProgramRepDashboard
+        data={data}
+        uploads={uploads}
+        uploadsOpen={uploadsOpen}
+        schedule={schedule}
+        calendar={calendar}
+      />
+    );
   }
 
-  const [data, ongoing, evaluationProgress, schedule, calendar] = await Promise.all([
+  if (user.role === "internal_accreditor") {
+    const [data, schedule, uploads, calendar] = await Promise.all([
+      getIaDashboard(user.id),
+      getUpcomingSchedule(),
+      getRecentUploads(),
+      getMiniCalendarData(),
+    ]);
+    return (
+      <InternalAccreditorDashboard
+        data={data}
+        schedule={schedule}
+        uploads={uploads}
+        uploadsOpen={uploadsOpen}
+        calendar={calendar}
+      />
+    );
+  }
+
+  const [data, ongoing, evaluationProgress, schedule, uploads, calendar] = await Promise.all([
     getQacDashboard(),
     getOngoingAccreditations(),
     getEvaluationProgressAll(),
     getUpcomingSchedule(),
+    getRecentUploads(),
     getMiniCalendarData(),
   ]);
   return (
@@ -50,6 +79,8 @@ export default async function DashboardPage() {
       ongoing={ongoing}
       evaluationProgress={evaluationProgress}
       schedule={schedule}
+      uploads={uploads}
+      uploadsOpen={uploadsOpen}
       calendar={calendar}
     />
   );

@@ -1,54 +1,109 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Info } from "lucide-react";
+import { CircleCheck, Info } from "lucide-react";
 import { ensureSubmission } from "@/lib/submission-actions";
-import { Button, FieldLabel, Modal, SelectInput, TextInput } from "../kit";
+import { Button, FieldLabel, Modal, ReadOnlyValue, SelectInput, Spinner } from "../kit";
 
 /**
  * The upload half of the Add Document modals (07.6-Requirements-modal.png and
- * its Phases variant). B4 left the fields presentational with no submit path;
- * this is the client-side piece that was missing.
+ * its Phases variant).
  *
- * Client's call 2026-09-19: both variants get the same three buttons —
- * Cancel, Save Draft, Upload — replacing the old single Upload/Save button
- * that differed only in label between the two call sites. Save Draft uploads
- * whatever files are currently chosen without requiring every required slot
- * to be filled (there's no separate draft state to persist — an uploaded
- * document row already *is* the saved state, same as today). Upload does the
- * same POST but stays disabled until every required slot has a file, so it
- * only ever fires when the "full" submission is actually complete.
+ * Client revision 2026-09-27: no Save Draft — a file saves the moment it is
+ * chosen, so Upload only closes the dialog once every required slot is saved.
+ * The document name is fixed by the slot, not typed, so file names stay
+ * uniform across programmes.
  */
 export type UploadSlot = {
   key: string;
   label: string;
+  documentName: string;
   required?: boolean;
   phaseDocumentId?: string;
   requirementAreaId?: string;
 };
 
-type SlotState = { file: File | null; name: string; error: string | null };
+export type ProgramChoice = {
+  slug: string;
+  label: string;
+  college: string | null;
+  campus: string | null;
+  /** Where this same dialog lives for that programme. */
+  href: string;
+};
 
-function AssignmentFields() {
+type SlotState = {
+  fileName: string | null;
+  status: "idle" | "saving" | "saved" | "error";
+  error: string | null;
+};
+
+const NO_COLLEGE = "—";
+
+function uniq(values: string[]) {
+  return [...new Set(values)];
+}
+
+function AssignmentFields({
+  programs,
+  current,
+}: {
+  programs: ProgramChoice[];
+  current: ProgramChoice;
+}) {
+  const router = useRouter();
+  const [campus, setCampus] = useState(current.campus ?? NO_COLLEGE);
+  const [college, setCollege] = useState(current.college ?? NO_COLLEGE);
+
+  const inCampus = programs.filter((p) => (p.campus ?? NO_COLLEGE) === campus);
+  const inCollege = inCampus.filter((p) => (p.college ?? NO_COLLEGE) === college);
+
+  function go(p: ProgramChoice | undefined) {
+    if (p && p.slug !== current.slug) router.push(p.href, { scroll: false });
+  }
+
   return (
     <>
       <div>
         <FieldLabel>Campus</FieldLabel>
         <div className="mt-[10px]">
-          <SelectInput label="Campus" value="Sta. Mesa, Manila" />
+          <SelectInput
+            label="Campus"
+            options={uniq(programs.map((p) => p.campus ?? NO_COLLEGE))}
+            defaultValue={campus}
+            onSelect={(v) => {
+              setCampus(v);
+              const first = programs.find((p) => (p.campus ?? NO_COLLEGE) === v);
+              setCollege(first?.college ?? NO_COLLEGE);
+              go(first);
+            }}
+          />
         </div>
       </div>
       <div>
         <FieldLabel>Department</FieldLabel>
         <div className="mt-[10px]">
-          <SelectInput label="Department" value="College of Computer and Information Sciences" />
+          <SelectInput
+            label="Department"
+            options={uniq(inCampus.map((p) => p.college ?? NO_COLLEGE))}
+            defaultValue={college}
+            onSelect={(v) => {
+              setCollege(v);
+              go(inCampus.find((p) => (p.college ?? NO_COLLEGE) === v));
+            }}
+          />
         </div>
       </div>
       <div>
         <FieldLabel>Program</FieldLabel>
         <div className="mt-[10px]">
-          <SelectInput label="Program" value="Bachelor of Science in Information Technology" />
+          <SelectInput
+            label="Program"
+            options={inCollege.map((p) => p.label)}
+            defaultValue={inCollege.some((p) => p.slug === current.slug) ? current.label : undefined}
+            onSelect={(v) => go(inCollege.find((p) => p.label === v))}
+          />
         </div>
       </div>
     </>
@@ -58,11 +113,13 @@ function AssignmentFields() {
 function SlotField({
   slot,
   state,
-  onChange,
+  disabled,
+  onFile,
 }: {
   slot: UploadSlot;
   state: SlotState;
-  onChange: (next: Partial<SlotState>) => void;
+  disabled: boolean;
+  onFile: (file: File) => void;
 }) {
   const fileInputId = `upload-${slot.key}`;
 
@@ -73,17 +130,14 @@ function SlotField({
         {slot.required && <span className="text-regular font-semibold text-maroon">*</span>}
       </span>
       <div className="mt-[10px]">
-        <TextInput
-          label={slot.label}
-          placeholder="Document Name"
-          value={state.name}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange({ name: e.target.value })}
-        />
+        <ReadOnlyValue label={`${slot.label} document name`} value={slot.documentName} />
       </div>
       <div className="mt-[12px] flex items-center gap-[12px]">
         <label
           htmlFor={fileInputId}
-          className="flex h-[32px] shrink-0 cursor-pointer items-center rounded-full border border-maroon px-[16px] text-regular font-semibold leading-none text-maroon transition-opacity hover:opacity-80"
+          className={`flex h-[32px] shrink-0 items-center rounded-full border border-maroon px-[16px] text-regular font-semibold leading-none text-maroon transition-opacity hover:opacity-80 ${
+            disabled ? "pointer-events-none opacity-50" : "cursor-pointer"
+          }`}
         >
           Choose file
         </label>
@@ -92,23 +146,28 @@ function SlotField({
           type="file"
           accept="application/pdf"
           className="sr-only"
+          disabled={disabled}
           onChange={(e) => {
-            const file = e.target.files?.[0] ?? null;
-            onChange({
-              file,
-              name: state.name || file?.name.replace(/\.pdf$/i, "") || "",
-              error: null,
-            });
+            const file = e.target.files?.[0];
+            if (file) onFile(file);
+            e.target.value = "";
           }}
         />
-        <span className="truncate text-regular leading-none text-gray">
-          {state.file?.name ?? "No file chosen"}
+        <span className="min-w-0 truncate text-regular leading-none text-gray">
+          {state.fileName ?? "No file chosen"}
         </span>
+        {state.status === "saving" && <Spinner size={16} label="Saving" />}
+        {state.status === "saved" && (
+          <span className="flex shrink-0 items-center gap-[4px] text-micro leading-none text-positive">
+            <CircleCheck className="h-[13px] w-[13px]" strokeWidth={2.5} aria-hidden />
+            Saved
+          </span>
+        )}
       </div>
       <p className="mt-[10px] flex items-start gap-[6px] text-micro leading-[14px] text-gray">
         <Info className="mt-[1px] h-[10px] w-[10px] shrink-0" strokeWidth={2} aria-hidden />
         <span>
-          Maximum upload size of 25 MB.
+          Maximum upload size of 25 MB. Files save automatically once chosen.
           <br />
           <span className="italic">Accepted formats: PDF only</span>
         </span>
@@ -125,6 +184,8 @@ export default function SubmissionUploadModal({
   submissionId,
   programId,
   levelId,
+  programs,
+  currentProgram,
   scrollBox,
 }: {
   title: string;
@@ -135,80 +196,76 @@ export default function SubmissionUploadModal({
   submissionId: string | null;
   programId: string;
   levelId: string;
+  programs: ProgramChoice[];
+  currentProgram: string;
   scrollBox?: boolean;
 }) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
-  const [formError, setFormError] = useState<string | null>(null);
+  const [subId, setSubId] = useState(submissionId);
   const [fields, setFields] = useState<Record<string, SlotState>>(() =>
-    Object.fromEntries(slots.map((s) => [s.key, { file: null, name: "", error: null }])),
+    Object.fromEntries(
+      slots.map((s) => [s.key, { fileName: null, status: "idle", error: null } as SlotState]),
+    ),
   );
+
+  const current = programs.find((p) => p.slug === currentProgram);
+  const saving = Object.values(fields).some((f) => f.status === "saving");
+  const allRequiredSaved = slots.every((s) => !s.required || fields[s.key]?.status === "saved");
 
   function patch(key: string, next: Partial<SlotState>) {
     setFields((prev) => ({ ...prev, [key]: { ...prev[key], ...next } }));
   }
 
-  const allRequiredFilled = slots.every((s) => !s.required || Boolean(fields[s.key]?.file));
+  async function save(slot: UploadSlot, file: File) {
+    patch(slot.key, { fileName: file.name, status: "saving", error: null });
 
-  function submit(draft: boolean) {
-    setFormError(null);
-
-    const toUpload = slots.filter((s) => fields[s.key]?.file);
-
-    if (!draft) {
-      const missingRequired = slots.find((s) => s.required && !fields[s.key]?.file);
-      if (missingRequired) {
-        patch(missingRequired.key, { error: "Choose a file." });
+    let id = subId;
+    if (!id) {
+      const ensured = await ensureSubmission(programId, levelId);
+      if (!ensured.ok) {
+        patch(slot.key, { status: "error", error: ensured.error });
         return;
       }
+      id = ensured.submissionId;
+      setSubId(id);
     }
-    if (toUpload.length === 0) {
-      setFormError("Choose at least one file.");
+
+    const form = new FormData();
+    form.set("file", file);
+    form.set("submissionId", id);
+    form.set("title", slot.documentName);
+    if (slot.phaseDocumentId) form.set("phaseDocumentId", slot.phaseDocumentId);
+    if (slot.requirementAreaId) form.set("requirementAreaId", slot.requirementAreaId);
+
+    const res = await fetch("/api/submissions/upload", { method: "POST", body: form });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: "Upload failed." }));
+      patch(slot.key, { status: "error", error: body.error ?? "Upload failed." });
       return;
     }
+    patch(slot.key, { status: "saved" });
+  }
 
-    startTransition(async () => {
-      let subId = submissionId;
-      if (!subId) {
-        const ensured = await ensureSubmission(programId, levelId);
-        if (!ensured.ok) {
-          setFormError(ensured.error);
-          return;
-        }
-        subId = ensured.submissionId;
-      }
-
-      for (const slot of toUpload) {
-        const state = fields[slot.key];
-        const form = new FormData();
-        form.set("file", state.file as File);
-        form.set("submissionId", subId);
-        form.set("title", state.name || (state.file as File).name);
-        if (slot.phaseDocumentId) form.set("phaseDocumentId", slot.phaseDocumentId);
-        if (slot.requirementAreaId) form.set("requirementAreaId", slot.requirementAreaId);
-
-        const res = await fetch("/api/submissions/upload", { method: "POST", body: form });
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({ error: "Upload failed." }));
-          patch(slot.key, { error: body.error ?? "Upload failed." });
-          return;
-        }
-      }
-
-      router.push(closeHref);
-      router.refresh();
-    });
+  function finish() {
+    if (!allRequiredSaved) {
+      const missing = slots.find((s) => s.required && fields[s.key]?.status !== "saved");
+      if (missing) patch(missing.key, { error: "Choose a file." });
+      return;
+    }
+    router.push(closeHref);
+    router.refresh();
   }
 
   const body = (
     <div className="flex flex-col gap-[18px]">
-      <AssignmentFields />
+      {current && <AssignmentFields programs={programs} current={current} />}
       {slots.map((slot) => (
         <SlotField
           key={slot.key}
           slot={slot}
           state={fields[slot.key]}
-          onChange={(next) => patch(slot.key, next)}
+          disabled={fields[slot.key]?.status === "saving"}
+          onFile={(file) => save(slot, file)}
         />
       ))}
     </div>
@@ -224,21 +281,12 @@ export default function SubmissionUploadModal({
         body
       )}
 
-      {formError && <p className="mt-[12px] text-regular text-maroon">{formError}</p>}
-
       <div className="mt-[24px] flex justify-end gap-[12px]">
         <Button variant="ghost" href={closeHref}>
           Cancel
         </Button>
-        <Button variant="secondary" disabled={pending} onClick={() => submit(true)}>
-          Save Draft
-        </Button>
-        <Button
-          variant="primary"
-          disabled={pending || !allRequiredFilled}
-          onClick={() => submit(false)}
-        >
-          {pending ? "Uploading…" : "Upload"}
+        <Button variant="primary" disabled={saving || !allRequiredSaved} onClick={finish}>
+          {saving ? "Saving…" : "Upload"}
         </Button>
       </div>
     </Modal>

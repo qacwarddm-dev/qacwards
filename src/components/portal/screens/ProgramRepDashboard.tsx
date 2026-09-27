@@ -1,15 +1,15 @@
-import { ChevronRight } from "lucide-react";
-import Link from "next/link";
-import type { RepDashboard } from "@/lib/dashboards";
+import type { RecentUploads as RecentUploadsData, RepDashboard } from "@/lib/dashboards";
 import {
   Card,
   CardTitleBar,
-  DataTable,
   MiniCalendar,
   type MeetingKind,
+  RecentUploads,
+  RecentUploadsDialog,
+  type ScheduleEntry,
   StatRow,
   StatusBarChart,
-  UploadList,
+  UpcomingSchedule,
 } from "../kit";
 
 /**
@@ -22,27 +22,28 @@ import {
  * apart.
  *
  * Deliberate deviation from the frame: the two card rows are swapped, so
- * Document Status / Recent Uploads sits above On-Going Accreditation / the
+ * Document Status / Recent Uploads sits above Upcoming Schedule / the
  * calendar. Owner's call, not a measurement error.
  *
  * Content padding is 61 left / 53 right — the frame's content group sits 4px
  * right of centre. qac_personnel's dashboard measures exactly 57/57 at the same
  * 1076 width, so this is almost certainly a nudge in the Figma file; it is
  * reproduced rather than normalised, and flagged to the owner.
+ *
+ * Client revision 2026-09-27 (SYSTEM DESIGN FORMAT): every radius 10, Upcoming
+ * Schedule replaced On-Going Program Accreditation beside the calendar.
  */
-/** Widths back-solved from the frame's column centres (147.25 / 326 / 447.25
- *  measured from the table's left edge, table 555 wide). */
-const COLUMNS = [
-  { key: "program", header: "Program", width: "flex-1" },
-  { key: "level", header: "Level", width: "w-[63px]" },
-  { key: "accreditor", header: "Assigned Accreditor", width: "w-[198px]" },
-];
-
 export default function ProgramRepDashboard({
   data,
+  uploads,
+  uploadsOpen = false,
+  schedule,
   calendar,
 }: {
   data: RepDashboard;
+  uploads: RecentUploadsData;
+  uploadsOpen?: boolean;
+  schedule: ScheduleEntry[];
   calendar: {
     month: Date;
     today: number;
@@ -50,18 +51,9 @@ export default function ProgramRepDashboard({
     hrefs: Record<number, string>;
   };
 }) {
-  const rows = data.ongoing.map((a) => ({
-    id: a.id,
-    cells: {
-      program: <span className="block truncate">{a.program}</span>,
-      level: a.level,
-      accreditor: a.accreditor,
-    },
-  }));
-
   return (
     <div className="px-[var(--page-gutter)] pb-[47px] pt-[41px] lg:pr-[53px] lg:pl-[61px]">
-      <section className="rounded-lg bg-maroon px-[26px] py-[20px] text-white shadow-card sm:h-[180px]">
+      <section className="rounded-md bg-maroon px-[26px] py-[20px] text-white shadow-card sm:h-[180px]">
         <h1 className="text-banner font-semibold leading-[36px]">
           Welcome to the QAC-WARDS Dashboard!
         </h1>
@@ -72,57 +64,36 @@ export default function ProgramRepDashboard({
       </section>
 
       <div className="mt-[20px]">
-        <StatRow stats={data.stats} />
+        <StatRow stats={data.stats} radius={10} />
       </div>
 
       {/* Left column flexes, right column stays at the frame's 450 at `lg+` —
           below that both stack full width instead of clipping (09-ui-refactor
           §D.1: 1 column below md, up to 3 at xl). */}
       <div className="mt-[20px] flex flex-col gap-[21px] lg:flex-row">
-        <Card className="h-[294px] min-w-0 flex-1 overflow-hidden">
+        <Card radius={10} className="h-[294px] min-w-0 flex-1 overflow-hidden">
           <CardTitleBar title="Document Status Distribution" divider />
           <StatusBarChart bars={data.docStatus} max={data.docStatusMax} />
         </Card>
 
-        <Card className="flex h-[294px] w-full flex-col overflow-hidden lg:w-[450px]">
-          <CardTitleBar
-            title="Recent Uploads"
-            divider
-            action={
-              <Link
-                href="/portal/documents"
-                className="flex items-center gap-[4px] text-regular font-semibold leading-none text-maroon transition-opacity hover:opacity-70"
-              >
-                View All
-                <ChevronRight className="h-[14px] w-[14px]" strokeWidth={2.5} aria-hidden />
-              </Link>
-            }
-          />
-          <UploadList uploads={data.recentUploads} />
-        </Card>
+        <RecentUploads uploads={uploads.list} viewAllHref="/portal/dashboard?uploads=all" radius={10} />
       </div>
 
       <div className="mt-[20px] flex flex-col gap-[21px] lg:flex-row">
-        <Card className="h-[294px] min-w-0 flex-1">
-          <CardTitleBar title="On-Going Program Accreditation" />
-          {/* Header is 54; the frame puts the table's grey band at 58. */}
-          <div className="mt-[4px] px-[25px]">
-            <DataTable
-              caption="Ongoing program accreditation"
-              columns={COLUMNS}
-              rows={rows}
-              variant="outlined"
-            />
-          </div>
-        </Card>
+        <UpcomingSchedule entries={schedule} viewAllHref="/portal/events/schedule" radius={10} />
 
         <MiniCalendar
           month={calendar.month}
           today={calendar.today}
           marks={calendar.marks}
           hrefs={calendar.hrefs}
+          radius={10}
         />
       </div>
+
+      {uploadsOpen && (
+        <RecentUploadsDialog entries={uploads.log} closeHref="/portal/dashboard" />
+      )}
     </div>
   );
 }

@@ -55,11 +55,18 @@ function slots(count: number, activeIndex: number) {
   return out;
 }
 
-/** One tab's outline: down the left edge, across, back up the right edge. */
-function tabPath(x: number, w: number) {
+/**
+ * One tab's outline: down the left edge, across, back up the right edge.
+ * The first tab has no neighbour to interlock with on its left, so that edge
+ * mirrors the strip's far-right edge instead (client, 2026-09-27).
+ */
+function tabPath(x: number, w: number, first: boolean) {
+  const left = first
+    ? `C ${x - 18} 7, ${x - 28} 42, ${x - FLARE} ${STRIP_H}`
+    : `C ${x + 18} 7, ${x + 28} 42, ${x + FLARE} ${STRIP_H}`;
   return [
     `M ${x} 0`,
-    `C ${x + 18} 7, ${x + 28} 42, ${x + FLARE} ${STRIP_H}`,
+    left,
     `L ${x + w + FLARE} ${STRIP_H}`,
     `C ${x + w + 28} 42, ${x + w + 18} 7, ${x + w} 0`,
     "Z",
@@ -103,11 +110,11 @@ export default function DocTabs({
         aria-hidden
       >
         {behind.map(({ i }) => (
-          <path key={i} d={tabPath(box[i].x, box[i].w)} fill={fillFor.get(i)} />
+          <path key={i} d={tabPath(box[i].x, box[i].w, i === 0)} fill={fillFor.get(i)} />
         ))}
         {activeIndex >= 0 && (
           <path
-            d={tabPath(box[activeIndex].x, box[activeIndex].w)}
+            d={tabPath(box[activeIndex].x, box[activeIndex].w, activeIndex === 0)}
             fill="var(--color-white)"
           />
         )}
@@ -119,12 +126,13 @@ export default function DocTabs({
           <Link
             key={t.key}
             href={t.href}
+            prefetch
             aria-current={isActive ? "page" : undefined}
             className={`absolute top-0 flex h-[50px] items-center justify-center whitespace-nowrap font-bold leading-none text-subheading ${
               isActive ? "text-maroon" : "text-white"
             }`}
             style={{
-              left: PCT(box[i].x + FLARE / 2),
+              left: PCT(box[i].x + (i === 0 ? 0 : FLARE / 2)),
               width: PCT(box[i].w),
               zIndex: isActive ? 10 : 10 - i,
             }}
