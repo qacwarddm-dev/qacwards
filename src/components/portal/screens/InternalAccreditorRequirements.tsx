@@ -8,14 +8,14 @@ import { markReadyForSurveyVisit, returnSubmission } from "@/lib/assignment-acti
 import { formatLongDate, isEvaluationOpen } from "@/lib/evaluation-sheet";
 import {
   Alert,
+  AreaGrid,
   Breadcrumb,
   Button,
   ConfirmModal,
   EvaluationSummary,
   Modal,
   Panel,
-  ProgressRow,
-  RowList,
+  ReadinessBar,
   TextInput,
   useToast,
 } from "../kit";
@@ -64,9 +64,6 @@ export default function InternalAccreditorRequirements({
       router.refresh();
     });
   }
-
-  const half = Math.ceil(areas.length / 2);
-  const columns = [areas.slice(0, half), areas.slice(half)];
 
   let footer: React.ReactNode;
   if (done) {
@@ -137,38 +134,19 @@ export default function InternalAccreditorRequirements({
         title="Accreditation Requirements"
         action={
           reviewing ? (
-            <span className="flex items-center gap-[10px]">
-              <span className="h-[8px] w-[140px] shrink-0 rounded-full bg-surface">
-                <span
-                  className="block h-full rounded-full bg-yellow"
-                  style={{ width: `${readiness}%` }}
-                />
-              </span>
-              <span className="text-subheading font-semibold leading-none text-black">
-                {readiness}%
-              </span>
-            </span>
+            <ReadinessBar percent={readiness} size="heading" />
           ) : undefined
         }
         back={{ href: "/portal/evaluation", to: "Programs" }}
         footer={footer}
       >
-        <div className="flex gap-[24px]">
-          {columns.map((col, i) => (
-            <div key={i} className="flex-1">
-              <RowList>
-                {col.map((area) => (
-                  <ProgressRow
-                    key={area.id}
-                    label={area.isOptional ? `${area.name} (optional)` : area.name}
-                    marker={false}
-                    href={`/portal/evaluation/${assignmentId}?area=${area.id}`}
-                  />
-                ))}
-              </RowList>
-            </div>
-          ))}
-        </div>
+        <AreaGrid
+          areas={areas.map((area) => ({
+            id: area.id,
+            label: area.isOptional ? `${area.name} (optional)` : area.name,
+            href: `/portal/evaluation/${assignmentId}?area=${area.id}`,
+          }))}
+        />
       </Panel>
 
       {dialog === "reject" && (

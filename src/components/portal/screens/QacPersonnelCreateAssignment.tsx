@@ -83,7 +83,7 @@ export default function QacPersonnelCreateAssignment({
     setProgramId(programsAvailable[0]?.id ?? "");
   }
 
-  const defaultLevel = levels[0]?.id ?? "";
+  const defaultLevel = levels.find((l) => l.code === "I")?.id ?? levels[0]?.id ?? "";
   const [levelId, setLevelId] = useState(defaultLevel);
 
   const [accreditors, setAccreditors] = useState<EligibleAccreditor[]>([]);
@@ -142,10 +142,9 @@ export default function QacPersonnelCreateAssignment({
           action={<BackLink href="/portal/assignment" />}
         />
 
-        {/* Selection form */}
         <Card variant="outline" radius={16} className="mt-[19px] px-[44px] pb-[33px] pt-[26px]">
-          <div className="grid grid-cols-2 gap-x-[60px] gap-y-[27px]">
-            <div>
+          <div className="grid grid-cols-1 gap-x-[40px] gap-y-[27px] md:grid-cols-2 xl:grid-cols-5">
+            <div className="xl:col-span-2">
               <FieldLabel>Campus</FieldLabel>
               <div className="mt-[13px]">
                 <SelectInput
@@ -156,7 +155,7 @@ export default function QacPersonnelCreateAssignment({
                 />
               </div>
             </div>
-            <div>
+            <div className="xl:col-span-3">
               <FieldLabel>Department</FieldLabel>
               <div className="mt-[13px]">
                 {collegesOnCampus.length > 0 ? (
@@ -173,7 +172,7 @@ export default function QacPersonnelCreateAssignment({
                 )}
               </div>
             </div>
-            <div>
+            <div className="xl:col-span-2">
               <FieldLabel>Program</FieldLabel>
               <div className="mt-[13px]">
                 {programsAvailable.length > 0 ? (
@@ -202,25 +201,24 @@ export default function QacPersonnelCreateAssignment({
               </div>
             </div>
             <div>
-              <FieldLabel note="Optional">Deadline</FieldLabel>
-              <div className="mt-[13px]">
-                <input
-                  type="date"
-                  aria-label="Deadline"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  className="h-[40px] w-full rounded-[10px] border border-[color:var(--color-gray)]/50 bg-transparent px-[22px] text-regular leading-none text-black outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon"
-                />
-              </div>
-            </div>
-            <div>
-              <FieldLabel note="Unlocks Evaluate">Site Visit Date</FieldLabel>
+              <FieldLabel>Site Visit Date</FieldLabel>
               <div className="mt-[13px]">
                 <TextInput
                   label="Site Visit Date"
                   type="date"
                   value={siteVisitDate}
                   onChange={(e) => setSiteVisitDate(e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <FieldLabel note="Optional">Deadline</FieldLabel>
+              <div className="mt-[13px]">
+                <TextInput
+                  label="Deadline"
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
                 />
               </div>
             </div>

@@ -14,6 +14,7 @@ export default function Panel({
   title,
   action,
   back,
+  toolbar,
   footer,
   children,
 }: {
@@ -27,6 +28,12 @@ export default function Panel({
    * its own flex row — which is the call-site styling the kit rules forbid.
    */
   back?: { href: string; to?: string };
+  /**
+   * A search/filter row sharing the title row (QAC's Accreditation Programs
+   * list). Unlike `action`, the row grows to fit it: `action` is held to the
+   * 20px title height so buttons there keep the measured title-to-body gap.
+   */
+  toolbar?: React.ReactNode;
   /** Right-aligned button under the body. Tightens the panel's bottom padding
    *  to 20, as the Phases and Requirements frames do. */
   footer?: React.ReactNode;
@@ -34,10 +41,15 @@ export default function Panel({
 }) {
   return (
     <Card className={`px-[41px] pt-[41px] ${footer ? "pb-[20px]" : "pb-[41px]"}`}>
-      <div className="flex h-[20px] items-center justify-between">
+      <div
+        className={`flex items-center justify-between ${
+          toolbar ? "min-h-[20px] flex-wrap gap-[16px]" : "h-[20px]"
+        }`}
+      >
         <h1 className="text-heading font-bold leading-none text-black">
           {title}
         </h1>
+        {toolbar && <div className="min-w-0 flex-1">{toolbar}</div>}
         {(action || back) && (
           <div className="flex items-center gap-[24px]">
             {action}

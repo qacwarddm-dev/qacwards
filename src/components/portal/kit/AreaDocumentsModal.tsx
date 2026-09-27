@@ -1,5 +1,7 @@
 import type { AreaDocument } from "@/lib/assignments";
-import { EmptyState, FileList, formatFileSize, Modal } from "../kit";
+import EmptyState from "./EmptyState";
+import FileList, { formatFileSize } from "./FileList";
+import Modal from "./Modal";
 
 export default function AreaDocumentsModal({
   areaName,

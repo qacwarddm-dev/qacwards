@@ -4,6 +4,8 @@
  * components own their own spacing, radius, colour and type.
  */
 export { default as AccreditorPicker } from "./AccreditorPicker";
+export { default as AreaDocumentsModal } from "./AreaDocumentsModal";
+export { default as AreaGrid, type AreaGridItem } from "./AreaGrid";
 export { default as ActionMenu, type MenuItem } from "./ActionMenu";
 export { default as Alert, type AlertTone } from "./Alert";
 export { default as AvatarStack, type AvatarPerson } from "./AvatarStack";
@@ -65,6 +67,7 @@ export { default as ProgressRow } from "./ProgressRow";
 export { default as RecentUploads } from "./RecentUploads";
 export { default as RecentUploadsDialog, type UploadLogEntry } from "./RecentUploadsDialog";
 export { default as RadialProgress } from "./RadialProgress";
+export { default as ReadinessBar } from "./ReadinessBar";
 export { default as RowList } from "./RowList";
 export { default as SearchField } from "./SearchField";
 export { default as SectionHeading } from "./SectionHeading";

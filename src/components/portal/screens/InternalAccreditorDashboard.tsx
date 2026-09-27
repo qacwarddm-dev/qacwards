@@ -1,5 +1,5 @@
 import type { IaDashboard, RecentUploads as RecentUploadsData } from "@/lib/dashboards";
-import { Card, CardTitleBar, type Column, DataTable, MiniCalendar, type MeetingKind, RecentUploads, RecentUploadsDialog, type ScheduleEntry, StatRow, UpcomingSchedule } from "../kit";
+import { Card, CardTitleBar, type Column, DataTable, MiniCalendar, type MeetingKind, ReadinessBar, RecentUploads, RecentUploadsDialog, type ScheduleEntry, StatRow, UpcomingSchedule } from "../kit";
 
 /**
  * Internal Accreditor dashboard — client revision (2026-07), replacing the
@@ -68,15 +68,7 @@ export default function InternalAccreditorDashboard({
       program: <span className="block truncate">{p.program}</span>,
       level: p.level,
       readiness: (
-        <span className="inline-flex items-center gap-[10px]">
-          <span className="h-[8px] w-[140px] shrink-0 rounded-full bg-surface">
-            <span
-              className="block h-full rounded-full bg-yellow"
-              style={{ width: `${p.readiness}%` }}
-            />
-          </span>
-          <span className="font-semibold">{p.readiness}%</span>
-        </span>
+        <ReadinessBar percent={p.readiness} />
       ),
     },
   }));

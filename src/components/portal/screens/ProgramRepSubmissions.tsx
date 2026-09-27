@@ -1,6 +1,7 @@
 import { PR_PHASE_STEPS } from "../data";
 import {
   Alert,
+  AreaGrid,
   Breadcrumb,
   Button,
   Panel,
@@ -279,9 +280,6 @@ function RequirementsPanel({
   areas: SubmissionArea[];
   levelId: string | null;
 }) {
-  const half = Math.ceil(areas.length / 2);
-  const left = areas.slice(0, half);
-  const right = areas.slice(half);
   const levelParam = levelId ? `&level=${levelId}` : "";
   const addHref = (areaId: string) =>
     `/portal/submission?program=${program}&view=requirements${levelParam}&modal=add&area=${areaId}`;
@@ -299,23 +297,14 @@ function RequirementsPanel({
         </Button>
       }
     >
-      <div className="flex gap-[24px]">
-        {[left, right].map((col, i) => (
-          <div key={i} className="flex-1">
-            <RowList>
-              {col.map((area) => (
-                <ProgressRow
-                  key={area.id}
-                  label={area.isOptional && !area.chosen ? `${area.name} (optional)` : area.name}
-                  marker={false}
-                  percent={area.uploaded ? 100 : undefined}
-                  href={addHref(area.id)}
-                />
-              ))}
-            </RowList>
-          </div>
-        ))}
-      </div>
+      <AreaGrid
+        areas={areas.map((area) => ({
+          id: area.id,
+          label: area.isOptional && !area.chosen ? `${area.name} (optional)` : area.name,
+          percent: area.uploaded ? 100 : undefined,
+          href: addHref(area.id),
+        }))}
+      />
     </Panel>
   );
 }

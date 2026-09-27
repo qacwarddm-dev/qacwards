@@ -25,11 +25,7 @@ export default async function NewAssignmentPage() {
       supabase.from("campuses").select("id, name").order("name"),
       supabase.from("colleges").select("id, name").order("name"),
       supabase.from("programs").select("id, name, campus_id, college_id").order("name").limit(1000),
-      supabase
-        .from("accreditation_levels")
-        .select("id, code, name")
-        .in("code", ["I", "II", "III", "IV"])
-        .order("ordinal"),
+      supabase.from("accreditation_levels").select("id, code, name").order("ordinal"),
     ]);
 
   return (

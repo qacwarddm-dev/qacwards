@@ -21,13 +21,17 @@ export default function FilterBar({
   search,
   filters = [],
   action,
+  align = "start",
 }: {
   search?: { value: string; onChange: (value: string) => void; label?: string };
   filters?: FilterSpec[];
   action?: React.ReactNode;
+  align?: "start" | "end";
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-[16px]">
+    <div
+      className={`flex flex-wrap items-center gap-[16px] ${align === "end" ? "justify-end" : ""}`}
+    >
       {search && (
         <SearchField
           value={search.value}
@@ -46,7 +50,7 @@ export default function FilterBar({
         </span>
       ))}
 
-      {action && <span className="ml-auto">{action}</span>}
+      {action && <span className={align === "end" ? "" : "ml-auto"}>{action}</span>}
     </div>
   );
 }

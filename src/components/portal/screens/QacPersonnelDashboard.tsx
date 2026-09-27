@@ -11,6 +11,7 @@ import {
   DataTable,
   MiniCalendar,
   type MeetingKind,
+  ReadinessBar,
   RecentUploads,
   RecentUploadsDialog,
   type ScheduleEntry,
@@ -87,15 +88,7 @@ export default function QacPersonnelDashboard({
       program: <span className="block truncate">{p.program}</span>,
       level: p.level,
       readiness: (
-        <span className="inline-flex items-center gap-[10px]">
-          <span className="h-[8px] w-[140px] shrink-0 rounded-full bg-surface">
-            <span
-              className="block h-full rounded-full bg-yellow"
-              style={{ width: `${p.readiness}%` }}
-            />
-          </span>
-          <span className="font-semibold">{p.readiness}%</span>
-        </span>
+        <ReadinessBar percent={p.readiness} />
       ),
     },
   }));

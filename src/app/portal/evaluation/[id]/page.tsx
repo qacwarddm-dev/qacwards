@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import InternalAccreditorRequirements from "@/components/portal/screens/InternalAccreditorRequirements";
 import EvaluationLocked from "@/components/portal/screens/EvaluationLocked";
-import AreaDocumentsModal from "@/components/portal/screens/AreaDocumentsModal";
+import { AreaDocumentsModal } from "@/components/portal/kit";
 import {
   getAreaDocuments,
   getAssignmentDetail,

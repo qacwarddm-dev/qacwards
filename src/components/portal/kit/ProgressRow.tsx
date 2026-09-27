@@ -30,7 +30,13 @@ import Link from "next/link";
  * a review dialog rather than navigating, so the row renders a `<button>`
  * instead of a `Link`. The two are mutually exclusive; `href` wins if both
  * are somehow passed.
+ *
+ * `density="compact"` fixes the meta column widths so they line up row to row
+ * and shrinks the bar, leaving the label room beside three meta columns.
  */
+// Campus, level, then the "IA: …" team — the only compact list's meta order.
+const COMPACT_META = ["w-[140px]", "w-[80px]", "w-[220px]"];
+
 export default function ProgressRow({
   label,
   meta,
@@ -40,6 +46,7 @@ export default function ProgressRow({
   onClick,
   markerHref,
   marker = true,
+  density = "default",
 }: {
   label: string;
   /** Extra text columns between the label and the tail — e.g. campus, level. */
@@ -57,7 +64,9 @@ export default function ProgressRow({
    *  `href` with the rest of the row. */
   markerHref?: string;
   marker?: boolean;
+  density?: "default" | "compact";
 }) {
+  const compact = density === "compact";
   const dim = percent === 0 ? "opacity-50" : "";
   const className = `flex h-[57px] w-full items-center pr-[17px] ${
     marker ? "pl-[23px]" : "pl-[25.5px]"
@@ -75,7 +84,11 @@ export default function ProgressRow({
     <span
       key={i}
       title={m}
-      className="min-w-[150px] max-w-[220px] shrink-0 truncate text-subheading leading-none text-gray"
+      className={`shrink-0 truncate leading-none text-gray ${
+        compact
+          ? `${COMPACT_META[i] ?? COMPACT_META[0]} pr-[12px] text-regular`
+          : "min-w-[150px] max-w-[220px] text-subheading"
+      }`}
     >
       {m}
     </span>
@@ -90,14 +103,16 @@ export default function ProgressRow({
       ) : (
         percent !== undefined && (
           <>
-            <span className={`h-[10px] w-[251px] shrink-0 rounded-full bg-surface ${dim}`}>
+            <span
+              className={`h-[10px] shrink-0 rounded-full bg-surface ${compact ? "w-[90px]" : "w-[251px]"} ${dim}`}
+            >
               <span
                 className="block h-full rounded-full bg-yellow"
                 style={{ width: `${percent}%` }}
               />
             </span>
             <span
-              className={`ml-[30px] w-[60px] shrink-0 text-center text-subheading font-semibold leading-none text-black ${dim}`}
+              className={`shrink-0 text-center text-subheading font-semibold leading-none text-black ${compact ? "ml-[14px] w-[48px]" : "ml-[30px] w-[60px]"} ${dim}`}
             >
               {percent}%
             </span>
@@ -154,7 +169,9 @@ export default function ProgressRow({
         {marker && markerIcon}
         <span
           title={label}
-          className="truncate text-subheading font-medium leading-none text-black"
+          className={`truncate leading-none text-black ${
+            compact ? "text-regular font-semibold" : "text-subheading font-medium"
+          }`}
         >
           {label}
         </span>

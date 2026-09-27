@@ -1,5 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { getRequirementAreas } from "@/lib/submissions";
+import { relevantExpertise } from "@/lib/expertise-disciplines";
+import { asOfNow } from "@/lib/dashboards";
+import type { Stat } from "@/components/portal/kit";
 
 /**
  * Reads behind `/portal/assignment` and `/portal/evaluation`.
@@ -13,8 +16,11 @@ export type EligibleAccreditor = {
   id: string;
   name: string;
   webmail: string;
-  /** Expertise areas this accreditor holds that match the programme's name. */
+  /** Expertise areas this accreditor holds that qualify them for the
+   *  programme (`relevantExpertise`). */
   matched: string[];
+  /** Everything they hold, qualifying areas first — the picker's Expertise column. */
+  expertise: string[];
   expertiseCount: number;
   /** Owner decision 2026-08-22: QAC Personnel may be assigned as the internal
    *  accreditor of last resort when nobody eligible matches. They rank below
@@ -29,17 +35,12 @@ export type EligibleAccreditor = {
 /**
  * Accreditors who could evaluate a programme, best match first.
  *
- * Matching is by `accreditor_expertise` against the programme's name. It is a
- * **suggestion, not a gate** — QAC assigns whoever they judge appropriate, and
- * the ranking exists so a sensible team is the default rather than the result of
- * scrolling. There is no expertise↔programme mapping table in the reference data
- * (OtherContext.txt does not provide one), and inventing one would be inventing
- * reference data; word overlap against the programme title is the honest
- * approximation, and it is why unmatched accreditors are still returned.
- *
- * QAC Personnel are listed after every internal accreditor as the fallback the
- * owner described: sometimes nobody eligible matches, and a QAC staff member
- * takes the assignment themselves.
+ * docs/qac_per.pdf: the Eligible Accreditors list is generated from the
+ * accreditors' expertise. An accreditor is eligible when they hold at least one
+ * area `relevantExpertise` qualifies for the programme's title. The rest are
+ * still returned, after the eligible ones, so the picker can offer them behind
+ * a "show all" — QAC keeps the final say, and the owner's 2026-08-22 fallback
+ * (a QAC Personnel taking an assignment nobody matches) needs them reachable.
  */
 export async function getEligibleAccreditors(
   programId: string,
@@ -62,30 +63,26 @@ export async function getEligibleAccreditors(
       .order("surname"),
   ]);
 
-  const title = (program?.name ?? "").toLowerCase();
+  const rows = (accreditors ?? []).map((a) => ({
+    a,
+    areas: (a.accreditor_expertise ?? [])
+      .map((row) => row.expertise_areas?.name)
+      .filter((n): n is string => Boolean(n)),
+  }));
+  const relevant = relevantExpertise(
+    program?.name ?? "",
+    [...new Set(rows.flatMap((r) => r.areas))],
+  );
 
-  return (accreditors ?? [])
-    .map((a) => {
-      const areas = (a.accreditor_expertise ?? [])
-        .map((row) => row.expertise_areas?.name)
-        .filter((n): n is string => Boolean(n));
-
-      // An expertise matches when its significant words all appear in the
-      // programme title — "Information Technology" matches "BS in Information
-      // Technology", "Research" does not match "BS in Biology".
-      const matched = areas.filter((area) =>
-        area
-          .toLowerCase()
-          .split(/[^a-z]+/)
-          .filter((w) => w.length > 3)
-          .every((word) => title.includes(word)),
-      );
-
+  return rows
+    .map(({ a, areas }) => {
+      const matched = areas.filter((area) => relevant.has(area));
       return {
         id: a.id,
         name: `${a.surname}, ${a.given_name}`,
         webmail: a.webmail,
         matched,
+        expertise: [...matched, ...areas.filter((area) => !relevant.has(area))],
         expertiseCount: areas.length,
         isQacStaff: a.role === "qac_personnel" && !a.is_internal_accreditor,
       };
@@ -224,7 +221,7 @@ export type AssignmentDetail = {
   myResponse: string | null;
   /** The team as people, for the sign-off block — round 2 §4 prints who signed
    *  rather than a joined string of names. */
-  signatories: { id: string; name: string; response: string }[];
+  signatories: { id: string; name: string; response: string; note: string | null }[];
   /** Needed to pull that submission's requirement areas / readiness — not
    *  displayed, so kept out of every existing render's props by staying at
    *  the end. Null only if the assignment's submission was deleted. */
@@ -250,7 +247,7 @@ export async function getAssignmentDetail(assignmentId: string): Promise<Assignm
       .select(
         `id, status, submission_id, site_visit_date, due_date,
          submissions(status, website_url, level_id, programs(id, name, campuses(name), colleges(code, name)), accreditation_levels(code, name)),
-         assignment_accreditors(profile_id, response, profiles(surname, given_name))`,
+         assignment_accreditors(profile_id, response, rejection_note, profiles(surname, given_name))`,
       )
       .eq("id", assignmentId)
       .maybeSingle(),
@@ -263,6 +260,7 @@ export async function getAssignmentDetail(assignmentId: string): Promise<Assignm
     id: m.profile_id,
     name: m.profiles ? `${m.profiles.surname}, ${m.profiles.given_name}` : "—",
     response: m.response,
+    note: m.rejection_note,
   }));
 
   return {
@@ -406,5 +404,98 @@ export async function getEvaluationSheet(assignmentId: string): Promise<Evaluati
     updatedAt: data?.sheet_updated_at ?? null,
     updatedBy: data?.profiles ? `${data.profiles.given_name} ${data.profiles.surname}` : null,
     evaluatedAt: data?.evaluated_at ?? null,
+  };
+}
+
+export type AccreditationProgramRow = {
+  id: string;
+  program: string;
+  campus: string;
+  level: string;
+  levelCode: string | null;
+  accreditor: string;
+  readiness: number;
+};
+
+export type AccreditationOverview = {
+  summary: Stat[];
+  programs: AccreditationProgramRow[];
+  campuses: string[];
+  levels: string[];
+};
+
+/** "PSV" rather than "Preliminary Survey Visit" — the long name does not fit a
+ *  list column, and the summary tile already reads PSV. */
+export function shortLevel(code: string | null | undefined, name: string | null | undefined) {
+  return code === "PSV" ? "PSV" : (name ?? "—");
+}
+
+/**
+ * QAC Personnel → Accreditation (docs/qac_per.pdf): one row per assignment —
+ * the programme, its campus and level, the team, and the same
+ * `submission_readiness` number every other readiness bar reads. The summary
+ * counts those rows by level, so a tile always equals what the Level filter
+ * would show under it.
+ */
+export async function getAccreditationOverview(): Promise<AccreditationOverview> {
+  const supabase = await createClient();
+
+  const [{ data: assignments }, { data: campuses }, { data: levels }] = await Promise.all([
+    supabase
+      .from("assignments")
+      .select(
+        `id, submission_id,
+         submissions(programs(name, campuses(name)), accreditation_levels(code, name)),
+         assignment_accreditors(profiles(surname, given_name))`,
+      )
+      .order("created_at", { ascending: false }),
+    supabase.from("campuses").select("name").order("name"),
+    supabase.from("accreditation_levels").select("code, name").order("ordinal"),
+  ]);
+
+  const submissionIds = (assignments ?? [])
+    .map((a) => a.submission_id)
+    .filter((id): id is string => Boolean(id));
+
+  const { data: readinessRows } = submissionIds.length
+    ? await supabase
+        .from("submission_readiness")
+        .select("submission_id, readiness_percent")
+        .in("submission_id", submissionIds)
+    : { data: [] as { submission_id: string | null; readiness_percent: number | null }[] };
+
+  const readiness = new Map(
+    (readinessRows ?? []).map((r) => [r.submission_id, r.readiness_percent ?? 0]),
+  );
+
+  const programs = (assignments ?? []).map((a) => {
+    const level = a.submissions?.accreditation_levels;
+    return {
+      id: a.id,
+      program: a.submissions?.programs?.name ?? "—",
+      campus: a.submissions?.programs?.campuses?.name ?? "—",
+      level: shortLevel(level?.code, level?.name),
+      levelCode: level?.code ?? null,
+      accreditor:
+        (a.assignment_accreditors ?? [])
+          .map((m) => (m.profiles ? `${m.profiles.surname}, ${m.profiles.given_name}` : null))
+          .filter((n): n is string => Boolean(n))
+          .join("; ") || "—",
+      readiness: a.submission_id ? (readiness.get(a.submission_id) ?? 0) : 0,
+    };
+  });
+
+  const note = asOfNow();
+  const summary = (levels ?? []).map((l) => ({
+    label: l.code === "PSV" ? "PSV" : `LEVEL ${l.code}`,
+    value: String(programs.filter((p) => p.levelCode === l.code).length),
+    note,
+  }));
+
+  return {
+    summary,
+    programs,
+    campuses: (campuses ?? []).map((c) => c.name),
+    levels: (levels ?? []).map((l) => shortLevel(l.code, l.name)),
   };
 }

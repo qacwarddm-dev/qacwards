@@ -216,7 +216,7 @@ function SelectMenu({
           <ul
             role="listbox"
             aria-label={label}
-            className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 overflow-hidden rounded-[10px] bg-white py-[6px] shadow-[0_8px_24px_rgba(0,0,0,0.14)]"
+            className="absolute left-0 top-[calc(100%+6px)] z-30 max-h-[320px] w-max min-w-full max-w-[360px] overflow-y-auto rounded-[10px] bg-white py-[6px] shadow-[0_8px_24px_rgba(0,0,0,0.14)]"
           >
             {options.map((o) => {
               const isSelected = o === selected;

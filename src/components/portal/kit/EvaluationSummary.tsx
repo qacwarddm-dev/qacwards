@@ -2,13 +2,19 @@ import Panel from "./Panel";
 import { StatRow, type Stat } from "./StatCard";
 
 /**
- * The four bordered tiles at the top of every Internal Accreditor Evaluation
- * screen (Programs list and, per program, Accreditation Requirements) —
- * same `Stat[]` `getIaDashboard` already computes for the dashboard.
+ * The bordered tiles at the top of the Internal Accreditor's Evaluation
+ * screens ("Evaluation Summary", `getIaDashboard`'s stats) and QAC
+ * Personnel's Accreditation screens ("Accreditation Summary", PSV–Level IV).
  */
-export default function EvaluationSummary({ stats }: { stats: Stat[] }) {
+export default function EvaluationSummary({
+  stats,
+  title = "Evaluation Summary",
+}: {
+  stats: Stat[];
+  title?: string;
+}) {
   return (
-    <Panel title="Evaluation Summary">
+    <Panel title={title}>
       <StatRow stats={stats} gap={20} variant="outline" />
     </Panel>
   );
