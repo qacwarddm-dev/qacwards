@@ -177,14 +177,24 @@ export async function submitForEvaluation(submissionId: string): Promise<ActionR
     };
   }
 
-  const { error } = await supabase
-    .from("submissions")
-    .update({ status: "submitted", submitted_at: new Date().toISOString() })
-    .eq("id", submissionId);
+  const [{ data: submission }, { data: assignment }] = await Promise.all([
+    supabase.from("submissions").select("status").eq("id", submissionId).maybeSingle(),
+    supabase.from("assignments").select("id").eq("submission_id", submissionId).maybeSingle(),
+  ]);
+
+  // A submission an accreditor returned already has its team (one assignment
+  // per submission), so the fix goes straight back to them, not through QAC.
+  const update =
+    submission?.status === "returned" && assignment
+      ? { status: "under_evaluation" as const }
+      : { status: "submitted" as const, submitted_at: new Date().toISOString() };
+
+  const { error } = await supabase.from("submissions").update(update).eq("id", submissionId);
 
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/portal/submission");
+  revalidatePath("/portal/evaluation");
   return { ok: true };
 }
 

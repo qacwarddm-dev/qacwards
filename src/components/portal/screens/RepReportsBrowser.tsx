@@ -19,6 +19,7 @@ import {
   EmptyState,
   FileList,
   type FileListEntry,
+  formatFileSize,
   FolderCard,
   type MenuItem,
   SearchField,
@@ -62,9 +63,7 @@ function formatDate(iso: string | null): string | undefined {
 }
 
 function formatSize(bytes: number | null): string | undefined {
-  if (bytes === null) return undefined;
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return bytes === null ? undefined : formatFileSize(bytes);
 }
 
 function sortBy<T>(items: T[], sort: SortState, name: (t: T) => string, date: (t: T) => string | null) {

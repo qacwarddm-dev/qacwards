@@ -145,7 +145,7 @@ export default function InternalAccreditorAssignment({
               <AssignmentResponse
                 assignmentId={confirm}
                 variant="confirm-accept"
-                afterRespond="/portal/assignment"
+                afterRespond="/portal/evaluation"
               />
             </div>
           </Modal>

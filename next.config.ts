@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["pdf-parse", "pdfjs-dist"],
   outputFileTracingIncludes: {
     "/api/documents/nda-template": ["./templates/qac-nda.pdf"],
+    "/api/evaluations/[id]/sheet": ["./public/assets/logos/pup.png"],
   },
   // `/portal/settings` -> `/portal/settings/cycles` used to be a page
   // component whose entire body was `redirect()`. Next 16's dev-mode RSC

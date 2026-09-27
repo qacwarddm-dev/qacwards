@@ -12,6 +12,7 @@ import {
   Stepper,
 } from "../kit";
 import AssignmentReassign from "./AssignmentReassign";
+import SiteVisitDateEditor from "./SiteVisitDateEditor";
 
 /** assets/FIGMA/qac_personnel/03.1-Create new assignment.png for the header;
  *  the table is 03-Accreditation Assignment.png. */
@@ -81,6 +82,9 @@ export default function QacPersonnelAssignment({
                 .filter((m) => m.response === "rejected")
                 .map((m) => ({ name: m.name, note: m.note }))}
             />
+          )}
+          {a.status !== "declined" && (
+            <SiteVisitDateEditor assignmentId={a.id} value={a.siteVisitDate} />
           )}
         </span>
       ),

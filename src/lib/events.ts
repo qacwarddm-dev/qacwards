@@ -84,14 +84,32 @@ async function getAssignmentDeadlineEvents(from: Date, to: Date): Promise<Portal
   const fromDate = manilaDate(from.toISOString());
   const toDate = manilaDate(to.toISOString());
 
-  const { data } = await supabase
-    .from("assignments")
-    .select("id, due_date, submissions(programs(name), accreditation_levels(name))")
-    .not("due_date", "is", null)
-    .gte("due_date", fromDate)
-    .lte("due_date", toDate);
+  const [{ data }, { data: visits }] = await Promise.all([
+    supabase
+      .from("assignments")
+      .select("id, due_date, submissions(programs(name), accreditation_levels(name))")
+      .not("due_date", "is", null)
+      .gte("due_date", fromDate)
+      .lte("due_date", toDate),
+    supabase
+      .from("assignments")
+      .select("id, site_visit_date, submissions(programs(name), accreditation_levels(name))")
+      .not("site_visit_date", "is", null)
+      .gte("site_visit_date", fromDate)
+      .lte("site_visit_date", toDate),
+  ]);
 
-  return (data ?? []).map((a) => {
+  const visitRows: PortalEvent[] = (visits ?? []).map((a) => ({
+    id: `assignment-visit:${a.id}`,
+    title: `Site Visit — ${a.submissions?.programs?.name ?? "Assignment"}${a.submissions?.accreditation_levels?.name ? ` (${a.submissions.accreditation_levels.name})` : ""}`,
+    description: null,
+    date: a.site_visit_date as string,
+    time: "",
+    kind: "survey_visit",
+    cancelled: false,
+  }));
+
+  const deadlineRows = (data ?? []).map((a) => {
     const submission = Array.isArray(a.submissions) ? a.submissions[0] : a.submissions;
     const program = Array.isArray(submission?.programs)
       ? submission?.programs[0]
@@ -110,6 +128,8 @@ async function getAssignmentDeadlineEvents(from: Date, to: Date): Promise<Portal
       cancelled: false,
     };
   });
+
+  return [...deadlineRows, ...visitRows];
 }
 
 /** The events in one calendar month, Manila-aligned. */
@@ -243,14 +263,14 @@ export async function getEventSchedule(): Promise<ScheduleEvent[]> {
   const { data: assignments } = await supabase
     .from("assignments")
     .select(
-      `id, due_date,
+      `id, due_date, site_visit_date,
        submissions(is_revalidation, programs(name, campuses(name), colleges(code)), accreditation_levels(name)),
        assignment_accreditors(profile_id, profiles(surname, given_name, avatar_path))`,
     )
-    .not("due_date", "is", null)
-    .order("due_date");
+    .or("due_date.not.is.null,site_visit_date.not.is.null");
 
-  const deadlineRows: ScheduleEvent[] = await Promise.all(
+  const today = manilaDate(now.toISOString());
+  const assignmentRows: ScheduleEvent[][] = await Promise.all(
     (assignments ?? []).map(async (a) => {
       // `assignment_id` -> `submission_id` is unique (round 2 §2: "Reassign
       // REPLACES team on same assignment"), so this join is 1:1 — a plain
@@ -268,8 +288,29 @@ export async function getEventSchedule(): Promise<ScheduleEvent[]> {
         })),
       );
 
-      const dueDate = a.due_date as string;
-      return {
+      const base = {
+        program: program?.name ?? "Assignment",
+        collegeCampus: program ? `${program.colleges?.code ?? "—"} - ${program.campuses?.name ?? "—"}` : "—",
+        campus: program?.campuses?.name ?? "—",
+        participants,
+      };
+      const rows: ScheduleEvent[] = [];
+
+      if (a.site_visit_date) {
+        rows.push({
+          ...base,
+          id: `assignment-visit:${a.id}`,
+          sortKey: a.site_visit_date,
+          date: manilaLongDate(a.site_visit_date),
+          title: `Site Visit for ${level?.name ?? "Accreditation"}`,
+          status:
+            today > a.site_visit_date ? "completed" : today === a.site_visit_date ? "ongoing" : "upcoming",
+        });
+      }
+
+      if (!a.due_date) return rows;
+      const dueDate = a.due_date;
+      rows.push({
         id: `assignment-deadline:${a.id}`,
         sortKey: dueDate,
         // `due_date` is a plain DATE, not timestamptz — parsed as UTC
@@ -277,14 +318,14 @@ export async function getEventSchedule(): Promise<ScheduleEvent[]> {
         // conversion is needed the way a real instant would require.
         date: manilaLongDate(dueDate),
         title: `${kind} for ${level?.name ?? "Accreditation"}`,
-        program: program?.name ?? "Assignment",
-        collegeCampus: program ? `${program.colleges?.code ?? "—"} - ${program.campuses?.name ?? "—"}` : "—",
-        campus: program?.campuses?.name ?? "—",
-        status: manilaDate(new Date().toISOString()) > dueDate ? "completed" : "upcoming",
-        participants,
-      };
+        ...base,
+        status: today > dueDate ? "completed" : "upcoming",
+      });
+      return rows;
     }),
   );
 
-  return [...eventRows, ...deadlineRows].sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+  return [...eventRows, ...assignmentRows.flat()].sort((a, b) =>
+    a.sortKey.localeCompare(b.sortKey),
+  );
 }

@@ -14,6 +14,7 @@ export { default as Button } from "./Button";
 export { default as Card } from "./Card";
 export { default as CardTitleBar } from "./CardTitleBar";
 export { default as ConfirmDialog } from "./ConfirmDialog";
+export { default as ConfirmModal } from "./ConfirmModal";
 export { default as CoverCard } from "./CoverCard";
 export {
   default as DataTable,
@@ -44,7 +45,7 @@ export {
 } from "./Field";
 export { default as ExpertisePicker } from "./ExpertisePicker";
 export { default as FilterBar, type FilterSpec } from "./FilterBar";
-export { default as FileList, type FileListEntry } from "./FileList";
+export { default as FileList, formatFileSize, type FileListEntry } from "./FileList";
 export { default as FolderCard } from "./FolderCard";
 export { default as FolderGrid, type FolderEntry } from "./FolderGrid";
 export { default as MiniCalendar, type MeetingKind } from "./MiniCalendar";

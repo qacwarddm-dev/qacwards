@@ -562,6 +562,9 @@ export async function getIaDashboard(viewerId: string): Promise<IaDashboard> {
       status: RESPONSE_LABEL[mine.response] ?? mine.response,
     });
 
+    // Spec (docs/internal_accreditor.pdf): accepting is what moves a program
+    // into the Evaluation tab; pending and declined stay on Assignment only.
+    if (mine.response !== "accepted") continue;
     evaluationProgress.push({
       id: a.id,
       campus,

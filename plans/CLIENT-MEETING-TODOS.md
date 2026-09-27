@@ -22,14 +22,17 @@ Everything below was decided 2026-09-13. Status as of 2026-09-18:
 - [x] O-10: demotion-on-failed-revalidation logic removed (`apply_award_on_release`), migration run
 - [x] O-18b: "Master of Arts in Physical Education and Sports" moved from COED to CHK
 - [x] O-20: Asia/Manila hard-pinned across event datetime handling
-- [ ] Survey Instrument (new feature, whole section) — still not started. **Distinct from** the QAC
+- [x] Survey Instrument — shipped 2026-09-27 from `docs/internal_accreditor.pdf` (Preliminary
+      Survey Instrument modal + per-level IA Evaluation Sheet → PDF). Original note: **Distinct from** the QAC
       Service Evaluation shipped 2026-09-18 below: this one is filled by the accreditor on-site,
       not by the program rep rating QAC. No frames for it yet either.
 - [x] QAC Events UI (Calendar + Event Schedule tabs) — shipped 2026-09-18 (later), see the section
       below. **Program Rep and Internal Accreditor still each need their own Events/Calendar
       frame** — this only covers the QAC-role screen the EVENTS folder's sidebar showed.
-- [ ] Internal Accreditor Assignment/Evaluation/Events UI — still waiting on frames
-      (`assets/new frames/Internal Accreditor/` arrived empty on 2026-09-18).
+- [~] Internal Accreditor Assignment/Evaluation UI — done 2026-09-27 per `docs/internal_accreditor.pdf`
+      (Return/Approve/Evaluate flow, site-visit gate, sheet PDF). IA **Events** still waiting on frames
+      (was: Internal Accreditor Assignment/Evaluation/Events UI — still waiting on frames
+      (`assets/new frames/Internal Accreditor/` arrived empty on 2026-09-18)).
 - [ ] QAC Admin/Personnel UI update — still waiting on frames (none arrived 2026-09-18 either).
 - [ ] QAC Admin editor for Fullname/Campus/Position — net-new, backend already allows it
       (`guard_profile_privileged_columns`); no frame needed, just not built yet. Next candidate

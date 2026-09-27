@@ -12,6 +12,7 @@ import {
   FieldLabel,
   PanelHeader,
   SelectInput,
+  TextInput,
 } from "../kit";
 
 type Campus = { id: string; name: string };
@@ -88,6 +89,7 @@ export default function QacPersonnelCreateAssignment({
   const [accreditors, setAccreditors] = useState<EligibleAccreditor[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [dueDate, setDueDate] = useState("");
+  const [siteVisitDate, setSiteVisitDate] = useState("");
 
   const [prevProgramId, setPrevProgramId] = useState(programId);
   if (programId !== prevProgramId) {
@@ -125,6 +127,7 @@ export default function QacPersonnelCreateAssignment({
         levelId,
         [...selected],
         dueDate || null,
+        siteVisitDate || null,
       );
       if (!result.ok) setError(result.error);
       else router.push("/portal/assignment");
@@ -207,6 +210,17 @@ export default function QacPersonnelCreateAssignment({
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
                   className="h-[40px] w-full rounded-[10px] border border-[color:var(--color-gray)]/50 bg-transparent px-[22px] text-regular leading-none text-black outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon"
+                />
+              </div>
+            </div>
+            <div>
+              <FieldLabel note="Unlocks Evaluate">Site Visit Date</FieldLabel>
+              <div className="mt-[13px]">
+                <TextInput
+                  label="Site Visit Date"
+                  type="date"
+                  value={siteVisitDate}
+                  onChange={(e) => setSiteVisitDate(e.target.value)}
                 />
               </div>
             </div>

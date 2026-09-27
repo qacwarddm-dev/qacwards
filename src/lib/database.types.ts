@@ -281,6 +281,7 @@ export type Database = {
           cycle_id: string
           due_date: string | null
           id: string
+          site_visit_date: string | null
           status: Database["public"]["Enums"]["assignment_status"]
           submission_id: string
           updated_at: string
@@ -291,6 +292,7 @@ export type Database = {
           cycle_id: string
           due_date?: string | null
           id?: string
+          site_visit_date?: string | null
           status?: Database["public"]["Enums"]["assignment_status"]
           submission_id: string
           updated_at?: string
@@ -301,6 +303,7 @@ export type Database = {
           cycle_id?: string
           due_date?: string | null
           id?: string
+          site_visit_date?: string | null
           status?: Database["public"]["Enums"]["assignment_status"]
           submission_id?: string
           updated_at?: string
@@ -560,6 +563,9 @@ export type Database = {
           released_by: string | null
           remarks: string | null
           score: number | null
+          sheet: Json
+          sheet_updated_at: string | null
+          sheet_updated_by: string | null
           updated_at: string
         }
         Insert: {
@@ -574,6 +580,9 @@ export type Database = {
           released_by?: string | null
           remarks?: string | null
           score?: number | null
+          sheet?: Json
+          sheet_updated_at?: string | null
+          sheet_updated_by?: string | null
           updated_at?: string
         }
         Update: {
@@ -588,6 +597,9 @@ export type Database = {
           released_by?: string | null
           remarks?: string | null
           score?: number | null
+          sheet?: Json
+          sheet_updated_at?: string | null
+          sheet_updated_by?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -601,6 +613,13 @@ export type Database = {
           {
             foreignKeyName: "evaluations_released_by_fkey"
             columns: ["released_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evaluations_sheet_updated_by_fkey"
+            columns: ["sheet_updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -1563,6 +1582,55 @@ export type Database = {
           },
         ]
       }
+      submission_returns: {
+        Row: {
+          assignment_id: string | null
+          created_at: string
+          id: string
+          note: string
+          returned_by: string | null
+          submission_id: string
+        }
+        Insert: {
+          assignment_id?: string | null
+          created_at?: string
+          id?: string
+          note: string
+          returned_by?: string | null
+          submission_id: string
+        }
+        Update: {
+          assignment_id?: string | null
+          created_at?: string
+          id?: string
+          note?: string
+          returned_by?: string | null
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_returns_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submission_returns_returned_by_fkey"
+            columns: ["returned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submission_returns_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       submissions: {
         Row: {
           attempt: number
@@ -1884,6 +1952,14 @@ export type Database = {
       check_rate_limit: {
         Args: { p_max_count: number; p_route: string; p_window_seconds: number }
         Returns: boolean
+      }
+      patch_evaluation_sheet: {
+        Args: { p_assignment: string; p_patch: Json }
+        Returns: Json
+      }
+      return_submission: {
+        Args: { p_assignment: string; p_note: string }
+        Returns: undefined
       }
       create_event: {
         Args: {

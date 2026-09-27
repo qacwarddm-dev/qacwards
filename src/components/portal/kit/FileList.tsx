@@ -13,6 +13,11 @@ export type FileListEntry = {
   menu?: MenuItem[];
 };
 
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 const HEAD = "px-[12px] py-[10px] text-left text-regular font-normal leading-none text-gray";
 const CELL = "px-[12px] py-[11px] text-regular leading-none text-black";
 

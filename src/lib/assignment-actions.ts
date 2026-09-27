@@ -2,8 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { getEligibleAccreditors, type EligibleAccreditor } from "@/lib/assignments";
 import { canAdvanceAssignment } from "@/lib/assignment-transitions";
+import {
+  getAssignmentDetail,
+  getEligibleAccreditors,
+  type EligibleAccreditor,
+  getEvaluationSheet,
+  type EvaluationSheetState,
+} from "@/lib/assignments";
+import { isEvaluationOpen, missingKeys, templateForLevel } from "@/lib/evaluation-sheet";
 
 /**
  * Writes behind assignments and evaluations.
@@ -27,6 +34,7 @@ export async function createAssignment(
   submissionId: string,
   accreditorIds: string[],
   dueDate: string | null,
+  siteVisitDate: string | null = null,
 ): Promise<{ ok: true; assignmentId: string } | { ok: false; error: string }> {
   const supabase = await createClient();
 
@@ -57,6 +65,7 @@ export async function createAssignment(
       submission_id: submissionId,
       assigned_by: user?.id ?? null,
       due_date: dueDate,
+      site_visit_date: siteVisitDate,
     })
     .select("id")
     .single();
@@ -380,6 +389,9 @@ export async function markReadyForSurveyVisit(
 ): Promise<ActionResult> {
   const supabase = await createClient();
 
+  const ensured = await ensureEvaluation(assignmentId);
+  if (!ensured.ok) return ensured;
+
   const { data: assignment } = await supabase
     .from("assignments")
     .select("status")
@@ -391,7 +403,11 @@ export async function markReadyForSurveyVisit(
     return { ok: false, error: `Cannot move from ${assignment.status} to for_psv.` };
   }
 
-  await supabase.from("assignments").update({ status: "for_psv" }).eq("id", assignmentId);
+  const { error } = await supabase
+    .from("assignments")
+    .update({ status: "for_psv" })
+    .eq("id", assignmentId);
+  if (error) return { ok: false, error: error.message };
   await supabase
     .from("evaluations")
     .update({ ready_for_sv_at: new Date().toISOString() })
@@ -568,6 +584,7 @@ export async function createAssignmentForProgramLevel(
   levelId: string,
   accreditorIds: string[],
   dueDate: string | null = null,
+  siteVisitDate: string | null = null,
 ): Promise<{ ok: true; assignmentId: string } | { ok: false; error: string }> {
   const supabase = await createClient();
 
@@ -581,7 +598,7 @@ export async function createAssignmentForProgramLevel(
     .maybeSingle();
 
   if (latest?.status === "submitted") {
-    return createAssignment(latest.id, accreditorIds, dueDate);
+    return createAssignment(latest.id, accreditorIds, dueDate, siteVisitDate);
   }
 
   if (latest && ["under_evaluation", "evaluated"].includes(latest.status)) {
@@ -598,7 +615,7 @@ export async function createAssignmentForProgramLevel(
       .eq("id", latest.id);
 
     if (error) return { ok: false, error: error.message };
-    return createAssignment(latest.id, accreditorIds, dueDate);
+    return createAssignment(latest.id, accreditorIds, dueDate, siteVisitDate);
   }
 
   const { data: cycle } = await supabase
@@ -625,5 +642,102 @@ export async function createAssignmentForProgramLevel(
 
   if (error) return { ok: false, error: error.message };
 
-  return createAssignment(created.id, accreditorIds, dueDate);
+  return createAssignment(created.id, accreditorIds, dueDate, siteVisitDate);
+}
+
+/** Return (docs/internal_accreditor.pdf p.1): the submission goes back to the
+ *  programme with the accreditor's note; the same team gets it back on resubmit. */
+export async function returnSubmission(assignmentId: string, note: string): Promise<ActionResult> {
+  if (!note.trim()) return { ok: false, error: "Write what needs fixing." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("return_submission", {
+    p_assignment: assignmentId,
+    p_note: note.trim(),
+  });
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/portal/evaluation");
+  revalidatePath(`/portal/evaluation/${assignmentId}`);
+  return { ok: true };
+}
+
+export async function saveSheetFields(
+  assignmentId: string,
+  patch: Record<string, string>,
+): Promise<{ ok: true; updatedAt: string } | { ok: false; error: string }> {
+  const supabase = await createClient();
+  const patchSheet = () =>
+    supabase.rpc("patch_evaluation_sheet", { p_assignment: assignmentId, p_patch: patch });
+
+  let { data, error } = await patchSheet();
+  if (!error && data === null) {
+    const ensured = await ensureEvaluation(assignmentId);
+    if (!ensured.ok) return ensured;
+    ({ data, error } = await patchSheet());
+  }
+  if (error) return { ok: false, error: error.message };
+  if (data === null) return { ok: false, error: "This evaluation sheet is already submitted." };
+  return { ok: true, updatedAt: new Date().toISOString() };
+}
+
+export async function fetchSheet(assignmentId: string): Promise<EvaluationSheetState> {
+  return getEvaluationSheet(assignmentId);
+}
+
+/** The team finishes the sheet. From here the PDF is the record; the answers
+ *  freeze (`patch_evaluation_sheet` skips an evaluated row). */
+export async function finishEvaluationSheet(assignmentId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const detail = await getAssignmentDetail(assignmentId);
+  if (!detail) return { ok: false, error: "That assignment could not be found." };
+  if (detail.myResponse !== "accepted") {
+    return { ok: false, error: "Only an accreditor on this assignment can submit the sheet." };
+  }
+  if (!isEvaluationOpen(detail.siteVisitDate)) {
+    return { ok: false, error: "The evaluation opens on the scheduled site visit date." };
+  }
+  if (!canAdvanceAssignment(detail.status, "evaluated")) {
+    return { ok: false, error: `Cannot move from ${detail.status} to evaluated.` };
+  }
+
+  const sheet = await getEvaluationSheet(assignmentId);
+  const missing = missingKeys(templateForLevel(detail.levelCode), sheet.values);
+  if (missing.length > 0) {
+    return {
+      ok: false,
+      error: `${missing.length} field${missing.length === 1 ? " is" : "s are"} still blank.`,
+    };
+  }
+
+  const { error } = await supabase
+    .from("evaluations")
+    .update({ evaluated_at: new Date().toISOString() })
+    .eq("assignment_id", assignmentId);
+  if (error) return { ok: false, error: error.message };
+
+  const { error: statusError } = await supabase
+    .from("assignments")
+    .update({ status: "evaluated" })
+    .eq("id", assignmentId);
+  if (statusError) return { ok: false, error: statusError.message };
+
+  revalidatePath("/portal/evaluation");
+  revalidatePath(`/portal/evaluation/${assignmentId}`);
+  return { ok: true };
+}
+
+export async function setSiteVisitDate(
+  assignmentId: string,
+  date: string | null,
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("assignments")
+    .update({ site_visit_date: date })
+    .eq("id", assignmentId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/portal/assignment");
+  revalidatePath("/portal/events");
+  return { ok: true };
 }

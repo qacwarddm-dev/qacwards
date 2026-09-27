@@ -8,6 +8,8 @@ import {
   getPhaseProgress,
   getRequirementAreas,
 } from "@/lib/submissions";
+import { getLatestReturn } from "@/lib/assignments";
+import ReturnedSubmissionNotice from "@/components/portal/screens/ReturnedSubmissionNotice";
 
 /**
  * `/portal/submission` — the Program Representative's submission flow. Only that
@@ -53,16 +55,32 @@ export default async function SubmissionPage({
 
   const current = levels.find((l) => l.levelId === levelId) ?? null;
 
-  const [phases, areas] = await Promise.all([
+  const returnedLevel =
+    view === "levels"
+      ? levels.find((l) => l.status === "returned")
+      : current?.status === "returned"
+        ? current
+        : undefined;
+  const returnedSubmissionId = returnedLevel?.submissionId ?? null;
+
+  const [phases, areas, lastReturn] = await Promise.all([
     programId ? getPhaseProgress(current?.submissionId ?? null) : Promise.resolve([]),
     levelId
       ? getRequirementAreas(levelId, current?.submissionId ?? null)
       : Promise.resolve([]),
+    returnedSubmissionId ? getLatestReturn(returnedSubmissionId) : Promise.resolve(null),
   ]);
 
   return (
     <>
       <h1 className="sr-only">Submission</h1>
+      {returnedSubmissionId && lastReturn && returnedLevel && (
+        <ReturnedSubmissionNotice
+          submissionId={returnedSubmissionId}
+          levelLabel={returnedLevel.label}
+          returned={lastReturn}
+        />
+      )}
       <ProgramRepSubmissions
         program={program}
         programId={programId ?? undefined}

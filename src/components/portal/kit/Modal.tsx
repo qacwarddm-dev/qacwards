@@ -19,14 +19,27 @@ import Card from "./Card";
 export default function Modal({
   title,
   closeHref,
+  onClose,
+  titleAlign,
   className = "w-[430px]",
   children,
 }: {
   title: string;
   closeHref?: string;
+  /** State-driven alternative to `closeHref` for dialogs opened by a click. */
+  onClose?: () => void;
+  titleAlign?: "center" | "start";
   className?: string;
   children: React.ReactNode;
 }) {
+  const closable = Boolean(closeHref || onClose);
+  // A ref, not an effect dependency: callers pass inline arrows, and re-running
+  // the effect on every render would yank focus back to the first field mid-typing.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+  const align = titleAlign ?? (closable ? "start" : "center");
   const router = useRouter();
   const dialogRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
@@ -45,7 +58,8 @@ export default function Modal({
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
         e.preventDefault();
-        if (closeHref) router.push(closeHref);
+        if (onCloseRef.current) onCloseRef.current();
+        else if (closeHref) router.push(closeHref);
         return;
       }
       if (e.key !== "Tab") return;
@@ -83,18 +97,32 @@ export default function Modal({
         radius={16}
         className={`p-[28px] outline-none ${className}`}
       >
-        <div className={`flex items-center ${closeHref ? "justify-between" : "justify-center"}`}>
-          <h2 id={titleId} className="text-heading font-bold leading-none text-black">
+        <div className={`flex items-start gap-[12px] ${align === "center" ? "justify-center" : "justify-between"}`}>
+          {align === "center" && closable && <span className="w-[18px] shrink-0" aria-hidden />}
+          <h2
+            id={titleId}
+            className={`text-heading font-bold leading-none text-black ${align === "center" ? "flex-1 text-center" : ""}`}
+          >
             {title}
           </h2>
-          {closeHref && (
+          {closeHref && !onClose && (
             <Link
               href={closeHref}
               aria-label="Close"
-              className="text-black transition-opacity hover:opacity-60"
+              className="shrink-0 text-black transition-opacity hover:opacity-60"
             >
               <X className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
             </Link>
+          )}
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="shrink-0 text-black transition-opacity hover:opacity-60"
+            >
+              <X className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
+            </button>
           )}
         </div>
         <div className="mt-[20px]">{children}</div>

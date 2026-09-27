@@ -1,22 +1,23 @@
 import { notFound } from "next/navigation";
 import InternalAccreditorRequirements from "@/components/portal/screens/InternalAccreditorRequirements";
 import EvaluationLocked from "@/components/portal/screens/EvaluationLocked";
-import SubmissionUploadModal from "@/components/portal/screens/SubmissionUploadModal";
-import { getAssignmentDetail, getAssignmentRequirements } from "@/lib/assignments";
+import AreaDocumentsModal from "@/components/portal/screens/AreaDocumentsModal";
+import {
+  getAreaDocuments,
+  getAssignmentDetail,
+  getAssignmentRequirements,
+  getEvaluationSheet,
+  getLatestReturn,
+} from "@/lib/assignments";
 import { getIaDashboard } from "@/lib/dashboards";
 import { requireCurrentUser } from "@/lib/current-user";
+import { HEADER_KEYS } from "@/lib/evaluation-sheet";
 
 /**
- * `/portal/evaluation/[id]` — client revision: the flat Narrative/Compliance/
- * Website sheet (`InternalAccreditorEvaluationDetail`, still used by nothing
- * else and kept as-is) is now fronted by an "Accreditation Requirements"
- * Areas grid, one program's 10 requirement areas with a summary/back-link
- * header and a Return/Approve (or, once past `in_progress`, a disabled
- * "Evaluate") footer. An area row's chevron opens the same "Add Document"
- * modal the Program Representative's own Requirements list already uses
- * (`SubmissionUploadModal`) — the client's reference for it is byte-identical
- * to that one, just reached from `/portal/evaluation/[id]` instead of
- * `/portal/submission`.
+ * `/portal/evaluation/[id]` — docs/internal_accreditor.pdf: the Areas grid with
+ * Return (confirm → note) / Approve (confirm), then Evaluate gated on the site
+ * visit date. An Area row opens the programme's uploaded files for that area,
+ * read-only (`?area=<id>`).
  *
  * Round 2 §1's gate is unchanged: an invited accreditor who has not answered
  * yet gets the accept/decline card instead.
@@ -26,10 +27,10 @@ export default async function EvaluationDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ modal?: string; area?: string }>;
+  searchParams: Promise<{ area?: string }>;
 }) {
   const { id } = await params;
-  const { modal, area } = await searchParams;
+  const { area } = await searchParams;
 
   const detail = await getAssignmentDetail(id);
   if (!detail) notFound();
@@ -44,52 +45,36 @@ export default async function EvaluationDetailPage({
   }
 
   const user = await requireCurrentUser();
-  const [requirements, { stats }] = await Promise.all([
+  const [requirements, { stats }, lastReturn, sheet] = await Promise.all([
     getAssignmentRequirements(id),
     getIaDashboard(user.id),
+    detail.submissionId ? getLatestReturn(detail.submissionId) : null,
+    getEvaluationSheet(id),
   ]);
   if (!requirements) notFound();
 
-  const closeHref = `/portal/evaluation/${id}`;
-  const areaName = requirements.areas.find((a) => a.id === area)?.name ?? "Document";
+  const openArea = area ? requirements.areas.find((a) => a.id === area) : undefined;
+  const documents =
+    openArea && detail.submissionId ? await getAreaDocuments(detail.submissionId, openArea.id) : [];
 
   return (
     <>
       <h1 className="sr-only">Evaluation Detail</h1>
-      <InternalAccreditorRequirements assignmentId={id} stats={stats} data={requirements} />
+      <InternalAccreditorRequirements
+        assignmentId={id}
+        stats={stats}
+        data={requirements}
+        lastReturn={lastReturn}
+        visitAddress={sheet.values[HEADER_KEYS.address] ?? ""}
+        visitDate={sheet.values[HEADER_KEYS.visitDate] ?? detail.siteVisitDate ?? ""}
+      />
 
-      {modal === "add" && area && detail.programId && detail.levelId && (
-        <SubmissionUploadModal
-          title="Add Document"
-          programId={detail.programId}
-          levelId={detail.levelId}
-          submissionId={detail.submissionId}
-          programs={[
-            {
-              slug: detail.programId,
-              label: detail.program,
-              college: detail.college,
-              campus: detail.campus,
-              href: `${closeHref}?modal=add&area=${area}`,
-            },
-          ]}
-          currentProgram={detail.programId}
-          slots={[
-            {
-              key: "document",
-              label: "Document",
-              documentName: areaName,
-              required: true,
-              requirementAreaId: area,
-            },
-            {
-              key: "additional",
-              label: "Additional Document (Optional)",
-              documentName: `${areaName} - Additional Document`,
-              requirementAreaId: area,
-            },
-          ]}
-          closeHref={closeHref}
+      {openArea && (
+        <AreaDocumentsModal
+          areaName={openArea.name}
+          program={detail.program}
+          documents={documents}
+          closeHref={`/portal/evaluation/${id}`}
         />
       )}
     </>

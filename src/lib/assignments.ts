@@ -102,6 +102,7 @@ export type AssignmentRow = {
   id: string;
   status: string;
   dueDate: string | null;
+  siteVisitDate: string | null;
   program: string;
   campus: string;
   college: string;
@@ -128,7 +129,7 @@ export async function getAssignments(viewerId: string): Promise<AssignmentRow[]>
   const { data } = await supabase
     .from("assignments")
     .select(
-      `id, status, due_date,
+      `id, status, due_date, site_visit_date,
        submissions(accreditation_levels(name),
                    programs(name, campuses(name), colleges(code))),
        assignment_accreditors(profile_id, response, rejection_note, profiles(surname, given_name)),
@@ -154,6 +155,7 @@ export async function getAssignments(viewerId: string): Promise<AssignmentRow[]>
       id: a.id,
       status: a.status,
       dueDate: a.due_date,
+      siteVisitDate: a.site_visit_date,
       program: a.submissions?.programs?.name ?? "—",
       campus: a.submissions?.programs?.campuses?.name ?? "—",
       // Off-main-campus programmes genuinely have no college, so the dash here
@@ -229,6 +231,14 @@ export type AssignmentDetail = {
   submissionId: string | null;
   levelId: string | null;
   programId: string | null;
+  levelCode: string | null;
+  /** "College/Branch" on the sheet: the college's full name, or the campus
+   *  for an off-main-campus programme that has none. */
+  branch: string;
+  submissionStatus: string | null;
+  /** `YYYY-MM-DD`, Manila calendar day — the Evaluate button's unlock date. */
+  siteVisitDate: string | null;
+  dueDate: string | null;
 };
 
 export async function getAssignmentDetail(assignmentId: string): Promise<AssignmentDetail | null> {
@@ -238,8 +248,8 @@ export async function getAssignmentDetail(assignmentId: string): Promise<Assignm
     supabase
       .from("assignments")
       .select(
-        `id, status, submission_id,
-         submissions(website_url, level_id, programs(id, name, campuses(name), colleges(code)), accreditation_levels(name)),
+        `id, status, submission_id, site_visit_date, due_date,
+         submissions(status, website_url, level_id, programs(id, name, campuses(name), colleges(code, name)), accreditation_levels(code, name)),
          assignment_accreditors(profile_id, response, profiles(surname, given_name))`,
       )
       .eq("id", assignmentId)
@@ -269,6 +279,14 @@ export async function getAssignmentDetail(assignmentId: string): Promise<Assignm
     submissionId: data.submission_id,
     levelId: data.submissions?.level_id ?? null,
     programId: data.submissions?.programs?.id ?? null,
+    levelCode: data.submissions?.accreditation_levels?.code ?? null,
+    branch:
+      data.submissions?.programs?.colleges?.name ??
+      data.submissions?.programs?.campuses?.name ??
+      "—",
+    submissionStatus: data.submissions?.status ?? null,
+    siteVisitDate: data.site_visit_date,
+    dueDate: data.due_date,
   };
 }
 
@@ -279,7 +297,7 @@ export async function getAssignmentDetail(assignmentId: string): Promise<Assignm
  *  `getRequirementAreas` query verbatim — same table, same shape. */
 export type AssignmentRequirements = {
   detail: AssignmentDetail;
-  areas: { id: string; name: string; isOptional: boolean; uploaded: boolean }[];
+  areas: { id: string; name: string; isOptional: boolean; uploaded: boolean; chosen: boolean }[];
   readiness: number;
 };
 
@@ -302,4 +320,91 @@ export async function getAssignmentRequirements(
   ]);
 
   return { detail, areas, readiness: readinessRow?.readiness_percent ?? 0 };
+}
+
+export type AreaDocument = {
+  id: string;
+  title: string;
+  fileSize: number;
+  uploadedAt: string;
+  uploadedBy: string;
+  version: number;
+};
+
+/** The programme's current files for one requirement area — what the
+ *  accreditor opens from an Area row. Read-only: "documents follow their
+ *  submission" already lets the team read them. */
+export async function getAreaDocuments(
+  submissionId: string,
+  requirementAreaId: string,
+): Promise<AreaDocument[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("submission_documents")
+    .select("id, title, file_size, uploaded_at, version, profiles(surname, given_name)")
+    .eq("submission_id", submissionId)
+    .eq("requirement_area_id", requirementAreaId)
+    .eq("is_current", true)
+    .order("uploaded_at", { ascending: false });
+
+  return (data ?? []).map((d) => ({
+    id: d.id,
+    title: d.title,
+    fileSize: d.file_size,
+    uploadedAt: d.uploaded_at,
+    uploadedBy: d.profiles ? `${d.profiles.surname}, ${d.profiles.given_name}` : "—",
+    version: d.version,
+  }));
+}
+
+export type SubmissionReturn = {
+  note: string;
+  createdAt: string;
+  returnedBy: string;
+};
+
+export async function getLatestReturn(submissionId: string): Promise<SubmissionReturn | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("submission_returns")
+    .select("note, created_at, profiles(surname, given_name)")
+    .eq("submission_id", submissionId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!data) return null;
+  return {
+    note: data.note,
+    createdAt: data.created_at,
+    returnedBy: data.profiles ? `${data.profiles.given_name} ${data.profiles.surname}` : "—",
+  };
+}
+
+export type EvaluationSheetState = {
+  values: Record<string, string>;
+  updatedAt: string | null;
+  updatedBy: string | null;
+  evaluatedAt: string | null;
+};
+
+export async function getEvaluationSheet(assignmentId: string): Promise<EvaluationSheetState> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("evaluations")
+    .select("sheet, sheet_updated_at, evaluated_at, profiles!sheet_updated_by(surname, given_name)")
+    .eq("assignment_id", assignmentId)
+    .maybeSingle();
+
+  const raw = (data?.sheet ?? {}) as Record<string, unknown>;
+  const values = Object.fromEntries(
+    Object.entries(raw).filter((e): e is [string, string] => typeof e[1] === "string"),
+  );
+
+  return {
+    values,
+    updatedAt: data?.sheet_updated_at ?? null,
+    updatedBy: data?.profiles ? `${data.profiles.given_name} ${data.profiles.surname}` : null,
+    evaluatedAt: data?.evaluated_at ?? null,
+  };
 }
