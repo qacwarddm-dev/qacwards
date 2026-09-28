@@ -21,6 +21,7 @@ export default function Modal({
   closeHref,
   onClose,
   titleAlign,
+  bare = false,
   className = "w-[430px]",
   children,
 }: {
@@ -29,6 +30,9 @@ export default function Modal({
   /** State-driven alternative to `closeHref` for dialogs opened by a click. */
   onClose?: () => void;
   titleAlign?: "center" | "start";
+  /** No padding and no visible header: the children lay out the whole card
+   *  (hero banners, sticky footers). The title stays as the accessible name. */
+  bare?: boolean;
   className?: string;
   children: React.ReactNode;
 }) {
@@ -87,7 +91,7 @@ export default function Modal({
   }, [closeHref, router]);
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/45 px-[20px]">
+    <div className="fixed inset-0 z-40 flex animate-[overlay-in_var(--motion-base)_var(--ease-out)] items-center justify-center bg-black/45 px-[20px]">
       <Card
         ref={dialogRef}
         role="dialog"
@@ -95,37 +99,50 @@ export default function Modal({
         aria-labelledby={titleId}
         tabIndex={-1}
         radius={16}
-        className={`p-[28px] outline-none ${className}`}
+        className={`animate-[modal-in_var(--motion-slow)_var(--ease-out)] outline-none ${
+          bare ? "flex max-h-[calc(100dvh-32px)] flex-col overflow-hidden" : "p-[28px]"
+        } ${className}`}
       >
-        <div className={`flex items-start gap-[12px] ${align === "center" ? "justify-center" : "justify-between"}`}>
-          {align === "center" && closable && <span className="w-[18px] shrink-0" aria-hidden />}
-          <h2
-            id={titleId}
-            className={`text-heading font-bold leading-none text-black ${align === "center" ? "flex-1 text-center" : ""}`}
-          >
-            {title}
-          </h2>
-          {closeHref && !onClose && (
-            <Link
-              href={closeHref}
-              aria-label="Close"
-              className="shrink-0 text-black transition-opacity hover:opacity-60"
-            >
-              <X className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
-            </Link>
-          )}
-          {onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close"
-              className="shrink-0 text-black transition-opacity hover:opacity-60"
-            >
-              <X className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
-            </button>
-          )}
-        </div>
-        <div className="mt-[20px]">{children}</div>
+        {bare ? (
+          <>
+            <h2 id={titleId} className="sr-only">
+              {title}
+            </h2>
+            {children}
+          </>
+        ) : (
+          <>
+            <div className={`flex items-start gap-[12px] ${align === "center" ? "justify-center" : "justify-between"}`}>
+              {align === "center" && closable && <span className="w-[18px] shrink-0" aria-hidden />}
+              <h2
+                id={titleId}
+                className={`text-heading font-bold leading-none text-black ${align === "center" ? "flex-1 text-center" : ""}`}
+              >
+                {title}
+              </h2>
+              {closeHref && !onClose && (
+                <Link
+                  href={closeHref}
+                  aria-label="Close"
+                  className="shrink-0 text-black transition-opacity hover:opacity-60"
+                >
+                  <X className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
+                </Link>
+              )}
+              {onClose && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Close"
+                  className="shrink-0 text-black transition-opacity hover:opacity-60"
+                >
+                  <X className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
+                </button>
+              )}
+            </div>
+            <div className="mt-[20px]">{children}</div>
+          </>
+        )}
       </Card>
     </div>
   );

@@ -336,12 +336,28 @@ export async function getAreaDocuments(
   submissionId: string,
   requirementAreaId: string,
 ): Promise<AreaDocument[]> {
+  return currentDocuments(submissionId, "requirement_area_id", [requirementAreaId]);
+}
+
+export async function getPhaseDocuments(
+  submissionId: string,
+  phaseDocumentIds: string[],
+): Promise<AreaDocument[]> {
+  if (phaseDocumentIds.length === 0) return [];
+  return currentDocuments(submissionId, "phase_document_id", phaseDocumentIds);
+}
+
+async function currentDocuments(
+  submissionId: string,
+  column: "requirement_area_id" | "phase_document_id",
+  ids: string[],
+): Promise<AreaDocument[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("submission_documents")
     .select("id, title, file_size, uploaded_at, version, profiles(surname, given_name)")
     .eq("submission_id", submissionId)
-    .eq("requirement_area_id", requirementAreaId)
+    .in(column, ids)
     .eq("is_current", true)
     .order("uploaded_at", { ascending: false });
 

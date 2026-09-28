@@ -138,6 +138,18 @@ Lives in **QAC Admin → User Management** (`/portal/settings/users`).
       invited as …, sending isn't wired up yet") and closes. Flagged in the component's own
       comment, same convention as Extension Monitoring/Feedback's fixture-backed screens.
 
+### 2026-09-27 client mockups — upload success, rep survey look, PSV-complete prompt — shipped 2026-09-28
+- [x] Upload success flow (`upload-success-mockup_4.html`): per-file progress, PDF check, animated
+      success summary, View Submission / Done, toast, tracker fill. Template-verification step in
+      the mockup not built (no server check exists; raise if they want it).
+- [x] Survey form look (`program-rep-navigation-mockup_5.html`, form only): QAC Service Evaluation +
+      Internal Accreditor Evaluation per accreditor, stepped modal with autosaved drafts. Replaces
+      the 2026-09-18 star-rating form. Stored in `visit_evaluations` (migration 20260927000300).
+- [x] PSV-complete pop-up (client screenshot): once per session until all answered; list hub at
+      `/portal/submission/evaluation`.
+- [ ] QAC Feedback screen still reads fixtures (`src/lib/feedback.ts`), not `visit_evaluations`.
+- [ ] Mockup's email + bell notification for "evaluations needed" not built.
+
 ### Internal Accreditor → QAC service evaluation form — SCOPED, not built this pass
 Client supplied a sample form ("Survey Visit - EVALUATION FORM"): a satisfaction survey filled by
 the internal accreditor about QAC's assistance during a visit. **Distinct from both** existing

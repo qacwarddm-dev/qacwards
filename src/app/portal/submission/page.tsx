@@ -8,7 +8,10 @@ import {
   getPhaseProgress,
   getRequirementAreas,
 } from "@/lib/submissions";
-import { getLatestReturn } from "@/lib/assignments";
+import { getAreaDocuments, getLatestReturn, getPhaseDocuments } from "@/lib/assignments";
+import { requireCurrentUser } from "@/lib/current-user";
+import { getCompletedVisits } from "@/lib/visit-evaluations";
+import { AreaDocumentsModal } from "@/components/portal/kit";
 import ReturnedSubmissionNotice from "@/components/portal/screens/ReturnedSubmissionNotice";
 
 /**
@@ -35,7 +38,12 @@ export default async function SubmissionPage({
   const raw = typeof params.view === "string" ? params.view : "levels";
   const view = VIEWS.includes(raw as SubmissionView) ? (raw as SubmissionView) : "levels";
 
-  const [programs, cycle] = await Promise.all([getMyPrograms(), getOpenCycle()]);
+  const [programs, cycle, user, visits] = await Promise.all([
+    getMyPrograms(),
+    getOpenCycle(),
+    requireCurrentUser(),
+    getCompletedVisits(),
+  ]);
 
   const program =
     typeof params.program === "string" && programs.some((p) => p.slug === params.program)
@@ -71,6 +79,48 @@ export default async function SubmissionPage({
     returnedSubmissionId ? getLatestReturn(returnedSubmissionId) : Promise.resolve(null),
   ]);
 
+  const programVisits = visits.filter((v) => v.programSlug === program);
+  const evaluationsPending =
+    programVisits.length > 0
+      ? programVisits.reduce(
+          (n, v) => n + v.targets.filter((t) => t.status !== "submitted").length,
+          0,
+        )
+      : null;
+
+  const area = typeof params.area === "string" ? params.area : undefined;
+  const phaseNumber = Number.isInteger(phase) && phase >= 1 && phase <= 4 ? phase : undefined;
+  const levelParam = levelId ? `&level=${levelId}` : "";
+  const programLabel = programs.find((p) => p.slug === program)?.label ?? "";
+  const openPhase = phases.find((p) => p.ordinal === (phaseNumber ?? 1));
+  const openArea = areas.find((a) => a.id === area);
+
+  let filesModal: React.ReactNode = null;
+  if (params.modal === "files" && current?.submissionId) {
+    if (view === "requirements" && openArea) {
+      filesModal = (
+        <AreaDocumentsModal
+          areaName={openArea.name}
+          program={programLabel}
+          documents={await getAreaDocuments(current.submissionId, openArea.id)}
+          closeHref={`/portal/submission?program=${program}&view=requirements${levelParam}`}
+        />
+      );
+    } else if (view === "phases" && openPhase) {
+      filesModal = (
+        <AreaDocumentsModal
+          areaName={openPhase.label}
+          program={programLabel}
+          documents={await getPhaseDocuments(
+            current.submissionId,
+            openPhase.documents.map((d) => d.id),
+          )}
+          closeHref={`/portal/submission?program=${program}&view=phases${levelParam}&phase=${openPhase.ordinal}`}
+        />
+      );
+    }
+  }
+
   return (
     <>
       <h1 className="sr-only">Submission</h1>
@@ -85,10 +135,11 @@ export default async function SubmissionPage({
         program={program}
         programId={programId ?? undefined}
         view={view}
-        phase={Number.isInteger(phase) && phase >= 1 && phase <= 4 ? phase : undefined}
+        phase={phaseNumber}
         modal={params.modal === "add" ? "add" : undefined}
         levelId={levelId ?? undefined}
-        areaId={typeof params.area === "string" ? params.area : undefined}
+        areaId={area}
+        uploaderName={user.name}
         data={{
           programs: programs.map((p) => ({
             slug: p.slug,
@@ -108,8 +159,10 @@ export default async function SubmissionPage({
           phases,
           areas,
           openCycleName: cycle?.name ?? null,
+          evaluationsPending,
         }}
       />
+      {filesModal}
     </>
   );
 }

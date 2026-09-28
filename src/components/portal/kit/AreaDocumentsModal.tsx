@@ -42,7 +42,7 @@ export default function AreaDocumentsModal({
           })}
         />
       ) : (
-        <EmptyState message="The program has not uploaded anything for this area yet." />
+        <EmptyState message="Nothing has been uploaded here yet." />
       )}
     </Modal>
   );

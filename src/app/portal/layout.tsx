@@ -2,7 +2,9 @@ import CommandPalette from "@/components/portal/CommandPalette";
 import PortalSidebar from "@/components/portal/PortalSidebar";
 import PortalTopBar from "@/components/portal/PortalTopBar";
 import { ToastProvider } from "@/components/portal/kit";
+import VisitEvaluationPrompt from "@/components/portal/screens/VisitEvaluationPrompt";
 import { requireCurrentUser } from "@/lib/current-user";
+import { getCompletedVisits } from "@/lib/visit-evaluations";
 
 /**
  * Portal shell. `/portal` is a literal path segment, not a `(portal)` route
@@ -29,6 +31,7 @@ export default async function PortalLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const user = await requireCurrentUser();
+  const visits = user.role === "program_representative" ? await getCompletedVisits() : [];
 
   return (
     <ToastProvider>
@@ -48,6 +51,7 @@ export default async function PortalLayout({
         </div>
       </div>
       <CommandPalette user={user} />
+      {visits.length > 0 && <VisitEvaluationPrompt visits={visits} />}
     </ToastProvider>
   );
 }

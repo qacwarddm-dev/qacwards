@@ -57,6 +57,7 @@ export default function RadialProgress({
             strokeLinecap="round"
             strokeDasharray={c}
             strokeDashoffset={c - (filled / 100) * c}
+            className="transition-[stroke-dashoffset] duration-700 ease-[var(--ease-out)]"
           />
         </svg>
         <span className="absolute inset-0 flex items-center justify-center text-heading font-bold text-black">

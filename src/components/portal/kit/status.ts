@@ -46,6 +46,8 @@ export const STATUS = {
   // a level hitting 100% is ready to be evaluated, distinct from an
   // accreditor's own `evaluated` assignment state.
   ready_for_evaluation: { label: "Ready for Evaluation", tone: "success" },
+  answered: { label: "Submitted", tone: "success" },
+  pending_review: { label: "Pending review", tone: "warning" },
 } as const satisfies Record<string, { label: string; tone: StatusTone }>;
 
 export type StatusKey = keyof typeof STATUS;

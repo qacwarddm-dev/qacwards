@@ -33,6 +33,7 @@ export { default as DocumentBrowser } from "./DocumentBrowser";
 export { default as Drawer } from "./Drawer";
 export { default as EmptyState } from "./EmptyState";
 export { default as EvaluationSummary } from "./EvaluationSummary";
+export { default as EvaluationTaskRow } from "./EvaluationTaskRow";
 export {
   FieldLabel,
   PasswordField,
@@ -43,6 +44,7 @@ export {
   SelectInput,
   TextField,
   TextareaField,
+  TextareaInput,
   TextInput,
 } from "./Field";
 export { default as ExpertisePicker } from "./ExpertisePicker";
@@ -85,6 +87,8 @@ export { default as StarRating } from "./StarRating";
 export { default as StatCard, StatRow, type Stat } from "./StatCard";
 export { default as StatusBarChart, type StatusBar } from "./StatusBarChart";
 export { default as StatusPill, type DocStatus } from "./StatusPill";
+export { default as SuccessCheck } from "./SuccessCheck";
+export { default as SurveyFormModal, type SurveySaveResult } from "./SurveyFormModal";
 export { STATUS, type StatusKey, type StatusTone } from "./status";
 export { default as Stepper, type Step } from "./Stepper";
 export { default as ToastProvider, useToast, type Toast } from "./ToastProvider";

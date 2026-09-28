@@ -1760,6 +1760,64 @@ export type Database = {
           },
         ]
       }
+      visit_evaluations: {
+        Row: {
+          accreditor_id: string | null
+          answers: Json
+          assignment_id: string
+          created_at: string
+          evaluator_id: string
+          id: string
+          kind: string
+          submitted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          accreditor_id?: string | null
+          answers?: Json
+          assignment_id: string
+          created_at?: string
+          evaluator_id?: string
+          id?: string
+          kind: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accreditor_id?: string | null
+          answers?: Json
+          assignment_id?: string
+          created_at?: string
+          evaluator_id?: string
+          id?: string
+          kind?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visit_evaluations_accreditor_id_fkey"
+            columns: ["accreditor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_evaluations_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_evaluations_evaluator_id_fkey"
+            columns: ["evaluator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       current_program_level: {

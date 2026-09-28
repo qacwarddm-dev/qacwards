@@ -94,6 +94,20 @@ export function TextInput({
   return <input aria-label={label} className={`${SHELL} ${className}`} {...rest} />;
 }
 
+export function TextareaInput({
+  label,
+  className = "",
+  ...rest
+}: { label: string } & React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return (
+    <textarea
+      aria-label={label}
+      className={`${SHELL_BASE} h-auto min-h-[80px] resize-y py-[10px] leading-normal text-black ${className}`}
+      {...rest}
+    />
+  );
+}
+
 /** Swap the shell's resting border for the maroon focus border. */
 const shell = (maroon: boolean) =>
   SHELL.replace(

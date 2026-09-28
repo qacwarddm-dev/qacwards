@@ -92,6 +92,8 @@ export type SubmissionData = {
   areas: SubmissionArea[];
   /** Null when QAC has not opened a cycle — nothing can be filed into. */
   openCycleName: string | null;
+  /** Outstanding post-visit evaluations; null until a visit is complete. */
+  evaluationsPending: number | null;
 };
 
 function ProgramsPanel({ programs }: { programs: SubmissionProgram[] }) {
@@ -159,26 +161,22 @@ function ReadinessPanel({ levels }: { levels: SubmissionLevel[] }) {
 function LevelsPanel({
   program,
   levels,
+  evaluationsPending,
 }: {
   program: string;
   levels: SubmissionLevel[];
+  evaluationsPending: number | null;
 }) {
-  // Client backlog (2026-09-06 notes): the "QAC Service Evaluation" survey
-  // triggers once a level's documents are reviewed and approved, which this
-  // screen already tracks as `percent` reaching 100 — the same field the
-  // level row's own bar reads, not a second readiness check.
-  const doneLevel = levels.find((l) => l.percent === 100);
-
   return (
     <Panel
       title="Accreditation Levels"
       footer={
-        doneLevel && (
+        evaluationsPending !== null && (
           <Button
-            variant="secondary"
-            href={`/portal/submission/evaluation?program=${program}&level=${doneLevel.levelId}`}
+            variant={evaluationsPending > 0 ? "primary" : "secondary"}
+            href="/portal/submission/evaluation"
           >
-            Rate QAC&apos;s Service
+            {evaluationsPending > 0 ? `Answer Evaluations (${evaluationsPending})` : "Evaluations"}
           </Button>
         )
       }
@@ -317,6 +315,7 @@ export default function ProgramRepSubmissions({
   modal,
   levelId,
   areaId,
+  uploaderName,
   data,
 }: {
   program?: string;
@@ -331,6 +330,7 @@ export default function ProgramRepSubmissions({
   /** Which requirement area's row opened the modal — carried in the URL
    *  since the Requirements grid has no other per-row state. */
   areaId?: string;
+  uploaderName: string;
   data: SubmissionData;
 }) {
   if (!program) {
@@ -384,7 +384,13 @@ export default function ProgramRepSubmissions({
       </div>
 
       <div className="mt-[9px]">
-        {view === "levels" && <LevelsPanel program={program} levels={data.levels} />}
+        {view === "levels" && (
+          <LevelsPanel
+            program={program}
+            levels={data.levels}
+            evaluationsPending={data.evaluationsPending}
+          />
+        )}
         {view === "phases" && (
           <PhasesPanel
             program={program}
@@ -412,6 +418,11 @@ export default function ProgramRepSubmissions({
         <SubmissionUploadModal
           title="Add Document"
           scrollBox
+          uploaderName={uploaderName}
+          destination={`${currentLevel?.label ?? "Pre-Accreditation"}, ${
+            data.phases.find((p) => p.ordinal === (phase ?? 1))?.label ?? `Phase ${phase ?? 1}`
+          }`}
+          viewHref={`/portal/submission?program=${program}&view=phases${levelParam}&phase=${phase ?? 1}&modal=files`}
           programId={programId}
           levelId={levelId}
           submissionId={currentLevel?.submissionId ?? null}
@@ -432,6 +443,9 @@ export default function ProgramRepSubmissions({
       {modal === "add" && view === "requirements" && areaId && programId && levelId && (
         <SubmissionUploadModal
           title="Add Document"
+          uploaderName={uploaderName}
+          destination={`${currentLevel?.label ?? "Level"}, ${currentArea?.name ?? "Requirements"}`}
+          viewHref={`/portal/submission?program=${program}&view=requirements${levelParam}&area=${areaId}&modal=files`}
           programId={programId}
           levelId={levelId}
           submissionId={currentLevel?.submissionId ?? null}

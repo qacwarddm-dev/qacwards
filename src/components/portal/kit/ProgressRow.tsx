@@ -107,8 +107,8 @@ export default function ProgressRow({
               className={`h-[10px] shrink-0 rounded-full bg-surface ${compact ? "w-[90px]" : "w-[251px]"} ${dim}`}
             >
               <span
-                className="block h-full rounded-full bg-yellow"
-                style={{ width: `${percent}%` }}
+                className="block h-full rounded-full bg-yellow transition-[clip-path] duration-700 ease-[var(--ease-out)]"
+                style={{ clipPath: `inset(0 ${100 - percent}% 0 0 round 5px)` }}
               />
             </span>
             <span
