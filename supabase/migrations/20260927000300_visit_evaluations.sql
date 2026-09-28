@@ -58,3 +58,17 @@ create policy "reps edit their own drafts"
   on public.visit_evaluations for update to authenticated
   using (evaluator_id = auth.uid() and submitted_at is null)
   with check (evaluator_id = auth.uid());
+
+-- Audited on submit only: every autosave is an UPDATE, and logging drafts
+-- would bury the one row /portal/activity shows ("Answered the ... Evaluation").
+drop trigger if exists log_activity_submitted on public.visit_evaluations;
+create trigger log_activity_submitted
+  after insert on public.visit_evaluations
+  for each row when (new.submitted_at is not null)
+  execute function public.log_activity();
+
+drop trigger if exists log_activity_submitted_update on public.visit_evaluations;
+create trigger log_activity_submitted_update
+  after update on public.visit_evaluations
+  for each row when (old.submitted_at is null and new.submitted_at is not null)
+  execute function public.log_activity();

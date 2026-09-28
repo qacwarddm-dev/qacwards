@@ -147,6 +147,9 @@ Lives in **QAC Admin → User Management** (`/portal/settings/users`).
       the 2026-09-18 star-rating form. Stored in `visit_evaluations` (migration 20260927000300).
 - [x] PSV-complete pop-up (client screenshot): once per session until all answered; list hub at
       `/portal/submission/evaluation`.
+- [x] My Activity (`profile-activity-mockup.html`): plain-sentence log grouped by day, filter pills,
+      View links, "Show older activity". Replaces the raw table.
+- [ ] Profile fixes from the same mockup not done: new-password strength bar + rules.
 - [ ] QAC Feedback screen still reads fixtures (`src/lib/feedback.ts`), not `visit_evaluations`.
 - [ ] Mockup's email + bell notification for "evaluations needed" not built.
 
