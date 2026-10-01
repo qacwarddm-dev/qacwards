@@ -19,7 +19,7 @@ export async function getRepPrograms(): Promise<RepProgram[]> {
     supabase.from("accreditation_levels").select("id, code, name, ordinal").order("ordinal"),
     supabase
       .from("submissions")
-      .select("id, program_id, level_id, status, attempt")
+      .select("id, program_id, level_id, status, attempt, accreditation_cycles(status)")
       .in("program_id", programs.map((p) => p.id))
       .order("attempt", { ascending: false }),
     supabase
@@ -28,10 +28,10 @@ export async function getRepPrograms(): Promise<RepProgram[]> {
       .in("program_id", programs.map((p) => p.id))
       .in("status", ["active", "superseded"]),
   ]);
-  const latest = new Map<string, { id: string; status: string }>();
+  const latest = new Map<string, { id: string; status: string; closed: boolean }>();
   for (const s of subs ?? []) {
     const k = `${s.program_id}|${s.level_id}`;
-    if (!latest.has(k)) latest.set(k, { id: s.id, status: s.status });
+    if (!latest.has(k)) latest.set(k, { id: s.id, status: s.status, closed: s.accreditation_cycles?.status !== "open" });
   }
   const [reviews, ref] = await Promise.all([getSubmissionReviews([...latest.values()].map((s) => s.id)), getReferenceStructure()]);
   return programs.map((p) => {
@@ -56,6 +56,7 @@ export async function getRepPrograms(): Promise<RepProgram[]> {
           ordinal: l.ordinal,
           submissionId: s?.id ?? null,
           status: s?.status ?? null,
+          closed: s?.closed ?? false,
           review: s
             ? (reviews.find((r) => r.submissionId === s.id) ?? null)
             : emptyReview(ref, { id: l.id, code: l.code, name: l.name, required_choices: ref.levels.find((x) => x.id === l.id)?.required_choices ?? null }, {

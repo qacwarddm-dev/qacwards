@@ -30,10 +30,14 @@ function checkFile(file: FormDataEntryValue | null, exts: string[]): File | stri
 
 const safeName = (n: string) => n.replace(/[^\w.\-]+/g, "-").slice(-120);
 
-async function notifyReps(title: string, link: string) {
+async function notifyReps(title: string, link: string, colleges: string[] = []) {
   const supabase = await createClient();
-  const { data } = await supabase.from("program_reps").select("profile_id");
-  const ids = [...new Set((data ?? []).map((r) => r.profile_id))];
+  const { data } = await supabase.from("program_reps").select("profile_id, profiles(colleges(code))");
+  const rows = (data ?? []).filter((r) => {
+    const code = (r.profiles as { colleges: { code: string } | null } | null)?.colleges?.code;
+    return !colleges.length || (code !== undefined && colleges.includes(code));
+  });
+  const ids = [...new Set(rows.map((r) => r.profile_id))];
   await Promise.all(ids.map((id) => supabase.rpc("send_reminder", { p_profile: id, p_title: title, p_link: link })));
 }
 
@@ -135,6 +139,7 @@ export async function saveCommonDoc(fd: FormData): Promise<ActionResult> {
   const title = String(fd.get("title") ?? "").trim();
   const category = String(fd.get("category") ?? "Institutional");
   const visibleTo = String(fd.get("visibleTo") ?? "All program reps");
+  const collegeCodes = String(fd.get("colleges") ?? "").split(",").map((c) => c.trim()).filter(Boolean);
   if (!title) return { ok: false, error: "Enter a title" };
 
   const supabase = await createClient();
@@ -142,7 +147,7 @@ export async function saveCommonDoc(fd: FormData): Promise<ActionResult> {
   const up = await uploadFile(supabase, BUCKETS.commonDocs, path, file, { contentType: "application/pdf" });
   if (up.error) return { ok: false, error: up.error };
 
-  const row = { title, category, visible_to: visibleTo, storage_path: path, file_size: file.size, uploaded_by: user.id, updated_at: new Date().toISOString() };
+  const row = { title, category, visible_to: visibleTo, college_codes: collegeCodes, storage_path: path, file_size: file.size, uploaded_by: user.id, updated_at: new Date().toISOString() };
   if (id) {
     const { data: old } = await supabase.from("common_documents").select("storage_path").eq("id", id).maybeSingle();
     const { error } = await supabase.from("common_documents").update(row).eq("id", id);
@@ -155,7 +160,7 @@ export async function saveCommonDoc(fd: FormData): Promise<ActionResult> {
       return { ok: false, error: error.message };
     }
   }
-  if (fd.get("notify") === "1") await notifyReps(`${id ? "Updated" : "New"} common document: ${title}`, "/portal/documents?tab=common");
+  if (fd.get("notify") === "1") await notifyReps(`${id ? "Updated" : "New"} common document: ${title}`, "/portal/documents?tab=common", collegeCodes);
   refresh();
   return { ok: true };
 }

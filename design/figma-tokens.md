@@ -140,3 +140,9 @@ portal's tokens are the mockups' own, declared on `.qp`:
 Type: Inter (`--font-inter`), 14px base. Sizes, radii and spacing come from the ported classes;
 new portal UI reuses those classes through the kit (`src/components/portal/kit/`) rather than
 inventing values. The public site and auth pages still use the tokens above this section.
+
+## Loaders (2026-10-01) — client `qac-loading-preview.html`
+
+Five loaders, CSS in `src/app/loaders.css` (`--q-*` vars: maroon `#800000`, gold `#eab308`, line `#ececec`, muted `#6b7280`):
+full-page `Splash` (root `loading.tsx`, PUP seal + rotating messages), `TopLine` progress bar (portal layout),
+`PageSkeleton`/`Skel` (portal `loading.tsx`), `Spinner` section loader, and `Btn loading` state.

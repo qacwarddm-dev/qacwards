@@ -343,7 +343,7 @@ function NewFolderModal({ loc, where, onClose }: { loc: RepoLoc; where: string; 
           <Btn variant="gh" onClick={onClose}>
             Cancel
           </Btn>
-          <Btn disabled={busy} onClick={() => (v.trim() ? run(() => createCopcFolder(loc, v), "Folder created", onClose) : toast.say("Enter a folder name", true))}>
+          <Btn loading={busy} onClick={() => (v.trim() ? run(() => createCopcFolder(loc, v), "Folder created", onClose) : toast.say("Enter a folder name", true))}>
             Create
           </Btn>
         </>
@@ -367,7 +367,7 @@ function RenameModal({ f, onClose }: { f: RepoFile; onClose: () => void }) {
           <Btn variant="gh" onClick={onClose}>
             Cancel
           </Btn>
-          <Btn disabled={busy} onClick={() => (v.trim() ? run(() => renameCopcFile(f.id, v), "File renamed", onClose) : toast.say("Enter a name", true))}>
+          <Btn loading={busy} onClick={() => (v.trim() ? run(() => renameCopcFile(f.id, v), "File renamed", onClose) : toast.say("Enter a name", true))}>
             Save
           </Btn>
         </>
@@ -389,7 +389,7 @@ function DeleteModal({ f, onClose }: { f: RepoFile; onClose: () => void }) {
           <Btn variant="gh" onClick={onClose}>
             Cancel
           </Btn>
-          <Btn variant="danger" disabled={busy} onClick={() => run(() => deleteCopcFile(f.id), "File moved to Recently deleted", onClose)}>
+          <Btn variant="danger" loading={busy} onClick={() => run(() => deleteCopcFile(f.id), "File moved to Recently deleted", onClose)}>
             Delete
           </Btn>
         </>
@@ -465,7 +465,7 @@ function UploadModal({
           <Btn variant="gh" onClick={onClose}>
             Cancel
           </Btn>
-          <Btn disabled={busy} onClick={save}>
+          <Btn loading={busy} onClick={save}>
             {busy ? "Uploading…" : "Upload"}
           </Btn>
         </>

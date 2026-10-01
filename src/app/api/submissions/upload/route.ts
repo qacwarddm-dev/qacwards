@@ -99,6 +99,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const { data: owner } = await supabase.from("submissions").select("accreditation_cycles(status)").eq("id", body.submissionId).maybeSingle();
+  if (owner && owner.accreditation_cycles?.status !== "open") {
+    return NextResponse.json({ error: "This accreditation cycle is closed. Its documents are read-only." }, { status: 409 });
+  }
+
   let original = new Uint8Array(await file.arrayBuffer());
 
   const check = await inspectPdf(original);

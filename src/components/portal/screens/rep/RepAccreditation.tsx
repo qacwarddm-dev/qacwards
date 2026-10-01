@@ -102,7 +102,7 @@ export default function RepAccreditation({
   }
 
   const level = program.levels.find((l) => l.levelId === view.l) ?? (view.l === "none" ? null : currentLevel(program));
-  const locked = level ? isLocked(program, level) : true;
+  const locked = level ? isLocked(program, level) || level.closed : true;
   const stage = view.st ?? (level && levelCounts(level, "pre").miss === 0 ? "req" : "pre");
   const group = level?.review && view.g !== undefined ? level.review.phases.find((g) => g.ordinal === view.g) : undefined;
 
@@ -208,7 +208,16 @@ export default function RepAccreditation({
   );
 }
 
-function LockNote({ level, sub, preview }: { level: string; sub: string; preview?: boolean }) {
+function LockNote({ level, sub, preview, closed }: { level: string; sub: string; preview?: boolean; closed?: boolean }) {
+  if (closed)
+    return (
+      <div className="lockb">
+        🔒{" "}
+        <div>
+          <b>This accreditation cycle is closed.</b> Your {level} documents are kept as read-only history; uploads, replacements and resubmissions are turned off.
+        </div>
+      </div>
+    );
   return (
     <div className="lockb">
       🔒{" "}
@@ -246,7 +255,7 @@ function docActions(ctx: Ctx, s: Slot, group: string, chosen?: { remove: () => v
         <Btn variant="o" sm onClick={() => ctx.view(s, group)}>
           View
         </Btn>
-        <Btn sm onClick={() => ctx.open(s, "resubmit", group)}>
+        <Btn sm disabled={ctx.locked} onClick={() => ctx.open(s, "resubmit", group)}>
           ↺ Resubmit
         </Btn>
       </>
@@ -257,7 +266,7 @@ function docActions(ctx: Ctx, s: Slot, group: string, chosen?: { remove: () => v
         <Btn variant="o" sm onClick={() => ctx.view(s, group)}>
           View
         </Btn>
-        <Btn variant="gh" sm onClick={() => ctx.open(s, "replace", group)}>
+        <Btn variant="gh" sm disabled={ctx.locked} onClick={() => ctx.open(s, "replace", group)}>
           Replace
         </Btn>
       </>
@@ -324,7 +333,7 @@ function PreCard({ ctx }: { ctx: Ctx }) {
   const l = ctx.level.levelId;
   return (
     <div className="card pac">
-      {ctx.locked && <LockNote level={ctx.level.name} sub={ls.sub} preview />}
+      {ctx.locked && <LockNote level={ctx.level.name} sub={ls.sub} preview closed={ctx.level.closed} />}
       <div className="pah">
         <h2>Pre-Accreditation Phases</h2>
         <BackLink to="Levels" href={href({ p, l: "none" })} />
@@ -424,7 +433,7 @@ function LevelCard({ ctx, visitDone }: { ctx: Ctx; visitDone?: string }) {
           <small>Overall progress</small>
         </div>
       </div>
-      {ctx.locked && <LockNote level={level.name} sub={ls.sub} />}
+      {ctx.locked && <LockNote level={level.name} sub={ls.sub} closed={level.closed} />}
       <StageSwitch
         arrows
         value="req"

@@ -150,7 +150,7 @@ export function UsersTab({ users }: { users: UserRow[] }) {
               <Btn variant="gh" onClick={() => setModal(null)}>
                 Cancel
               </Btn>
-              <Btn disabled={busy} onClick={() => run(() => setUserRole(modal.u.id, modal.to), "Role changed", () => setModal(null))}>
+              <Btn loading={busy} onClick={() => run(() => setUserRole(modal.u.id, modal.to), "Role changed", () => setModal(null))}>
                 Change role
               </Btn>
             </>
@@ -246,7 +246,7 @@ function Invite({ onClose }: { onClose: () => void }) {
           <Btn variant="gh" onClick={onClose}>
             Cancel
           </Btn>
-          <Btn disabled={busy} onClick={() => run(() => inviteUser(v), `Invitation sent to ${v.email}`, onClose)}>
+          <Btn loading={busy} onClick={() => run(() => inviteUser(v), `Invitation sent to ${v.email}`, onClose)}>
             Send invitation
           </Btn>
         </>
@@ -306,7 +306,7 @@ function EditUser({ u, onClose }: { u: UserRow; onClose: () => void }) {
           <Btn variant="gh" onClick={onClose}>
             Cancel
           </Btn>
-          <Btn disabled={busy} onClick={() => run(() => editUser(u.id, { surname, given, ia }), "User updated", onClose)}>
+          <Btn loading={busy} onClick={() => run(() => editUser(u.id, { surname, given, ia }), "User updated", onClose)}>
             Save
           </Btn>
         </>
@@ -464,7 +464,7 @@ export function RepsTab({ data, sel }: { data: RepsData; sel: string | null }) {
               <Btn variant="gh" onClick={() => setRm(null)}>
                 Cancel
               </Btn>
-              <Btn variant="d" disabled={busy} onClick={() => run(() => detachRepFromProgram(cur.id, rm.id), "Program removed", () => setRm(null))}>
+              <Btn variant="d" loading={busy} onClick={() => run(() => detachRepFromProgram(cur.id, rm.id), "Program removed", () => setRm(null))}>
                 Remove
               </Btn>
             </>
@@ -643,7 +643,7 @@ export function ProgsTab({ data, initialFilter }: { data: ProgsData; initialFilt
               <Btn variant="gh" onClick={() => setMove(null)}>
                 Cancel
               </Btn>
-              <Btn disabled={busy} onClick={() => run(() => reassignProgramCollege(move.p.id, move.to), `Program moved to ${col(move.to)?.code}`, () => setMove(null))}>
+              <Btn loading={busy} onClick={() => run(() => reassignProgramCollege(move.p.id, move.to), `Program moved to ${col(move.to)?.code}`, () => setMove(null))}>
                 Move program
               </Btn>
             </>
@@ -681,7 +681,7 @@ function AddProgram({ data, onClose }: { data: ProgsData; onClose: () => void })
           <Btn variant="gh" onClick={onClose}>
             Cancel
           </Btn>
-          <Btn disabled={busy} onClick={() => run(() => addProgram(n, c, m), "Program added", onClose)}>
+          <Btn loading={busy} onClick={() => run(() => addProgram(n, c, m), "Program added", onClose)}>
             Add
           </Btn>
         </>

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import "./portal.css";
 import "./portal-extra.css";
 import CommandPalette from "@/components/portal/CommandPalette";
@@ -5,6 +6,7 @@ import PortalSidebar from "@/components/portal/PortalSidebar";
 import PortalTopBar from "@/components/portal/PortalTopBar";
 import ToastProvider from "@/components/portal/kit/ToastProvider";
 import { LAYER_ID } from "@/components/portal/kit/Modal";
+import TopLine from "@/components/portal/kit/TopLine";
 import EvaluationPrompt from "@/components/portal/kit/EvaluationPrompt";
 import { requireCurrentUser } from "@/lib/current-user";
 import { getNavCounts } from "@/lib/nav-counts";
@@ -29,6 +31,9 @@ export default async function PortalLayout({
   return (
     <div className="qp">
       <ToastProvider>
+        <Suspense fallback={null}>
+          <TopLine />
+        </Suspense>
         <PortalTopBar user={user} initials={initialsOf(user.name)} />
         <div className="wrap">
           <PortalSidebar user={user} counts={counts} />

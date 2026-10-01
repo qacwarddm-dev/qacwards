@@ -150,7 +150,7 @@ export default function IaAssignments({ assignments }: { assignments: IaAssignme
               <Btn variant="o" onClick={() => setDecline(null)}>
                 Cancel
               </Btn>
-              <Btn variant="d" disabled={pending} onClick={() => respond(decline, "rejected")}>
+              <Btn variant="d" loading={pending} onClick={() => respond(decline, "rejected")}>
                 Decline
               </Btn>
             </>

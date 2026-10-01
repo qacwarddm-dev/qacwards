@@ -417,7 +417,7 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
             <Btn variant="gh" onClick={() => setFile(null)}>
               Cancel
             </Btn>
-            <Btn disabled={pending} onClick={submit}>
+            <Btn loading={pending} onClick={submit}>
               Submit NDA
             </Btn>
           </div>

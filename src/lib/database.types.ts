@@ -540,6 +540,7 @@ export type Database = {
       common_documents: {
         Row: {
           category: string
+          college_codes: string[]
           created_at: string
           file_size: number | null
           id: string
@@ -552,6 +553,7 @@ export type Database = {
         }
         Insert: {
           category?: string
+          college_codes?: string[]
           created_at?: string
           file_size?: number | null
           id?: string
@@ -564,6 +566,7 @@ export type Database = {
         }
         Update: {
           category?: string
+          college_codes?: string[]
           created_at?: string
           file_size?: number | null
           id?: string

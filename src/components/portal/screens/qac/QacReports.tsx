@@ -333,7 +333,7 @@ function PreviewModal({
           {r.id ? (
             <Btn onClick={onClose}>Close</Btn>
           ) : (
-            <Btn disabled={busy} onClick={save}>
+            <Btn loading={busy} onClick={save}>
               Save report
             </Btn>
           )}

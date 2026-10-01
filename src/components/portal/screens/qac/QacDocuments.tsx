@@ -175,7 +175,7 @@ function Templates({ data }: { data: QacDocumentsData }) {
               <Btn variant="gh" onClick={() => setModal(null)}>
                 Cancel
               </Btn>
-              <Btn variant="d" disabled={busy} onClick={() => run(() => setTemplatePublished(modal.row.id!, false), "Template hidden", () => setModal(null))}>
+              <Btn variant="d" loading={busy} onClick={() => run(() => setTemplatePublished(modal.row.id!, false), "Template hidden", () => setModal(null))}>
                 Hide
               </Btn>
             </>
@@ -233,7 +233,7 @@ function TemplateUpload({ group, groupLabel, row, onClose }: { group: TplGroupKe
           <Btn variant="gh" onClick={onClose}>
             Cancel
           </Btn>
-          <Btn disabled={busy} onClick={save}>
+          <Btn loading={busy} onClick={save}>
             {replace ? "Upload new version" : "Add template"}
           </Btn>
         </>
@@ -386,7 +386,7 @@ function Common({ docs, colleges }: { docs: CommonDoc[]; colleges: [string, stri
               <Btn variant="gh" onClick={() => setModal(null)}>
                 Cancel
               </Btn>
-              <Btn variant="danger" disabled={busy} onClick={() => run(() => deleteCommonDoc(modal.d.id), "Document deleted", () => setModal(null))}>
+              <Btn variant="danger" loading={busy} onClick={() => run(() => deleteCommonDoc(modal.d.id), "Document deleted", () => setModal(null))}>
                 Delete
               </Btn>
             </>
@@ -429,6 +429,7 @@ function CommonUpload({ d, colleges, onClose }: { d?: CommonDoc; colleges: [stri
     fd.set("title", title);
     fd.set("category", cat);
     fd.set("visibleTo", scope === "all" ? ALL : `${sel.join(", ")} only`);
+    fd.set("colleges", scope === "all" ? "" : sel.join(","));
     fd.set("notify", notify ? "1" : "");
     run(() => saveCommonDoc(fd), "Document uploaded", onClose);
   };
@@ -443,7 +444,7 @@ function CommonUpload({ d, colleges, onClose }: { d?: CommonDoc; colleges: [stri
           <Btn variant="gh" onClick={onClose}>
             Cancel
           </Btn>
-          <Btn disabled={busy} onClick={save}>
+          <Btn loading={busy} onClick={save}>
             {d ? "Replace" : "Upload"}
           </Btn>
         </>
@@ -636,10 +637,10 @@ function VerifyNda({ n, onClose }: { n: NdaItem; onClose: () => void }) {
             <Btn variant="gh" onClick={onClose}>
               Cancel
             </Btn>
-            <Btn variant="d" disabled={busy} onClick={() => act(false)}>
+            <Btn variant="d" loading={busy} onClick={() => act(false)}>
               ↺ Return
             </Btn>
-            <Btn disabled={busy} onClick={() => act(true)}>
+            <Btn loading={busy} onClick={() => act(true)}>
               ✓ Verify NDA
             </Btn>
           </>

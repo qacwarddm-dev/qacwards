@@ -203,7 +203,7 @@ export function PublicTab({ data }: { data: PublicData }) {
         <span className="sub" style={{ margin: 0 }}>
           {p.publishedAt ? `Last published ${shortDate(p.publishedAt)}${p.publishedBy ? ` by ${p.publishedBy}` : ""}` : "Not published from here yet"}
         </span>
-        <Btn disabled={busy} onClick={() => run(() => saveSetting("public", { ...p, publishedAt: new Date().toISOString() }), "Public information saved and published")}>
+        <Btn loading={busy} onClick={() => run(() => saveSetting("public", { ...p, publishedAt: new Date().toISOString() }), "Public information saved and published")}>
           Save &amp; publish
         </Btn>
       </div>
@@ -282,7 +282,7 @@ function NewAnnouncement({ today, onClose }: { today: string; onClose: () => voi
           <Btn variant="gh" onClick={onClose}>
             Cancel
           </Btn>
-          <Btn disabled={busy} onClick={() => run(() => saveAnnouncement(v), "Announcement saved", onClose)}>
+          <Btn loading={busy} onClick={() => run(() => saveAnnouncement(v), "Announcement saved", onClose)}>
             Save
           </Btn>
         </>
@@ -487,7 +487,7 @@ export function BackupTab({ data }: { data: BackupData }) {
         title="Backup & Restore"
         sub="Database export (JSON), kept in the backups bucket"
         right={
-          <Btn disabled={busy} onClick={() => run(() => createBackup(), "Backup finished")}>
+          <Btn loading={busy} onClick={() => run(() => createBackup(), "Backup finished")}>
             {busy ? "Backing up…" : "💾 Back up now"}
           </Btn>
         }
@@ -744,7 +744,7 @@ export function SecurityTab({ data }: { data: SecurityData }) {
         <span className="sub" style={{ margin: 0 }}>
           Changes apply on each user’s next sign-in.
         </span>
-        <Btn disabled={busy} onClick={() => run(() => saveSetting("security", s), "Security settings saved")}>
+        <Btn loading={busy} onClick={() => run(() => saveSetting("security", s), "Security settings saved")}>
           Save changes
         </Btn>
       </div>

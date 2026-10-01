@@ -349,7 +349,7 @@ export default function QacProgramDetail({ p, today, initialStage }: { p: QacPro
                   <Btn variant="d" onClick={() => (setRet(viewing.id), setRetNote(""), setReport(null))}>
                     ↺ Return
                   </Btn>
-                  <Btn disabled={pending} onClick={() => decide(viewing.id, "acknowledged")}>
+                  <Btn loading={pending} onClick={() => decide(viewing.id, "acknowledged")}>
                     ✓ Acknowledge
                   </Btn>
                 </>
@@ -386,7 +386,7 @@ export default function QacProgramDetail({ p, today, initialStage }: { p: QacPro
               <Btn variant="gh" onClick={() => setRet(null)}>
                 Cancel
               </Btn>
-              <Btn variant="d" disabled={pending} onClick={() => (retNote.trim() ? decide(ret, "returned", retNote) : toast.say("Add a remark first", true))}>
+              <Btn variant="d" loading={pending} onClick={() => (retNote.trim() ? decide(ret, "returned", retNote) : toast.say("Add a remark first", true))}>
                 ↺ Return report
               </Btn>
             </>

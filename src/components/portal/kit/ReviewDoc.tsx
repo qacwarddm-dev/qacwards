@@ -73,7 +73,7 @@ export function ReviewDocModal({
               ↺ {ret ? "Send return" : "Return for revision"}
             </Btn>
             {!startReturn && (
-              <Btn variant="g" disabled={pending} onClick={() => decide(slot, "approved", undefined, onClose)}>
+              <Btn variant="g" loading={pending} onClick={() => decide(slot, "approved", undefined, onClose)}>
                 ✓ Approve
               </Btn>
             )}
@@ -81,7 +81,7 @@ export function ReviewDocModal({
         ) : (
           <>
             {allowUndo && !locked && slot.state === "approved" && (
-              <Btn variant="gh" disabled={pending} onClick={() => decide(slot, "undone", undefined, onClose)}>
+              <Btn variant="gh" loading={pending} onClick={() => decide(slot, "undone", undefined, onClose)}>
                 Undo approval
               </Btn>
             )}

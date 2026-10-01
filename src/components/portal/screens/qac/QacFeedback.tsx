@@ -203,7 +203,7 @@ function DetailModal({ f, onClose }: { f: FbProgram; onClose: () => void }) {
       footer={
         <>
           {f.waiting.length > 0 && (
-            <Btn variant="o" disabled={busy} onClick={remind}>
+            <Btn variant="o" loading={busy} onClick={remind}>
               ✉ Send reminder
             </Btn>
           )}

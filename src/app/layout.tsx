@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { fontVariables } from "@/lib/fonts";
 import "./globals.css";
+import "./loaders.css";
 
 /**
  * Root layout — `<html>`, fonts and the stylesheet, and nothing else.

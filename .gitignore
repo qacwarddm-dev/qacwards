@@ -84,3 +84,6 @@ graphify-out/*
 # assets/OTHERS/ and is never served — public/assets/video/ holds the encoded
 # H.264 web copy, which is what ships.
 assets/OTHERS/*.mp4
+
+# Local progress-reset snapshots (contain real uploads and PII)
+/data/progress-backups/

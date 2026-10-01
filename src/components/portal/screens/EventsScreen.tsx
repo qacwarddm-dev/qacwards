@@ -201,8 +201,7 @@ function CalendarView({
   const list = sel
     ? evOn(events, sel)
     : events
-        .filter((e) => evEnd(e) >= today && (evStart(e).getFullYear() * 12 + evStart(e).getMonth()) <= ym + 1)
-        .slice(0, 4);
+        .filter((e) => evEnd(e) >= today && evStart(e).getFullYear() * 12 + evStart(e).getMonth() <= ym + 2);
 
   return (
     <div className="calw">

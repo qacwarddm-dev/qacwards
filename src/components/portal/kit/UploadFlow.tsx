@@ -281,7 +281,7 @@ export default function UploadFlow({
 
   if (stage === "uploading")
     return (
-      <Modal title="Uploading…" sub="Please don’t close this window." locked onClose={() => {}} footer={<Btn disabled>Uploading…</Btn>}>
+      <Modal title="Uploading…" sub="Please don’t close this window." locked onClose={() => {}} footer={<Btn loading>Uploading…</Btn>}>
         {rows.map((r) => (
           <div key={r.name} className="upi" style={{ marginBottom: 10 }}>
             <span className="pdfi">PDF</span>

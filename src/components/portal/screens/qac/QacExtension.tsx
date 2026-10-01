@@ -260,7 +260,7 @@ function PhaseDocs({ p, g, meId }: { p: QacProgram; g: PhaseGroup; meId: string 
           </Btn>
         )}
         {pending.length > 0 && (
-          <Btn variant="o" disabled={busy} onClick={approveAll}>
+          <Btn variant="o" loading={busy} onClick={approveAll}>
             ✓ Approve all {pending.length} for review
           </Btn>
         )}

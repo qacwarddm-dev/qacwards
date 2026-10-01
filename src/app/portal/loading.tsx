@@ -1,7 +1,5 @@
+import PageSkeleton from "@/components/portal/kit/Skel";
+
 export default function PortalLoading() {
-  return (
-    <div className="card" aria-busy="true">
-      <div className="empty">Loading…</div>
-    </div>
-  );
+  return <PageSkeleton />;
 }

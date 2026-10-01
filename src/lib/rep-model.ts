@@ -8,6 +8,7 @@ export type RepLevel = {
   ordinal: number;
   submissionId: string | null;
   status: string | null;
+  closed: boolean;
   review: SubmissionReview | null;
 };
 

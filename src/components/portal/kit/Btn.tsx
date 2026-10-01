@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MiniRing } from "./Spinner";
 
 export type BtnVariant = "s" | "o" | "g" | "d" | "gh" | "gn" | "danger" | "plain";
 
@@ -15,6 +16,8 @@ type AsButton = Common & {
   download?: undefined;
   onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   disabled?: boolean;
+  loading?: boolean;
+  loadingLabel?: React.ReactNode;
   type?: "button" | "submit";
   form?: string;
 };
@@ -26,14 +29,15 @@ type AsLink = Common & {
   external?: boolean;
 };
 
-function cls(variant: BtnVariant, sm?: boolean, extra?: string) {
+function cls(variant: BtnVariant, sm?: boolean, extra?: string, loading?: boolean) {
   const v = variant === "plain" ? "" : `b${variant}`;
-  return ["btn", v, sm ? "sm" : "", extra ?? ""].filter(Boolean).join(" ");
+  return ["btn", v, sm ? "sm" : "", loading ? "q-btn-loading" : "", extra ?? ""].filter(Boolean).join(" ");
 }
 
 export default function Btn(props: AsButton | AsLink) {
   const { variant = "s", sm, className, children, title } = props;
-  const c = cls(variant, sm, className);
+  const loading = props.href === undefined && props.loading;
+  const c = cls(variant, sm, className, loading);
   if (props.href !== undefined) {
     if (props.download !== undefined || props.external || props.href.startsWith("mailto:") || props.href.startsWith("data:")) {
       return (
@@ -49,8 +53,9 @@ export default function Btn(props: AsButton | AsLink) {
     );
   }
   return (
-    <button type={props.type ?? "button"} form={props.form} className={c} onClick={props.onClick} disabled={props.disabled} title={title}>
-      {children}
+    <button type={props.type ?? "button"} form={props.form} className={c} onClick={props.onClick} disabled={props.disabled || loading} aria-busy={loading || undefined} title={title}>
+      {loading && <MiniRing />}
+      {loading && props.loadingLabel !== undefined ? props.loadingLabel : children}
     </button>
   );
 }
