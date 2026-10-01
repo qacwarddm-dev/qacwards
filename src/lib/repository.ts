@@ -11,11 +11,10 @@ export async function getRepository(): Promise<Repository> {
     supabase.from("colleges").select("code, name").order("name"),
     supabase.from("campuses").select("name, is_main").eq("is_main", false).order("name"),
     supabase.from("repository_units").select("id, location, name").order("created_at"),
-    supabase.from("programs").select("id, name, campuses(name, is_main), colleges(code)").order("name"),
+    supabase.from("programs").select("id, name, campuses(name, is_main), colleges(code)").is("deleted_at", null).order("name"),
     supabase
       .from("repository_files")
-      .select("id, title, program_id, folder_id, unit_id, created_at, valid_from, valid_until, cert_status, accreditation_levels(code), profiles:uploaded_by(surname, given_name)")
-      .eq("is_archived", false)
+      .select("id, title, program_id, folder_id, unit_id, created_at, is_archived, archived_at, valid_from, valid_until, cert_status, accreditation_levels(code), profiles:uploaded_by(surname, given_name)")
       .order("created_at", { ascending: false }),
   ]);
 
@@ -63,9 +62,16 @@ export async function getRepository(): Promise<Repository> {
         to: f.valid_until,
         status: f.cert_status,
         levelCode: f.accreditation_levels?.code ?? null,
+        deletedAt: f.is_archived ? (f.archived_at ?? f.created_at) : null,
       },
     ];
   });
 
-  return { units, programs: progs, files: out, folderIds };
+  return {
+    units,
+    programs: progs,
+    files: out.filter((f) => !f.deletedAt),
+    deleted: out.filter((f) => f.deletedAt).sort((a, b) => b.deletedAt!.localeCompare(a.deletedAt!)),
+    folderIds,
+  };
 }

@@ -40,6 +40,7 @@ const QAC_NAV: NavGroup[] = [
       { label: "Documents", href: "/portal/documents", icon: "docs" },
       { label: "Reports", href: "/portal/reports", icon: "report" },
       { label: "Feedback", href: "/portal/feedback", icon: "star" },
+      { label: "Recently Deleted", href: "/portal/recently-deleted", icon: "trash" },
     ],
   },
   { title: "SCHEDULE", items: [EVENTS] },

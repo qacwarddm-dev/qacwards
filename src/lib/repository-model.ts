@@ -26,5 +26,6 @@ export type RepoFile = {
   to: string | null;
   status: string | null;
   levelCode: string | null;
+  deletedAt: string | null;
 };
-export type Repository = { units: RepoUnit[]; programs: RepoProgram[]; files: RepoFile[]; folderIds: Record<RepoType, string> };
+export type Repository = { units: RepoUnit[]; programs: RepoProgram[]; files: RepoFile[]; deleted: RepoFile[]; folderIds: Record<RepoType, string> };

@@ -207,6 +207,7 @@ function describe(r: RawRow, viewer: string | null): Described | null {
       const title = str(row.title) ?? "a file";
       if (op === "insert") return { title: `Uploaded ${title} to AACCUP & COPC`, icon: "document", ref: {}, link: "aaccup-copc" };
       if (became("is_archived", true)) return { title: `Deleted ${title} from AACCUP & COPC`, icon: "remove", ref: {}, link: "aaccup-copc" };
+      if (became("is_archived", false)) return { title: `Restored ${title} to AACCUP & COPC`, icon: "document", ref: {}, link: "aaccup-copc" };
       if (changed("title")) return { title: `Renamed ${str(o.title) ?? "a file"} to ${title}`, icon: "document", ref: {}, link: "aaccup-copc" };
       return null;
     }
@@ -216,6 +217,7 @@ function describe(r: RawRow, viewer: string | null): Described | null {
       if (op === "insert") return { title: `Uploaded ${title} to Documents`, icon: "document", ref: {}, link: "documents" };
       if (op === "delete") return { title: `Removed ${title} from Documents`, icon: "remove", ref: {}, link: "documents" };
       if (became("is_archived", true)) return { title: `Archived ${title}`, icon: "document", ref: {}, link: "documents" };
+      if (changed("deleted_at")) return n.deleted_at ? { title: `Removed ${title} from Documents`, icon: "remove", ref: {}, link: "documents" } : { title: `Restored ${title} to Documents`, icon: "document", ref: {}, link: "documents" };
       return null;
     }
     case "program_reps":

@@ -91,9 +91,19 @@ export async function renameCopcFile(id: string, raw: string): Promise<ActionRes
 export async function deleteCopcFile(id: string): Promise<ActionResult> {
   if (!(await qac())) return { ok: false, error: "Only QAC can delete files." };
   const supabase = await createClient();
-  const { data, error } = await supabase.from("repository_files").update({ is_archived: true }).eq("id", id).select("id");
+  const { data, error } = await supabase.from("repository_files").update({ is_archived: true, archived_at: new Date().toISOString() }).eq("id", id).select("id");
   if (error) return { ok: false, error: error.message };
   if (!data?.length) return { ok: false, error: "That file could not be deleted." };
+  refresh();
+  return { ok: true };
+}
+
+export async function restoreCopcFile(id: string): Promise<ActionResult> {
+  if (!(await qac())) return { ok: false, error: "Only QAC can restore files." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("repository_files").update({ is_archived: false, archived_at: null }).eq("id", id).eq("is_archived", true).select("id");
+  if (error) return { ok: false, error: error.message };
+  if (!data?.length) return { ok: false, error: "That file could not be restored." };
   refresh();
   return { ok: true };
 }

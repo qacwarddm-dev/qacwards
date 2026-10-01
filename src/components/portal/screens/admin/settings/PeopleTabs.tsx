@@ -15,7 +15,7 @@ import useAct from "../../../kit/useAct";
 import type { ProgsData, RepsData, UserRow } from "@/lib/settings";
 import type { UserRole } from "@/lib/database.types";
 import { attachRepToProgram, detachRepFromProgram, reassignProgramCollege, setUserActive, setUserRole } from "@/lib/admin";
-import { addProgram, editUser, endSessions, inviteUser, resendInvite, sendPasswordReset } from "@/lib/settings-actions";
+import { addProgram, deleteProgram, editUser, endSessions, inviteUser, resendInvite, sendPasswordReset } from "@/lib/settings-actions";
 import { initialsOf } from "@/lib/program-names";
 
 const ROLES: UserRole[] = ["qac_admin", "qac_personnel", "internal_accreditor", "program_representative"];
@@ -487,6 +487,7 @@ export function ProgsTab({ data, initialFilter }: { data: ProgsData; initialFilt
   const [over, setOver] = useState<string | null>(null);
   const [move, setMove] = useState<{ p: ProgsData["programs"][number]; to: string } | null>(null);
   const [add, setAdd] = useState(false);
+  const [del, setDel] = useState<ProgsData["programs"][number] | null>(null);
   const { busy, run } = useAct();
   const ql = q.toLowerCase();
   const F = (p: ProgsData["programs"][number]) => (!ql || p.name.toLowerCase().includes(ql)) && (pc === "all" || (pc === "none" ? !p.hasRep : p.collegeId === pc));
@@ -497,7 +498,7 @@ export function ProgsTab({ data, initialFilter }: { data: ProgsData; initialFilt
   };
   return (
     <Card>
-      <CardHead title="Program Management" sub="Move a program to another college. Its accreditation documents and records move with it." right={<Btn onClick={() => setAdd(true)}>＋ Add program</Btn>} />
+      <CardHead title="Program Management" sub="Move a program to another college, or add and delete programs. Its accreditation documents and records move with it." right={<Btn onClick={() => setAdd(true)}>＋ Add program</Btn>} />
       <div className="ftools" style={{ marginBottom: 14 }}>
         <SearchBox value={q} onChange={setQ} placeholder="Search programs" />
         <label className="fl">College</label>
@@ -533,6 +534,7 @@ export function ProgsTab({ data, initialFilter }: { data: ProgsData; initialFilt
                       <th>Campus</th>
                       <th>Representative</th>
                       <th>College</th>
+                      <th />
                     </tr>
                   </thead>
                   <tbody>
@@ -550,6 +552,11 @@ export function ProgsTab({ data, initialFilter }: { data: ProgsData; initialFilt
                               </option>
                             ))}
                           </select>
+                        </td>
+                        <td style={{ textAlign: "right" }}>
+                          <Btn variant="gh" sm title="Delete program" onClick={() => setDel(p)}>
+                            🗑
+                          </Btn>
                         </td>
                       </tr>
                     ))}
@@ -602,6 +609,9 @@ export function ProgsTab({ data, initialFilter }: { data: ProgsData; initialFilt
                           )}
                         </small>
                       </div>
+                      <Btn variant="gh" sm title="Delete program" className="pdel" onClick={() => setDel(p)}>
+                        🗑
+                      </Btn>
                     </div>
                   ))}
                   {!L.length && (
@@ -663,6 +673,27 @@ export function ProgsTab({ data, initialFilter }: { data: ProgsData; initialFilt
         </Modal>
       )}
       {add && <AddProgram data={data} onClose={() => setAdd(false)} />}
+      {del && (
+        <Modal
+          title="Delete this program?"
+          sub={`${del.name} · ${del.campus}`}
+          onClose={() => setDel(null)}
+          footer={
+            <>
+              <Btn variant="gh" onClick={() => setDel(null)}>
+                Cancel
+              </Btn>
+              <Btn variant="danger" loading={busy} onClick={() => run(() => deleteProgram(del.id), "Program moved to Recently Deleted", () => setDel(null))}>
+                Delete
+              </Btn>
+            </>
+          }
+        >
+          <p className="sub">
+            It disappears from lists, reports and uploads. Its records are kept, and you can bring it back from <b>Recently Deleted</b>.
+          </p>
+        </Modal>
+      )}
     </Card>
   );
 }
@@ -693,6 +724,7 @@ function AddProgram({ data, onClose }: { data: ProgsData; onClose: () => void })
         <div>
           <label className="fl">College</label>
           <select className="inp" value={c} onChange={(e) => setC(e.target.value)}>
+            <option value="">No college (other campuses)</option>
             {data.colleges.map((x) => (
               <option key={x.id} value={x.id}>
                 {x.code}

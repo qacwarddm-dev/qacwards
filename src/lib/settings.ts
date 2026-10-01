@@ -144,7 +144,7 @@ export async function getRepsData(): Promise<RepsData> {
   const [{ data: people }, { data: links }, { data: programs }] = await Promise.all([
     supabase.from("profiles").select("id, surname, given_name, middle_initial, role").eq("role", "program_representative").order("surname"),
     supabase.from("program_reps").select("profile_id, program_id, profiles(surname, given_name, middle_initial)"),
-    supabase.from("programs").select("id, name, campuses(name), colleges(code)").order("name"),
+    supabase.from("programs").select("id, name, campuses(name), colleges(code)").is("deleted_at", null).order("name"),
   ]);
   const P = (programs ?? []).map((p) => ({ id: p.id, name: p.name, college: p.colleges?.code ?? "NA", campus: p.campuses?.name ?? "—" }));
   const map: RepsData["map"] = {};
@@ -175,7 +175,7 @@ export async function getProgsData(): Promise<ProgsData> {
   const [{ data: colleges }, { data: campuses }, { data: programs }, { data: links }] = await Promise.all([
     supabase.from("colleges").select("id, code, name").order("code"),
     supabase.from("campuses").select("id, name, is_main").order("is_main", { ascending: false }).order("name"),
-    supabase.from("programs").select("id, name, college_id, campuses(name), colleges(code)").order("name"),
+    supabase.from("programs").select("id, name, college_id, campuses(name), colleges(code)").is("deleted_at", null).order("name"),
     supabase.from("program_reps").select("program_id"),
   ]);
   const has = new Set((links ?? []).map((l) => l.program_id));

@@ -20,9 +20,9 @@ export type TplRow = {
   history: TplVersion[];
 };
 export type TplGroup = { key: TplGroupKey; label: string; rows: TplRow[] };
-export type CommonDoc = { id: string; title: string; category: string; visibleTo: string; date: string; size: string; views: number };
+export type CommonDoc = { id: string; title: string; category: string; visibleTo: string; date: string; size: string; views: number; deletedAt: string | null };
 export type NdaForm = { id: string | null; file: string; ver: number; date: string; dl: number };
-export type QacDocumentsData = { groups: TplGroup[]; common: CommonDoc[]; ndaForm: NdaForm; ndas: NdaItem[]; colleges: [string, string][] };
+export type QacDocumentsData = { groups: TplGroup[]; common: CommonDoc[]; commonDeleted: CommonDoc[]; ndaForm: NdaForm; ndas: NdaItem[]; colleges: [string, string][] };
 
 const fileOf = (p: string) => p.split("/").pop() ?? p;
 
@@ -36,7 +36,7 @@ export async function getQacDocuments(): Promise<QacDocumentsData> {
       .select("id, title, storage_path, requirement_area_id, level_id, group_key, version, is_published, updated_at, created_at, profiles:uploaded_by(surname, given_name)")
       .order("created_at"),
     supabase.from("template_versions").select("id, template_id, version, file_name, created_at, profiles:uploaded_by(surname, given_name)").order("version", { ascending: false }),
-    supabase.from("common_documents").select("id, title, category, visible_to, view_count, file_size, created_at, updated_at").order("updated_at", { ascending: false }),
+    supabase.from("common_documents").select("id, title, category, visible_to, view_count, file_size, created_at, updated_at, deleted_at").order("updated_at", { ascending: false }),
     supabase.from("nda_issuances").select("file_id", { count: "exact", head: true }),
     getNdaQueue(),
     supabase.from("colleges").select("code, name").order("code"),
@@ -85,18 +85,21 @@ export async function getQacDocuments(): Promise<QacDocumentsData> {
     },
   ];
 
+  const toCommon = (c: NonNullable<typeof common>[number]): CommonDoc => ({
+    id: c.id,
+    title: c.title,
+    category: c.category,
+    visibleTo: c.visible_to,
+    date: shortDate(c.updated_at ?? c.created_at),
+    size: fileSize(c.file_size),
+    views: c.view_count,
+    deletedAt: c.deleted_at,
+  });
   const nda = T.filter((t) => t.group_key === "nda").at(-1);
   return {
     groups,
-    common: (common ?? []).map((c) => ({
-      id: c.id,
-      title: c.title,
-      category: c.category,
-      visibleTo: c.visible_to,
-      date: shortDate(c.updated_at ?? c.created_at),
-      size: fileSize(c.file_size),
-      views: c.view_count,
-    })),
+    common: (common ?? []).filter((c) => !c.deleted_at).map(toCommon),
+    commonDeleted: (common ?? []).filter((c) => c.deleted_at).sort((a, b) => b.deleted_at!.localeCompare(a.deleted_at!)).map(toCommon),
     ndaForm: {
       id: nda?.id ?? null,
       file: nda ? fileOf(nda.storage_path) : "QAC-NDA-Form.pdf",

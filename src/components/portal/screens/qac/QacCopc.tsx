@@ -12,11 +12,12 @@ import FolderIcon from "../../kit/FolderIcon";
 import FullScreenViewer from "../../kit/FullScreenViewer";
 import Modal from "../../kit/Modal";
 import Pill from "../../kit/Pill";
+import RecentlyDeleted from "../../kit/RecentlyDeleted";
 import Result from "../../kit/Result";
 import SearchBox from "../../kit/SearchBox";
 import useAct from "../../kit/useAct";
 import { FTYPES, type RepoFile, type RepoLoc, type RepoType, type Repository } from "@/lib/repository-model";
-import { createCopcFolder, deleteCopcFile, renameCopcFile, uploadCopcFile } from "@/lib/repository-actions";
+import { createCopcFolder, deleteCopcFile, renameCopcFile, restoreCopcFile, uploadCopcFile } from "@/lib/repository-actions";
 import { daysTo, levelName } from "@/lib/qac-model";
 import { shortDate } from "@/lib/program-names";
 
@@ -45,6 +46,14 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
   const count = (unit: string, type?: RepoType) => repo.files.filter((f) => f.unit === unit && (!type || f.type === type)).length;
   const T = nav.type ? FTYPES.find((t) => t.key === nav.type)! : null;
   const unit = nav.unit ? repo.units.find((u) => u.key === nav.unit && u.loc === nav.loc) : null;
+  const gone = (
+    <RecentlyDeleted
+      items={repo.deleted
+        .filter((f) => (!nav.loc || f.loc === nav.loc) && (!nav.unit || f.unit === nav.unit) && (!nav.type || f.type === nav.type))
+        .map((f) => ({ id: f.id, title: f.title, sub: `${f.program} · ${f.unit}`, deletedAt: f.deletedAt! }))}
+      onRestore={restoreCopcFile}
+    />
+  );
 
   if (!nav.loc) {
     const main = repo.units.filter((u) => u.loc === "main" && u.college);
@@ -113,6 +122,7 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
             ))}
           </div>
         )}
+        {gone}
       </div>
     );
   }
@@ -280,6 +290,7 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
           </div>
         </div>
         {body}
+        {gone}
       </div>
       {modal?.k === "folder" && <NewFolderModal loc={nav.loc} where={nav.unit ?? LOCN[nav.loc]} onClose={() => setModal(null)} />}
       {modal?.k === "upload" && T && nav.unit && (

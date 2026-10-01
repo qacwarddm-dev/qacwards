@@ -1,4 +1,5 @@
 const PATHS = {
+  trash: <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />,
   dash: (
     <>
       <rect x="3" y="3" width="7" height="8" rx="1.5" />

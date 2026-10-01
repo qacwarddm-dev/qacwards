@@ -45,6 +45,7 @@ export { pillClass, DocPill, ReviewChip } from "./Pill";
 export type { PillTone, DocState } from "./Pill";
 export { Avatar, usePhoto, PasswordForm } from "./ProfilePhoto";
 export type { PwRules } from "./ProfilePhoto";
+export { default as RecentlyDeleted } from "./RecentlyDeleted";
 export { default as Result } from "./Result";
 export { useReviewActions, ReviewDocModal, ReviewDecision } from "./ReviewDoc";
 export { default as Ring } from "./Ring";

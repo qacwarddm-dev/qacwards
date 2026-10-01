@@ -9,6 +9,7 @@ import FilterPills from "../../kit/FilterPills";
 import FullScreenViewer from "../../kit/FullScreenViewer";
 import Modal from "../../kit/Modal";
 import Pill from "../../kit/Pill";
+import RecentlyDeleted from "../../kit/RecentlyDeleted";
 import Result from "../../kit/Result";
 import SearchBox from "../../kit/SearchBox";
 import SegTabs from "../../kit/SegTabs";
@@ -20,6 +21,7 @@ import {
   deleteCommonDoc,
   replaceNdaForm,
   restoreTemplateVersion,
+  restoreCommonDoc,
   reviewNda,
   saveCommonDoc,
   saveTemplate,
@@ -48,7 +50,7 @@ export default function QacDocuments({ data, initialTab, verify }: { data: QacDo
         ]}
       />
       {tab === "tpl" && <Templates data={data} />}
-      {tab === "common" && <Common docs={data.common} colleges={data.colleges} />}
+      {tab === "common" && <Common docs={data.common} deleted={data.commonDeleted} colleges={data.colleges} />}
       {tab === "nda" && <Nda data={data} verify={verify} />}
     </Card>
   );
@@ -314,7 +316,7 @@ function TemplateHistory({ row, onClose }: { row: TplRow; onClose: () => void })
   );
 }
 
-function Common({ docs, colleges }: { docs: CommonDoc[]; colleges: [string, string][] }) {
+function Common({ docs, deleted, colleges }: { docs: CommonDoc[]; deleted: CommonDoc[]; colleges: [string, string][] }) {
   const [q, setQ] = useState("");
   const [modal, setModal] = useState<null | { k: "up"; d?: CommonDoc } | { k: "del" | "view"; d: CommonDoc }>(null);
   const { busy, run } = useAct();
@@ -377,6 +379,7 @@ function Common({ docs, colleges }: { docs: CommonDoc[]; colleges: [string, stri
       <div className="sub" style={{ fontSize: 11.5, marginTop: 10 }}>
         🔒 View only for program reps: watermarked with their name, no download or print. Each view is logged.
       </div>
+      <RecentlyDeleted items={deleted.map((d) => ({ id: d.id, title: d.title, sub: d.category, deletedAt: d.deletedAt! }))} onRestore={restoreCommonDoc} />
       {modal?.k === "up" && <CommonUpload d={modal.d} colleges={colleges} onClose={() => setModal(null)} />}
       {modal?.k === "del" && (
         <Modal
@@ -386,14 +389,16 @@ function Common({ docs, colleges }: { docs: CommonDoc[]; colleges: [string, stri
               <Btn variant="gh" onClick={() => setModal(null)}>
                 Cancel
               </Btn>
-              <Btn variant="danger" loading={busy} onClick={() => run(() => deleteCommonDoc(modal.d.id), "Document deleted", () => setModal(null))}>
+              <Btn variant="danger" loading={busy} onClick={() => run(() => deleteCommonDoc(modal.d.id), "Document moved to Recently deleted", () => setModal(null))}>
                 Delete
               </Btn>
             </>
           }
         >
           <Result tone="danger" icon="🗑" title={`Delete “${modal.d.title}”?`}>
-            <p>Program reps will no longer see it.</p>
+            <p>
+              Program reps will no longer see it. You can bring it back from <b>Recently deleted</b>.
+            </p>
           </Result>
         </Modal>
       )}

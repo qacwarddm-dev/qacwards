@@ -283,8 +283,32 @@ export async function addProgram(name: string, collegeId: string, campusId: stri
   const { data: dup } = await supabase.from("programs").select("id").eq("campus_id", campusId).ilike("name", n).limit(1);
   if (dup?.length) return { ok: false, error: "That program already exists on this campus" };
   const { error } = await supabase.from("programs").insert({ name: n, college_id: collegeId || null, campus_id: campusId });
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: error.code === "23505" ? "A deleted program with that name is on this campus. Restore it from Recently Deleted." : error.message };
   refresh();
+  return { ok: true };
+}
+
+export async function deleteProgram(id: string): Promise<ActionResult> {
+  if (!(await admin())) return DENIED;
+  const supabase = await createClient();
+  const { count } = await supabase.from("submissions").select("id", { count: "exact", head: true }).eq("program_id", id).neq("status", "evaluated");
+  if (count) return { ok: false, error: "This program has an accreditation in progress. Finish or remove it first." };
+  const { data, error } = await supabase.from("programs").update({ deleted_at: new Date().toISOString() }).eq("id", id).is("deleted_at", null).select("id");
+  if (error) return { ok: false, error: error.message };
+  if (!data?.length) return { ok: false, error: "That program could not be deleted." };
+  refresh();
+  revalidatePath("/portal/recently-deleted");
+  return { ok: true };
+}
+
+export async function restoreProgram(id: string): Promise<ActionResult> {
+  if (!(await admin())) return DENIED;
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("programs").update({ deleted_at: null }).eq("id", id).not("deleted_at", "is", null).select("id");
+  if (error) return { ok: false, error: error.message };
+  if (!data?.length) return { ok: false, error: "That program could not be restored." };
+  refresh();
+  revalidatePath("/portal/recently-deleted");
   return { ok: true };
 }
 
@@ -394,7 +418,7 @@ export async function exportData(kind: "programs" | "users" | "records" | "evalu
   if (!(await admin())) return DENIED;
   const supabase = await createClient();
   if (kind === "programs") {
-    const { data } = await supabase.from("programs").select("name, campuses(name), colleges(code)").order("name");
+    const { data } = await supabase.from("programs").select("name, campuses(name), colleges(code)").is("deleted_at", null).order("name");
     return { ok: true, data: csv([["Program", "College", "Campus"], ...(data ?? []).map((p) => [p.name, p.colleges?.code ?? "", p.campuses?.name ?? ""])]) };
   }
   if (kind === "users") {

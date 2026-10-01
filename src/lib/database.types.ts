@@ -539,6 +539,7 @@ export type Database = {
       }
       common_documents: {
         Row: {
+          deleted_at: string | null
           category: string
           college_codes: string[]
           created_at: string
@@ -552,6 +553,7 @@ export type Database = {
           visible_to: string
         }
         Insert: {
+          deleted_at?: string | null
           category?: string
           college_codes?: string[]
           created_at?: string
@@ -565,6 +567,7 @@ export type Database = {
           visible_to?: string
         }
         Update: {
+          deleted_at?: string | null
           category?: string
           college_codes?: string[]
           created_at?: string
@@ -1478,6 +1481,7 @@ export type Database = {
           campus_id: string
           college_id: string | null
           created_at: string
+          deleted_at: string | null
           id: string
           name: string
         }
@@ -1485,6 +1489,7 @@ export type Database = {
           campus_id: string
           college_id?: string | null
           created_at?: string
+          deleted_at?: string | null
           id?: string
           name: string
         }
@@ -1492,6 +1497,7 @@ export type Database = {
           campus_id?: string
           college_id?: string | null
           created_at?: string
+          deleted_at?: string | null
           id?: string
           name?: string
         }
@@ -1535,6 +1541,7 @@ export type Database = {
       }
       repository_files: {
         Row: {
+          archived_at: string | null
           cert_status: string | null
           created_at: string
           doc_uuid: string
@@ -1552,6 +1559,7 @@ export type Database = {
           valid_until: string | null
         }
         Insert: {
+          archived_at?: string | null
           cert_status?: string | null
           created_at?: string
           doc_uuid?: string
@@ -1569,6 +1577,7 @@ export type Database = {
           valid_until?: string | null
         }
         Update: {
+          archived_at?: string | null
           cert_status?: string | null
           created_at?: string
           doc_uuid?: string

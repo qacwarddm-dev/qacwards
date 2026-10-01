@@ -17,7 +17,7 @@ const MIME = {
 export const TABLES = [
   { name: "nda_issuances", pk: "file_id" },
   { name: "ndas", pk: "profile_id" },
-  { name: "submissions", pk: "id", keep: true },
+  { name: "submissions", pk: "id" },
   { name: "submission_choices", pk: "submission_id", conflict: "submission_id,requirement_area_id" },
   { name: "assignments", pk: "id" },
   { name: "assignment_accreditors", pk: "assignment_id", conflict: "assignment_id,profile_id" },
@@ -31,6 +31,9 @@ export const TABLES = [
   { name: "area_ratings", pk: "assignment_id", conflict: "assignment_id,accreditor_id,requirement_area_id,indicator" },
   { name: "visit_evaluations", pk: "id" },
   { name: "program_accreditations", pk: "id", selfFk: "superseded_by" },
+  { name: "events", pk: "id", protect: ["kind", "holiday"] },
+  { name: "event_audiences", pk: "event_id", conflict: "event_id,role", cascade: true },
+  { name: "event_programs", pk: "event_id", conflict: "event_id,program_id", cascade: true },
   { name: "notifications", pk: "id", noise: true },
   { name: "email_outbox", pk: "id", noise: true },
   { name: "activity_logs", pk: "id", noise: true },
@@ -104,7 +107,7 @@ export async function snapshot(db, label) {
   return { dir, counts, files };
 }
 
-export async function wipe(db) {
+export async function wipe(db, only = null) {
   for (const bucket of BUCKETS) {
     const paths = await listObjects(db, bucket);
     for (let i = 0; i < paths.length; i += 100) {
@@ -112,14 +115,9 @@ export async function wipe(db) {
       if (error) throw new Error(`remove ${bucket}: ${error.message}`);
     }
   }
-  for (const t of [...TABLES].reverse().filter((x) => !x.noise && !x.keep)) {
+  for (const t of [...TABLES].reverse().filter((x) => !x.noise && !x.cascade && (!only || only.has(x.name)))) {
     await clearTable(db, t);
   }
-  const { error } = await db
-    .from("submissions")
-    .update({ status: "not_started", submitted_at: null, website_url: null, updated_at: new Date().toISOString() })
-    .not("id", "is", null);
-  if (error) throw new Error(`reset submissions: ${error.message}`);
   await clearNoise(db);
 }
 
@@ -130,7 +128,9 @@ export async function clearNoise(db) {
 }
 
 async function clearTable(db, t) {
-  const { error } = await db.from(t.name).delete().not(t.pk, "is", null);
+  let q = db.from(t.name).delete().not(t.pk, "is", null);
+  if (t.protect) q = q.neq(...t.protect);
+  const { error } = await q;
   if (error) throw new Error(`delete ${t.name}: ${error.message}`);
 }
 
@@ -156,7 +156,9 @@ export async function latestBackup() {
 
 export async function restore(db, dir) {
   for (const t of TABLES) {
-    const all = JSON.parse(await readFile(path.join(dir, "tables", `${t.name}.json`), "utf8"));
+    const raw = await readFile(path.join(dir, "tables", `${t.name}.json`), "utf8").catch(() => null);
+    if (raw === null) continue;
+    const all = JSON.parse(raw);
     // Pending mail from before the snapshot would be sent for real on restore.
     const rows = t.name === "email_outbox" ? all.filter((r) => r.status !== "pending") : all;
     if (t.noise) await clearTable(db, t);

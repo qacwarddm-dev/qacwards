@@ -6,7 +6,7 @@ export async function getReportsData(): Promise<{ saved: SavedReport[]; catalog:
   const supabase = await createClient();
   const [{ data: saved }, { data: programs }, { data: copc }, { data: colleges }] = await Promise.all([
     supabase.from("saved_reports").select("id, type, title, scope, filters, created_at, profiles:created_by(surname, given_name)").order("created_at", { ascending: false }),
-    supabase.from("programs").select("id, name, campuses(name), colleges(code)").order("name"),
+    supabase.from("programs").select("id, name, campuses(name), colleges(code)").is("deleted_at", null).order("name"),
     supabase
       .from("repository_files")
       .select("program_id, repository_folders!inner(slug)")

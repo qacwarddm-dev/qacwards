@@ -17,11 +17,13 @@ import {
   reportData,
   reportScope,
   type CatalogProgram,
+  type ReportData,
   type ReportFilters,
   type ReportType,
   type SavedReport,
 } from "@/lib/report-model";
 import { deleteReport, saveReport } from "@/lib/report-actions";
+import { downloadReportPdf } from "@/lib/report-pdf";
 import { shortDate } from "@/lib/program-names";
 
 type Draft = { type: ReportType; filters: ReportFilters; title: string; scope: string; by: string; date: string; id?: string };
@@ -62,7 +64,9 @@ export default function QacReports({
     (r) => (year === "all" || r.date.startsWith(year)) && (type === "all" || r.type === type) && (!ql || `${r.title}${r.scope}${r.by}`.toLowerCase().includes(ql)),
   );
 
-  const csvOf = (r: { type: ReportType; filters: ReportFilters }) => reportCsv(reportData(r.type, r.filters, programs, catalog));
+  const csvData = (r: { type: ReportType; filters: ReportFilters }) => reportData(r.type, r.filters, programs, catalog);
+  const csvOf = (r: { type: ReportType; filters: ReportFilters }) => reportCsv(csvData(r));
+  const pdf = (r: Draft, d: ReportData) => downloadReportPdf({ title: r.title, scope: r.scope, asOf: shortDate(r.date), by: r.by }, d, toast.say);
 
   const remove = (id: string) =>
     start(async () => {
@@ -155,6 +159,9 @@ export default function QacReports({
                     <td style={{ textAlign: "right", whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
                       <Btn variant="o" sm onClick={() => setPreview({ ...r, date: r.filters.asOf })}>
                         View
+                      </Btn>{" "}
+                      <Btn variant="gh" sm onClick={() => pdf({ ...r, date: r.filters.asOf }, csvData(r))}>
+                        ⬇ PDF
                       </Btn>{" "}
                       <Btn variant="gh" sm href={csvOf(r)} download={csvName(r.title)} onClick={() => toast.say("CSV downloaded")}>
                         ⬇ CSV
@@ -327,8 +334,11 @@ function PreviewModal({
           <Btn variant="gh" href={reportCsv(d)} download={csvName(r.title)} onClick={() => toast.say("CSV downloaded")}>
             ⬇ CSV (Excel)
           </Btn>
-          <Btn variant="o" onClick={() => printPaper(paper.current, () => toast.say("Printing is blocked in this preview", true))}>
-            🖨 Print / Save as PDF
+          <Btn variant="o" onClick={() => downloadReportPdf({ title: r.title, scope: r.scope, asOf: shortDate(r.date), by: r.by }, d, toast.say)}>
+            ⬇ Download PDF
+          </Btn>
+          <Btn variant="gh" onClick={() => printPaper(paper.current, () => toast.say("Printing is blocked in this preview", true))}>
+            🖨 Print
           </Btn>
           {r.id ? (
             <Btn onClick={onClose}>Close</Btn>

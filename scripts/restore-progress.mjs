@@ -22,6 +22,6 @@ if (!execute) {
 await countdown(5, `Restoring snapshot into ${host}`);
 const safety = await snapshot(db, "pre-restore");
 console.log(`Current state backed up first: ${safety.dir}`);
-await wipe(db);
+await wipe(db, new Set(Object.keys(manifest.counts)));
 await restore(db, dir);
 console.log("Restored. Rows now:", (await currentCounts(db)).counts);

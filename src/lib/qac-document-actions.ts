@@ -168,10 +168,19 @@ export async function saveCommonDoc(fd: FormData): Promise<ActionResult> {
 export async function deleteCommonDoc(id: string): Promise<ActionResult> {
   if (!(await qac())) return { ok: false, error: "Only QAC can manage common documents." };
   const supabase = await createClient();
-  const { data, error } = await supabase.from("common_documents").delete().eq("id", id).select("storage_path");
+  const { data, error } = await supabase.from("common_documents").update({ deleted_at: new Date().toISOString() }).eq("id", id).is("deleted_at", null).select("id");
   if (error) return { ok: false, error: error.message };
   if (!data?.length) return { ok: false, error: "That document could not be deleted." };
-  await supabase.storage.from(BUCKETS.commonDocs).remove([data[0].storage_path]);
+  refresh();
+  return { ok: true };
+}
+
+export async function restoreCommonDoc(id: string): Promise<ActionResult> {
+  if (!(await qac())) return { ok: false, error: "Only QAC can manage common documents." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("common_documents").update({ deleted_at: null }).eq("id", id).not("deleted_at", "is", null).select("id");
+  if (error) return { ok: false, error: error.message };
+  if (!data?.length) return { ok: false, error: "That document could not be restored." };
   refresh();
   return { ok: true };
 }

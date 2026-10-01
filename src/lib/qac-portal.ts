@@ -13,8 +13,8 @@ export type QacOverview = {
 
 export async function getQacOverview(): Promise<QacOverview> {
   const supabase = await createClient();
-  const [{ data: programs }, { data: subs }, { data: awards }, { data: copcFolder }, { data: reps }] = await Promise.all([
-    supabase.from("programs").select("id, name, campuses(name, is_main), colleges(code, name)"),
+  const [{ data: programs }, { data: subs }, { data: awardRows }, { data: copcFolder }, { data: reps }] = await Promise.all([
+    supabase.from("programs").select("id, name, campuses(name, is_main), colleges(code, name)").is("deleted_at", null),
     supabase
       .from("submissions")
       .select(
@@ -37,6 +37,26 @@ export async function getQacOverview(): Promise<QacOverview> {
     ? await supabase.from("repository_files").select("program_id").eq("folder_id", copcFolder.id).eq("is_archived", false)
     : { data: [] as { program_id: string }[] };
   const copcSet = new Set((copcFiles ?? []).map((f) => f.program_id));
+
+  const { data: certs } = await supabase
+    .from("repository_files")
+    .select("program_id, valid_from, valid_until, accreditation_levels(code, name, ordinal), repository_folders!inner(slug)")
+    .eq("is_archived", false)
+    .eq("repository_folders.slug", "aaccup-certificate")
+    .not("valid_until", "is", null)
+    .not("level_id", "is", null);
+  const awarded = new Set((awardRows ?? []).filter((a) => a.status === "active").map((a) => a.program_id));
+  const certBest = new Map<string, NonNullable<typeof certs>[number]>();
+  for (const c of certs ?? []) {
+    if (awarded.has(c.program_id)) continue;
+    const cur = certBest.get(c.program_id);
+    const rank = (x: typeof c) => `${String(x.accreditation_levels?.ordinal ?? 0).padStart(2, "0")}${x.valid_until}`;
+    if (!cur || rank(c) > rank(cur)) certBest.set(c.program_id, c);
+  }
+  const awards = [
+    ...(awardRows ?? []),
+    ...[...certBest.values()].map((c) => ({ program_id: c.program_id, status: "active", granted_on: c.valid_from, valid_until: c.valid_until, accreditation_levels: c.accreditation_levels })),
+  ];
 
   const active = new Map<string, NonNullable<typeof subs>[number]>();
   for (const s of subs ?? []) {
@@ -169,7 +189,7 @@ export async function getAssignFormData(meId: string): Promise<AssignForm> {
   const [{ data: campuses }, { data: colleges }, { data: programs }, { data: levels }, { data: people }, { data: team }] = await Promise.all([
     supabase.from("campuses").select("name, is_main").order("is_main", { ascending: false }).order("name"),
     supabase.from("colleges").select("code, name").order("code"),
-    supabase.from("programs").select("id, name, colleges(code), campuses(name)").order("name"),
+    supabase.from("programs").select("id, name, colleges(code), campuses(name)").is("deleted_at", null).order("name"),
     supabase.from("accreditation_levels").select("id, code, name").order("ordinal"),
     supabase
       .from("profiles")
