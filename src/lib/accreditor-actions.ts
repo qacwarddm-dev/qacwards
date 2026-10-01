@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { BUCKETS, removeFile, signaturePath, uploadFile } from "@/lib/storage";
+import { BUCKETS, signaturePath, uploadFile } from "@/lib/storage";
 
 /**
  * Writes behind round 2 §2 (the second role), §3 (specialty) and §4 (signature).
@@ -15,47 +15,6 @@ import { BUCKETS, removeFile, signaturePath, uploadFile } from "@/lib/storage";
  */
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
-
-/**
- * §2 — QAC Admin gives an existing account the Internal Accreditor role as
- * well, for the case the client described: no accreditor is free for a
- * specialty, so a co-QAC-Personnel takes the assignment.
- *
- * An add, not a swap. `profiles.role` is untouched, so the person keeps every
- * QAC screen they had and gains the accreditor ones — which is what the note
- * asks for ("add", not "convert"). Swapping instead would be `setUserRole`,
- * which already exists next door in `admin.ts`.
- */
-export async function setInternalAccreditorFlag(
-  profileId: string,
-  isInternalAccreditor: boolean,
-): Promise<ActionResult> {
-  const supabase = await createClient();
-
-  const { data: target } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", profileId)
-    .maybeSingle();
-
-  if (!target) return { ok: false, error: "That account could not be found." };
-  if (target.role === "internal_accreditor") {
-    return {
-      ok: false,
-      error: "That account already has the Internal Accreditor role on its own.",
-    };
-  }
-
-  const { error } = await supabase
-    .from("profiles")
-    .update({ is_internal_accreditor: isInternalAccreditor })
-    .eq("id", profileId);
-
-  if (error) return { ok: false, error: error.message };
-
-  revalidatePath("/portal/settings/users");
-  return { ok: true };
-}
 
 /**
  * §3 — replace an accreditor's specialty set.
@@ -145,50 +104,4 @@ export async function saveSignature(formData: FormData): Promise<ActionResult> {
 
   revalidatePath("/portal/profile");
   return { ok: true };
-}
-
-/** Remove the stored signature. The object goes as well as the pointer — a
- *  signature nobody references is still a signature sitting in a bucket. */
-export async function clearSignature(): Promise<ActionResult> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Not signed in." };
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("signature_path")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (!profile?.signature_path) return { ok: true };
-
-  const { error } = await supabase
-    .from("profiles")
-    .update({ signature_path: null })
-    .eq("id", user.id);
-
-  if (error) return { ok: false, error: error.message };
-
-  await removeFile(supabase, BUCKETS.signatures, profile.signature_path);
-
-  revalidatePath("/portal/profile");
-  return { ok: true };
-}
-
-/** The picker needs the reference list and the current set together, and a
- *  client component cannot read them itself — `@/lib/accreditor` builds the
- *  cookie-backed server client. QAC Admin opens one user at a time, so this is
- *  fetched on demand rather than for every row of the table. */
-export async function fetchExpertiseFor(
-  profileId: string,
-): Promise<{ areas: { id: string; name: string }[]; selected: string[] }> {
-  const { getExpertiseAreas, getExpertiseFor } = await import("@/lib/accreditor");
-  const [areas, selected] = await Promise.all([
-    getExpertiseAreas(),
-    getExpertiseFor(profileId),
-  ]);
-  return { areas, selected };
 }

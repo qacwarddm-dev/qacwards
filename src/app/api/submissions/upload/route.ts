@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { BUCKETS, uploadFile } from "@/lib/storage";
-import { MAX_UPLOAD_BYTES, inspectPdf, stampUuid } from "@/lib/pdf";
+import { MAX_UPLOAD_BYTES, checkTemplate, inspectPdf, mergePdfs, stampUuid } from "@/lib/pdf";
 
 /**
  * Upload one document into a submission.
@@ -29,6 +29,8 @@ type UploadBody = {
   requirementAreaId?: string;
   supersedesId?: string;
   title: string;
+  isDraft: boolean;
+  note: string | null;
 };
 
 export async function POST(request: NextRequest) {
@@ -70,7 +72,10 @@ export async function POST(request: NextRequest) {
     requirementAreaId: (form.get("requirementAreaId") as string) || undefined,
     supersedesId: (form.get("supersedesId") as string) || undefined,
     title: String(form.get("title") ?? file.name),
+    isDraft: form.get("isDraft") === "1",
+    note: String(form.get("note") ?? "").trim() || null,
   };
+  const additional = form.get("additional");
 
   if (!body.submissionId) {
     return NextResponse.json({ error: "Missing submission." }, { status: 400 });
@@ -94,11 +99,45 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const original = new Uint8Array(await file.arrayBuffer());
+  let original = new Uint8Array(await file.arrayBuffer());
 
   const check = await inspectPdf(original);
   if (!check.ok) {
     return NextResponse.json({ error: check.error }, { status: 415 });
+  }
+
+  const { data: rules } = await supabase.from("site_settings").select("value").eq("key", "rules").maybeSingle();
+  const formCode = ((rules?.value as { formCode?: string } | null)?.formCode ?? "QAC-TPL-01").trim() || null;
+  const failures: { file: string; checks: Awaited<ReturnType<typeof checkTemplate>> }[] = [];
+  const mainChecks = await checkTemplate(original, formCode);
+  if (!Object.values(mainChecks).every(Boolean)) failures.push({ file: file.name, checks: mainChecks });
+
+  let pageCount = check.pageCount;
+  if (additional instanceof File && additional.size > 0) {
+    if (additional.size > MAX_UPLOAD_BYTES) {
+      return NextResponse.json({ error: "The additional document is larger than 25 MB." }, { status: 413 });
+    }
+    const extra = new Uint8Array(await additional.arrayBuffer());
+    const extraCheck = await inspectPdf(extra);
+    if (!extraCheck.ok) return NextResponse.json({ error: `Additional document: ${extraCheck.error}` }, { status: 415 });
+    const extraTemplate = await checkTemplate(extra, formCode);
+    if (!Object.values(extraTemplate).every(Boolean)) failures.push({ file: additional.name, checks: extraTemplate });
+    if (!failures.length) {
+      original = new Uint8Array(await mergePdfs(original, extra));
+      pageCount += extraCheck.pageCount;
+    }
+  }
+  if (failures.length) {
+    const f = failures[0];
+    return NextResponse.json(
+      {
+        error: !f.checks.text ? "No readable text (scanned)" : "PUP header/footer & form code not found",
+        file: f.file,
+        checks: f.checks,
+        formCode,
+      },
+      { status: 422 },
+    );
   }
 
   // Generated here rather than defaulted in the database, because the value has
@@ -137,11 +176,14 @@ export async function POST(request: NextRequest) {
       title: body.title,
       storage_path: path,
       file_size: stamped.byteLength,
-      page_count: check.pageCount,
+      page_count: pageCount,
       doc_uuid: docUuid,
       version,
-      supersedes_id: body.supersedesId ?? null,
+      supersedes_id: body.isDraft ? null : (body.supersedesId ?? null),
       uploaded_by: user.id,
+      is_draft: body.isDraft,
+      is_current: !body.isDraft,
+      upload_note: body.note,
     })
     .select("id")
     .single();
@@ -153,11 +195,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: insertError.message }, { status: 403 });
   }
 
+  if (body.isDraft) {
+    return NextResponse.json({ id: inserted.id, docUuid, pageCount, draft: true });
+  }
+
   if (body.supersedesId) {
     await supabase
       .from("submission_documents")
       .update({ is_current: false })
       .eq("id", body.supersedesId);
+  }
+
+  // A real upload replaces any draft saved for the same slot.
+  const slotColumn = body.phaseDocumentId ? "phase_document_id" : "requirement_area_id";
+  const { data: drafts } = await supabase
+    .from("submission_documents")
+    .select("id, storage_path")
+    .eq("submission_id", body.submissionId)
+    .eq(slotColumn, (body.phaseDocumentId ?? body.requirementAreaId)!)
+    .eq("is_draft", true);
+  if (drafts?.length) {
+    await supabase.from("submission_documents").delete().in("id", drafts.map((d) => d.id));
+    await supabase.storage.from(BUCKETS.submissions).remove(drafts.map((d) => d.storage_path));
   }
 
   // First upload moves a submission off not_started. Only that transition, and
@@ -168,7 +227,7 @@ export async function POST(request: NextRequest) {
     .eq("id", body.submissionId)
     .eq("status", "not_started");
 
-  return NextResponse.json({ id: inserted.id, docUuid, pageCount: check.pageCount });
+  return NextResponse.json({ id: inserted.id, docUuid, pageCount });
 }
 
 type Client = Awaited<ReturnType<typeof createClient>>;

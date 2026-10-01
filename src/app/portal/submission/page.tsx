@@ -1,168 +1,34 @@
-import ProgramRepSubmissions, {
-  type SubmissionView,
-} from "@/components/portal/screens/ProgramRepSubmissions";
-import {
-  getLevelReadiness,
-  getMyPrograms,
-  getOpenCycle,
-  getPhaseProgress,
-  getRequirementAreas,
-} from "@/lib/submissions";
-import { getAreaDocuments, getLatestReturn, getPhaseDocuments } from "@/lib/assignments";
+import { redirect } from "next/navigation";
+import RepAccreditation, { type RepView } from "@/components/portal/screens/rep/RepAccreditation";
 import { requireCurrentUser } from "@/lib/current-user";
-import { getCompletedVisits } from "@/lib/visit-evaluations";
-import { AreaDocumentsModal } from "@/components/portal/kit";
-import ReturnedSubmissionNotice from "@/components/portal/screens/ReturnedSubmissionNotice";
-
-/**
- * `/portal/submission` — the Program Representative's submission flow. Only that
- * role's sidebar links here, so there is no role switch yet.
- *
- * Every state past the Programs picker is query-param, not its own route — see
- * the screen for the full frame-to-URL mapping.
- *
- * B4 made this the fetching half: the screen stayed presentational and now takes
- * a `SubmissionData` prop where it used to import `PR_*` constants. Which
- * programmes appear is decided by RLS (`my_program_ids()`), not by a filter here,
- * so a representative asking for another campus's programme gets an empty list
- * rather than a rejection.
- */
-const VIEWS: SubmissionView[] = ["levels", "phases", "requirements"];
+import { getGeneralTemplate, getRepPrograms, getVisitLabels } from "@/lib/rep-portal";
 
 export default async function SubmissionPage({
   searchParams,
 }: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
+  searchParams: Promise<{ p?: string; l?: string; st?: string; g?: string; hl?: string; program?: string; level?: string; sub?: string }>;
 }) {
-  const params = await searchParams;
-  const raw = typeof params.view === "string" ? params.view : "levels";
-  const view = VIEWS.includes(raw as SubmissionView) ? (raw as SubmissionView) : "levels";
-
-  const [programs, cycle, user, visits] = await Promise.all([
-    getMyPrograms(),
-    getOpenCycle(),
-    requireCurrentUser(),
-    getCompletedVisits(),
-  ]);
-
-  const program =
-    typeof params.program === "string" && programs.some((p) => p.slug === params.program)
-      ? params.program
-      : undefined;
-  const programId = programs.find((p) => p.slug === program)?.id ?? null;
-
-  const phase = Number(params.phase);
-  const levels = programId ? await getLevelReadiness(programId, cycle?.id ?? null) : [];
-
-  // The level being worked on comes from the URL; falling back to the first one
-  // keeps a bookmarked ?view=phases link working instead of rendering nothing.
-  const levelId =
-    typeof params.level === "string" && levels.some((l) => l.levelId === params.level)
-      ? params.level
-      : (levels[0]?.levelId ?? null);
-
-  const current = levels.find((l) => l.levelId === levelId) ?? null;
-
-  const returnedLevel =
-    view === "levels"
-      ? levels.find((l) => l.status === "returned")
-      : current?.status === "returned"
-        ? current
-        : undefined;
-  const returnedSubmissionId = returnedLevel?.submissionId ?? null;
-
-  const [phases, areas, lastReturn] = await Promise.all([
-    programId ? getPhaseProgress(current?.submissionId ?? null) : Promise.resolve([]),
-    levelId
-      ? getRequirementAreas(levelId, current?.submissionId ?? null)
-      : Promise.resolve([]),
-    returnedSubmissionId ? getLatestReturn(returnedSubmissionId) : Promise.resolve(null),
-  ]);
-
-  const programVisits = visits.filter((v) => v.programSlug === program);
-  const evaluationsPending =
-    programVisits.length > 0
-      ? programVisits.reduce(
-          (n, v) => n + v.targets.filter((t) => t.status !== "submitted").length,
-          0,
-        )
-      : null;
-
-  const area = typeof params.area === "string" ? params.area : undefined;
-  const phaseNumber = Number.isInteger(phase) && phase >= 1 && phase <= 4 ? phase : undefined;
-  const levelParam = levelId ? `&level=${levelId}` : "";
-  const programLabel = programs.find((p) => p.slug === program)?.label ?? "";
-  const openPhase = phases.find((p) => p.ordinal === (phaseNumber ?? 1));
-  const openArea = areas.find((a) => a.id === area);
-
-  let filesModal: React.ReactNode = null;
-  if (params.modal === "files" && current?.submissionId) {
-    if (view === "requirements" && openArea) {
-      filesModal = (
-        <AreaDocumentsModal
-          areaName={openArea.name}
-          program={programLabel}
-          documents={await getAreaDocuments(current.submissionId, openArea.id)}
-          closeHref={`/portal/submission?program=${program}&view=requirements${levelParam}`}
-        />
-      );
-    } else if (view === "phases" && openPhase) {
-      filesModal = (
-        <AreaDocumentsModal
-          areaName={openPhase.label}
-          program={programLabel}
-          documents={await getPhaseDocuments(
-            current.submissionId,
-            openPhase.documents.map((d) => d.id),
-          )}
-          closeHref={`/portal/submission?program=${program}&view=phases${levelParam}&phase=${openPhase.ordinal}`}
-        />
-      );
+  const user = await requireCurrentUser();
+  if (user.role !== "program_representative") redirect("/portal/dashboard");
+  const sp = await searchParams;
+  const [programs, tpl] = await Promise.all([getRepPrograms(), getGeneralTemplate()]);
+  const visits = await getVisitLabels(programs);
+  let p = sp.p ?? sp.program;
+  let l = sp.l ?? sp.level;
+  if (sp.sub) {
+    const hit = programs.flatMap((x) => x.levels.map((lv) => ({ x, lv }))).find((o) => o.lv.submissionId === sp.sub);
+    if (hit) {
+      p = hit.x.id;
+      l = hit.lv.levelId;
     }
   }
-
-  return (
-    <>
-      <h1 className="sr-only">Submission</h1>
-      {returnedSubmissionId && lastReturn && returnedLevel && (
-        <ReturnedSubmissionNotice
-          submissionId={returnedSubmissionId}
-          levelLabel={returnedLevel.label}
-          returned={lastReturn}
-        />
-      )}
-      <ProgramRepSubmissions
-        program={program}
-        programId={programId ?? undefined}
-        view={view}
-        phase={phaseNumber}
-        modal={params.modal === "add" ? "add" : undefined}
-        levelId={levelId ?? undefined}
-        areaId={area}
-        uploaderName={user.name}
-        data={{
-          programs: programs.map((p) => ({
-            slug: p.slug,
-            label: p.label,
-            college: p.college,
-            campus: p.campus,
-          })),
-          levels: levels.map((l) => ({
-            levelId: l.levelId,
-            label: l.label,
-            code: l.code,
-            percent: l.percent,
-            requiredCount: l.requiredCount,
-            uploadedCount: l.uploadedCount,
-            submissionId: l.submissionId,
-          })),
-          phases,
-          areas,
-          openCycleName: cycle?.name ?? null,
-          evaluationsPending,
-        }}
-      />
-      {filesModal}
-    </>
-  );
+  if (p && !programs.some((x) => x.id === p)) p = programs.find((x) => p && x.id.startsWith(p.slice(-8)))?.id;
+  const view: RepView = {
+    p,
+    l,
+    st: sp.st === "pre" || sp.st === "req" ? sp.st : undefined,
+    g: sp.g ? Number(sp.g) : undefined,
+    hl: sp.hl,
+  };
+  return <RepAccreditation programs={programs} view={view} me={user.name} tpl={tpl} visits={visits} />;
 }

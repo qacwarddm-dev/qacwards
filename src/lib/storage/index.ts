@@ -23,6 +23,7 @@ export const BUCKETS = {
   ndas: "ndas",
   avatars: "avatars",
   reports: "reports",
+  backups: "backups",
 } as const;
 
 export type BucketName = (typeof BUCKETS)[keyof typeof BUCKETS];
@@ -71,22 +72,6 @@ export async function signedUrl(
 
   if (error) return { data: null, error: error.message };
   return { data: data.signedUrl, error: null };
-}
-
-/**
- * Read an object's bytes on the server, rather than handing the browser a signed
- * URL. Used when the file is an input to something the server builds — the
- * generated evaluation form embeds an accreditor's signature PNG, and a URL the
- * server would only have to fetch back is a round trip for nothing.
- */
-export async function downloadFile(
-  supabase: SupabaseClient,
-  bucket: BucketName,
-  path: string,
-): Promise<StorageResult<Uint8Array>> {
-  const { data, error } = await supabase.storage.from(bucket).download(path);
-  if (error || !data) return { data: null, error: error?.message ?? "Not found." };
-  return { data: new Uint8Array(await data.arrayBuffer()), error: null };
 }
 
 export async function removeFile(

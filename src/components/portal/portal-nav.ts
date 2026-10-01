@@ -1,18 +1,4 @@
-import {
-  Calendar,
-  ClipboardList,
-  FileChartColumn,
-  FileClock,
-  FilePenLine,
-  FileText,
-  Folder,
-  History,
-  LayoutDashboard,
-  type LucideIcon,
-  Settings,
-  Star,
-  Upload,
-} from "lucide-react";
+import type { IconName } from "./kit/Icon";
 
 export type PortalRole =
   | "qac_personnel"
@@ -20,167 +6,118 @@ export type PortalRole =
   | "internal_accreditor"
   | "program_representative";
 
+export type NavBadge = "assign" | "resub" | "fb" | "acc" | "ext";
+
 export type PortalNavItem = {
   label: string;
   href: string;
-  icon: LucideIcon;
-  /** The active dashboard icon is drawn solid in the prototype. */
-  filled?: boolean;
-  /**
-   * Override the 29px default. The prototype's icons come from a set with
-   * less internal padding than Lucide's, so a glyph that fills its box (the
-   * solid dashboard mark) needs a larger size to read at the measured ink.
-   */
-  size?: number;
-  /**
-   * Section label for roles whose rail exceeds 5 items (09-ui-refactor §5.2) —
-   * `qac_personnel`/`qac_admin` only. Omitted rails render flat.
-   */
-  group?: "Work" | "Library" | "Schedule" | "Admin";
-  /** Pending-work count rendered as a `Badge` beside the label. Wired to real
-   *  counts once B8-class queries exist for each nav item; 0/undefined renders
-   *  no badge. */
-  badgeCount?: number;
+  icon: IconName;
+  badge?: NavBadge;
+  newTag?: boolean;
 };
 
-/**
- * Sidebar items per role, transcribed from each role's own frames.
- *
- * `qac_admin` has no frames of its own — assets/FIGMA/qac_admin/ is empty. Per
- * decision 16 it takes QAC Personnel's navigation plus a Settings section, which
- * is what B3 built. That is stated policy, not a guess about missing artwork.
- *
- * The rail's geometry is identical across roles (60px pitch, icon centred on
- * x=57.5, label at x=87, verified against program_representative/01-Dashboard),
- * so only the items differ.
- */
-export const PORTAL_NAV: Partial<Record<PortalRole, PortalNavItem[]>> = {
-  /** Relabelled + widened 2026-09 per the client's new frames
-   *  (assets/new frames/QAC/new.png, .../Externsion Monitoring/*.png,
-   *  assets/new frames/EVENTS/*.png): "Documents" -> "AACCUP & COPC" and
-   *  "Assignment" -> "Accreditation" keep their hrefs and icons (a pure
-   *  rename, confirmed by the icons carrying over unchanged), and two new
-   *  items land either side of Reports. */
-  qac_personnel: [
-    {
-      label: "Dashboard",
-      href: "/portal/dashboard",
-      icon: LayoutDashboard,
-      filled: true,
-      size: 33,
-    },
-    { label: "AACCUP & COPC", href: "/portal/documents", icon: Folder },
-    { label: "Accreditation", href: "/portal/assignment", icon: ClipboardList },
-    { label: "Extension Monitoring", href: "/portal/extension-monitoring", icon: FileClock },
-    { label: "Reports", href: "/portal/reports", icon: FileChartColumn },
-    { label: "Feedback", href: "/portal/feedback", icon: Star },
-    { label: "Events", href: "/portal/events", icon: Calendar },
-  ],
+export type NavGroup = { title: string; items: PortalNavItem[] };
 
-  /** assets/FIGMA/program_representative/01-Dashboard.png — Feedback removed, so
-   *  four items where the frame drew five. */
-  program_representative: [
-    {
-      label: "Dashboard",
-      href: "/portal/dashboard",
-      icon: LayoutDashboard,
-      filled: true,
-      size: 33,
-    },
-    { label: "Documents", href: "/portal/documents", icon: FileText },
-    { label: "Submission", href: "/portal/submission", icon: Upload },
-    { label: "Events", href: "/portal/events", icon: Calendar },
-  ],
+export type PortalNav = { groups: NavGroup[]; help?: PortalNavItem };
 
-  /** assets/FIGMA/internal_accreditor/01-Dashboard.png — Feedback removed, so
-   *  four items where the frame drew five. */
-  internal_accreditor: [
-    {
-      label: "Dashboard",
-      href: "/portal/dashboard",
-      icon: LayoutDashboard,
-      filled: true,
-      size: 33,
-    },
-    { label: "Assignment", href: "/portal/assignment", icon: ClipboardList },
-    { label: "Evaluation", href: "/portal/evaluation", icon: FilePenLine },
-    { label: "Events", href: "/portal/events", icon: Calendar },
-  ],
-};
+const DASH: PortalNavItem = { label: "Dashboard", href: "/portal/dashboard", icon: "dash" };
+const EVENTS: PortalNavItem = { label: "Events", href: "/portal/events", icon: "events" };
+const HELP: PortalNavItem = { label: "Help & User Guide", href: "/portal/help", icon: "help" };
 
-/**
- * Decision 16: QAC Admin is QAC Personnel's rail plus Settings. Derived rather
- * than copied, so a change to the Personnel nav cannot leave Admin behind.
- *
- * Activity joins it here and *only* here. Decision 17 gives every role their own
- * log, but the three other rails are transcribed from frames that draw four
- * items each — adding a fifth would contradict the artwork the way removing
- * Feedback was meant to match it. Admin has no frames at all, so this rail is
- * the one place a new item is a policy choice rather than a design change; the
- * other roles reach `/portal/activity` from their profile page instead.
- */
-const ADMIN_GROUP: Record<string, PortalNavItem["group"]> = {
-  Dashboard: "Work",
-  Accreditation: "Work",
-  "Extension Monitoring": "Work",
-  "AACCUP & COPC": "Library",
-  Reports: "Library",
-  Feedback: "Library",
-  Events: "Schedule",
-};
-
-PORTAL_NAV.qac_admin = [
-  ...(PORTAL_NAV.qac_personnel ?? []).map((item) => ({
-    ...item,
-    group: ADMIN_GROUP[item.label],
-  })),
-  { label: "Activity", href: "/portal/activity", icon: History, group: "Admin" },
-  { label: "Settings", href: "/portal/settings", icon: Settings, group: "Admin" },
+const QAC_NAV: NavGroup[] = [
+  {
+    title: "WORK",
+    items: [
+      DASH,
+      { label: "Accreditation", href: "/portal/assignment", icon: "cap", badge: "acc" },
+      { label: "Extension Monitoring", href: "/portal/extension-monitoring", icon: "ext", badge: "ext" },
+    ],
+  },
+  {
+    title: "LIBRARY",
+    items: [
+      { label: "AACCUP & COPC", href: "/portal/aaccup-copc", icon: "folder" },
+      { label: "Documents", href: "/portal/documents", icon: "docs" },
+      { label: "Reports", href: "/portal/reports", icon: "report" },
+      { label: "Feedback", href: "/portal/feedback", icon: "star" },
+    ],
+  },
+  { title: "SCHEDULE", items: [EVENTS] },
 ];
 
-/**
- * The signed-in person shown in the top bar. Deliberately a *person*, not a
- * role: the bar renders name, position and avatar, so a seam that only carried
- * a role would leave one identity on every screen.
- *
- * Records live in PORTAL_USERS (data.ts, the single backend swap point) and are
- * resolved by getCurrentUser() (src/lib/current-user.ts).
- */
+export const PORTAL_NAV: Record<PortalRole, PortalNav> = {
+  internal_accreditor: {
+    groups: [
+      {
+        title: "WORK",
+        items: [
+          DASH,
+          { label: "Assignment", href: "/portal/assignment", icon: "assign", badge: "assign" },
+          { label: "Accreditation", href: "/portal/evaluation", icon: "cap" },
+          { label: "Resubmissions", href: "/portal/resubmissions", icon: "resub", badge: "resub", newTag: true },
+        ],
+      },
+      { title: "SCHEDULE", items: [EVENTS] },
+    ],
+    help: HELP,
+  },
+  program_representative: {
+    groups: [
+      {
+        title: "WORK",
+        items: [
+          DASH,
+          { label: "Accreditation", href: "/portal/submission", icon: "cap" },
+          { label: "Feedback", href: "/portal/feedback", icon: "chat", badge: "fb" },
+        ],
+      },
+      { title: "LIBRARY", items: [{ label: "Documents", href: "/portal/documents", icon: "docs" }] },
+      { title: "SCHEDULE", items: [EVENTS] },
+    ],
+    help: HELP,
+  },
+  qac_personnel: { groups: QAC_NAV },
+  qac_admin: {
+    groups: [
+      ...QAC_NAV,
+      {
+        title: "ADMIN",
+        items: [
+          { label: "Activity", href: "/portal/activity", icon: "activity" },
+          { label: "Settings", href: "/portal/settings", icon: "settings" },
+        ],
+      },
+    ],
+  },
+};
+
 export type PortalUser = {
   role: PortalRole;
   name: string;
   position: string;
   avatar: string;
   notifications: number;
-  /** Round 2 §2 — a QAC Personnel account that also serves as an Internal
-   *  Accreditor. Optional because the static fixtures in `data.ts` predate it
-   *  and none of them is dual-role; read the rail through `navForUser()`. */
   actsAsAccreditor?: boolean;
 };
 
-/**
- * The rail this particular person gets, as opposed to the one their role gets.
- *
- * Round 2 §2 makes a QAC Personnel account able to hold accreditor work as
- * well, and that work has a screen the QAC rail does not link:
- * `/portal/evaluation`. Adding it for everyone would put a dead item on the
- * rail of every QAC user who is not on a team; adding it here keeps
- * `PORTAL_NAV` a transcription of the frames and makes the dual role the only
- * thing that deviates from them.
- *
- * Assignment is already on the QAC rail and is the shared URL both roles use,
- * so nothing needs inserting for it.
- */
-export function navForUser(user: PortalUser): PortalNavItem[] {
-  const items = PORTAL_NAV[user.role] ?? [];
-  if (!user.actsAsAccreditor || user.role === "internal_accreditor") return items;
+/** A QAC account the Admin also made an Internal Accreditor ("acting IA") gets
+ *  the accreditor's evaluation screen as its own group. */
+export function navForUser(user: PortalUser): PortalNav {
+  const nav = PORTAL_NAV[user.role];
+  if (!user.actsAsAccreditor || user.role === "internal_accreditor") return nav;
+  return {
+    ...nav,
+    groups: [
+      ...nav.groups.slice(0, 1),
+      {
+        title: "AS ACCREDITOR",
+        items: [{ label: "My Evaluations", href: "/portal/evaluation", icon: "assign" }],
+      },
+      ...nav.groups.slice(1),
+    ],
+  };
+}
 
-  const evaluation = PORTAL_NAV.internal_accreditor?.find(
-    (item) => item.href === "/portal/evaluation",
-  );
-  if (!evaluation || items.some((item) => item.href === evaluation.href)) return items;
-
-  const at = items.findIndex((item) => item.href === "/portal/assignment");
-  const withEvaluation = { ...evaluation, group: items[at]?.group };
-  return [...items.slice(0, at + 1), withEvaluation, ...items.slice(at + 1)];
+export function flatNav(nav: PortalNav): PortalNavItem[] {
+  return [...nav.groups.flatMap((g) => g.items), ...(nav.help ? [nav.help] : [])];
 }

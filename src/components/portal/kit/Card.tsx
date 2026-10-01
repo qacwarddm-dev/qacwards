@@ -1,36 +1,43 @@
-import { forwardRef } from "react";
-
-/** White rounded surface used for every panel in the portal. */
-const Card = forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & {
-    className?: string;
-    /** Prototype uses 8px for dashboard cards, 16px for the inner panels nested
-     *  inside a page card, and ~20px for full-width panels. */
-    radius?: 8 | 10 | 16 | 20;
-    /** `shadow` is the elevated white panel; `outline` is the flat hairline-
-     *  bordered box the create-assignment frame nests inside the page card. */
-    variant?: "shadow" | "outline";
-    children: React.ReactNode;
-  }
->(function Card({ className = "", radius = 20, variant = "shadow", children, ...rest }, ref) {
-  const shape =
-    radius === 8
-      ? "rounded-lg"
-      : radius === 10
-        ? "rounded-md"
-        : radius === 16
-          ? "rounded-[16px]"
-          : "rounded-[20px]";
-  const skin =
-    variant === "outline"
-      ? "bg-white border border-[color:var(--color-gray)]/25"
-      : "bg-white shadow-card";
+export default function Card({
+  children,
+  variant,
+  id,
+  style,
+}: {
+  children: React.ReactNode;
+  variant?: "pac" | "fixh" | "fixh2" | "phead" | "fpanel" | "row";
+  id?: string;
+  style?: React.CSSProperties;
+}) {
   return (
-    <div ref={ref} className={`${skin} ${shape} ${className}`} {...rest}>
+    <div id={id} className={variant ? `card ${variant}` : "card"} style={style}>
       {children}
     </div>
   );
-});
+}
 
-export default Card;
+export function CardHead({
+  title,
+  sub,
+  right,
+  top,
+  level = 2,
+}: {
+  title?: React.ReactNode;
+  sub?: React.ReactNode;
+  right?: React.ReactNode;
+  top?: React.ReactNode;
+  level?: 2 | 3;
+}) {
+  const H = level === 2 ? "h2" : "h3";
+  return (
+    <div className="ch">
+      <div>
+        {top}
+        {title !== undefined && <H style={top ? { marginTop: 6 } : undefined}>{title}</H>}
+        {sub !== undefined && <div className="sub">{sub}</div>}
+      </div>
+      {right}
+    </div>
+  );
+}

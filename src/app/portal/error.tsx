@@ -1,25 +1,20 @@
 "use client";
 
-import { Alert, Button } from "@/components/portal/kit";
+import Btn from "@/components/portal/kit/Btn";
+import Card from "@/components/portal/kit/Card";
+import Empty from "@/components/portal/kit/Empty";
 
-/** Portal route boundary. Keeps the shell (sidebar + top bar stay mounted,
- *  only `main`'s children are replaced) so a broken page never ejects the
- *  user from the product — 09-ui-refactor §F7. */
-export default function PortalError({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
+export default function PortalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
-    <div className="p-[var(--page-gutter)]">
-      <Alert tone="error" title="Something went wrong loading this page.">
-        {error.digest && <p className="mt-1 text-black/60">Reference: {error.digest}</p>}
-      </Alert>
-      <Button variant="outline" className="mt-4" onClick={reset}>
-        Try again
-      </Button>
-    </div>
+    <Card>
+      <Empty icon="⚠" title="Something went wrong loading this page.">
+        {error.digest && <>Reference: {error.digest}</>}
+        <div className="mt12">
+          <Btn variant="o" onClick={reset}>
+            Try again
+          </Btn>
+        </div>
+      </Empty>
+    </Card>
   );
 }

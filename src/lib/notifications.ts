@@ -1,5 +1,17 @@
 import { createClient } from "@/lib/supabase/server";
-import type { PortalNotification } from "@/components/portal/data";
+
+export type PortalNotification = {
+  id: string;
+  kind?: string;
+  at?: string;
+  avatar: string;
+  name?: string;
+  body: string;
+  time: string;
+  section: "new" | "earlier";
+  unread?: boolean;
+  href?: string;
+};
 
 /**
  * Reads behind the top-bar bell.
@@ -57,6 +69,8 @@ export async function getNotifications(limit = 20): Promise<BellData> {
 
   const items = (data ?? []).map((n) => ({
     id: n.id,
+    kind: n.kind,
+    at: n.created_at,
     avatar: n.actor?.avatar_path ?? AVATAR_FALLBACK,
     // The trigger already writes a whole sentence into `title`, so there is no
     // bold lead-in to split out. `name` stays optional and unset rather than
@@ -72,14 +86,4 @@ export async function getNotifications(limit = 20): Promise<BellData> {
   }));
 
   return { items, unread: count ?? 0 };
-}
-
-/** The bell badge alone, for callers that render the count without the list. */
-export async function getUnreadCount(): Promise<number> {
-  const supabase = await createClient();
-  const { count } = await supabase
-    .from("notifications")
-    .select("id", { count: "exact", head: true })
-    .is("read_at", null);
-  return count ?? 0;
 }

@@ -30,19 +30,6 @@ const ASSIGNMENT_TRANSITIONS: Record<string, string[]> = {
   declined: ["assigned"],
 };
 
-const SUBMISSION_TRANSITIONS: Record<string, string[]> = {
-  not_started: ["in_progress"],
-  in_progress: ["submitted"],
-  submitted: ["under_evaluation"],
-  under_evaluation: ["evaluated", "returned"],
-  evaluated: [],
-  returned: ["in_progress"],
-};
-
 export function canAdvanceAssignment(from: string, to: string): boolean {
   return ASSIGNMENT_TRANSITIONS[from]?.includes(to) ?? false;
-}
-
-export function canAdvanceSubmission(from: string, to: string): boolean {
-  return SUBMISSION_TRANSITIONS[from]?.includes(to) ?? false;
 }

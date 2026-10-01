@@ -1,115 +1,104 @@
-import Link from "next/link";
+"use client";
 
-export type MeetingKind = "psv" | "copc";
+import { useState } from "react";
+import { UCOL, MONL, evEnd, evStart, parseDay, type CalEvent, type CalType } from "./calendar";
 
-const DOT: Record<MeetingKind, string> = {
-  psv: "bg-yellow",
-  copc: "bg-maroon",
-};
+const PRIORITY: Record<CalType, number> = { visit: 0, dead: 1, meet: 2, hol: 3 };
 
-const DOT_LABEL: Record<MeetingKind, string> = {
-  psv: "PSV Meetings",
-  copc: "COPC Meetings",
-};
-
-/** Monday-first, and the frame abbreviates Thursday to two letters. */
-const WEEKDAYS = ["M", "T", "W", "TH", "F", "S", "S"];
-
-export type MiniCalendarProps = {
-  /** Any day inside the month to draw. Only the month name is shown. */
-  month: Date;
-  /** Day-of-month drawn in a filled grey circle. Earlier days are dimmed. */
-  today?: number;
-  /** Meeting marks keyed by day-of-month; drawn as a filled circle. */
-  marks?: Record<number, MeetingKind>;
-  /** Where clicking a marked day navigates — a day with no entry here (or no
-   *  mark at all) renders as plain, unclickable text. */
-  hrefs?: Record<number, string>;
-  radius?: 10 | 20;
-};
-
-/**
- * Compact month grid for the dashboard — a different component from
- * `MonthCalendar`, which is the full-width Events grid (785px, yellow header,
- * 70px cells). This one is the 450x294 maroon-outlined card on
- * program_representative/01-Dashboard.png: seven 58px columns inset 22px, five
- * 32px rows, and a two-item legend.
- *
- * Days before `today` render dimmed. That is the rule the frame implies — it
- * draws "1" grey while 2..7 are black, with 2 circled as today.
- */
 export default function MiniCalendar({
-  month,
+  events,
   today,
-  marks = {},
-  hrefs = {},
-  radius = 20,
-}: MiniCalendarProps) {
-  const year = month.getFullYear();
-  const m = month.getMonth();
-  const daysInMonth = new Date(year, m + 1, 0).getDate();
-  const daysInPrev = new Date(year, m, 0).getDate();
-  // getDay() is Sunday-first; this grid is Monday-first.
-  const lead = (new Date(year, m, 1).getDay() + 6) % 7;
+  onPick,
+  monthsAhead = 3,
+}: {
+  events: CalEvent[];
+  today: string;
+  onPick: (day: string) => void;
+  monthsAhead?: number;
+}) {
+  const t = parseDay(today);
+  const lo = t.getFullYear() * 12 + t.getMonth();
+  const hi = lo + monthsAhead;
+  const [ym, setYm] = useState(lo);
+  const y = Math.floor(ym / 12);
+  const m = ym % 12;
+  const first = new Date(y, m, 1);
+  const dim = new Date(y, m + 1, 0).getDate();
+  const pdim = new Date(y, m, 0).getDate();
 
-  const cells: { day: number; inMonth: boolean }[] = [];
-  for (let i = lead - 1; i >= 0; i--) cells.push({ day: daysInPrev - i, inMonth: false });
-  for (let dd = 1; dd <= daysInMonth; dd++) cells.push({ day: dd, inMonth: true });
-  while (cells.length % 7 !== 0) cells.push({ day: cells.length - lead - daysInMonth + 1, inMonth: false });
+  const cells: React.ReactNode[] = ["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+    <div key={`w${i}`} className="uwd">
+      {d}
+    </div>
+  ));
+  for (let i = first.getDay(); i > 0; i--)
+    cells.push(
+      <div key={`p${i}`} className="ud o">
+        {pdim - i + 1}
+      </div>,
+    );
+  for (let d = 1; d <= dim; d++) {
+    const dt = new Date(y, m, d);
+    const on = events.filter((e) => dt >= evStart(e) && dt <= evEnd(e)).sort((a, b) => PRIORITY[a.type] - PRIORITY[b.type]);
+    const e = on[0];
+    let c = "ud";
+    let style: React.CSSProperties | undefined;
+    if (e) {
+      c += " ev";
+      style = { background: UCOL[e.type][0], color: UCOL[e.type][2] };
+      if (e.end && e.end !== e.start) {
+        const s0 = +dt === +evStart(e) || dt.getDay() === 0;
+        const e0 = +dt === +evEnd(e) || dt.getDay() === 6;
+        c += s0 && e0 ? "" : s0 ? " rs" : e0 ? " re" : " rm";
+      }
+    }
+    if (+dt === +t) c += " td";
+    const key = `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    cells.push(
+      <div
+        key={key}
+        className={c}
+        style={style}
+        title={e ? on.map((x) => x.title).join(" • ") : undefined}
+        onClick={e ? () => onPick(key) : undefined}
+        role={e ? "button" : undefined}
+      >
+        {d}
+        {on.length > 1 && <i className="more" />}
+      </div>,
+    );
+  }
+  const tot = first.getDay() + dim;
+  for (let i = 1; i <= (7 - (tot % 7)) % 7; i++)
+    cells.push(
+      <div key={`n${i}`} className="ud o">
+        {i}
+      </div>,
+    );
 
   return (
-    <div className={`flex h-[294px] w-full max-w-[450px] flex-col ${radius === 10 ? "rounded-md" : "rounded-[20px]"} border border-maroon bg-white px-[20px] pt-[25px]`}>
-      <h3 className="text-subheading font-semibold leading-none text-black">
-        {month.toLocaleDateString("en-US", { month: "long" })}
-      </h3>
-
-      {/* Grid is inset 22 from the card, i.e. 2 further than the title. */}
-      <div className="mt-[18px] grid grid-cols-7 px-[2px] text-center text-subheading leading-none text-gray">
-        {WEEKDAYS.map((w, i) => (
-          <span key={`${w}-${i}`}>{w}</span>
-        ))}
+    <div className="ucal">
+      <div className="uch">
+        <button type="button" disabled={ym <= lo} onClick={() => setYm(ym - 1)} aria-label="Previous month">
+          ‹
+        </button>
+        <b>
+          {MONL[m]} {y}
+        </b>
+        <button type="button" disabled={ym >= hi} onClick={() => setYm(ym + 1)} aria-label="Next month">
+          ›
+        </button>
       </div>
-
-      <div className="mt-[4px] grid grid-cols-7 px-[2px]">
-        {cells.map((c, i) => {
-          const isToday = c.inMonth && today !== undefined && c.day === today;
-          const mark = c.inMonth ? marks[c.day] : undefined;
-          const href = c.inMonth ? hrefs[c.day] : undefined;
-          const dim = !c.inMonth || (today !== undefined && c.day < today);
-
-          const dayClass = `flex h-[22px] w-[22px] items-center justify-center rounded-full text-subheading leading-none ${
-            isToday ? "bg-gray text-white" : mark ? `${DOT[mark]} text-black` : ""
-          } ${dim && !isToday ? "text-[color:var(--color-gray)]/50" : ""}`;
-
-          return (
-            <span
-              key={`${c.day}-${i}`}
-              className="flex h-[32px] items-center justify-center"
-            >
-              {href ? (
-                <Link href={href} className={`${dayClass} transition-opacity hover:opacity-75`}>
-                  {c.day}
-                </Link>
-              ) : (
-                <span className={dayClass}>{c.day}</span>
-              )}
-            </span>
-          );
-        })}
-      </div>
-
-      {/* Legend ink spans 224.5px centred in the card; that lands the labels on
-          12px, not the 15px the day grid uses. */}
-      <div className="mt-auto flex items-center justify-center gap-[26px] pb-[28px]">
-        {(Object.keys(DOT) as MeetingKind[]).map((k) => (
-          <span key={k} className="flex items-center gap-[9px]">
-            <span className={`h-[11px] w-[11px] rounded-full ${DOT[k]}`} />
-            <span className="text-regular leading-none text-black">
-              {DOT_LABEL[k]}
-            </span>
+      <div className="ug">{cells}</div>
+      <div className="uleg">
+        {Object.values(UCOL).map((x) => (
+          <span key={x[1]}>
+            <i style={{ background: x[0] }} />
+            {x[1]}
           </span>
         ))}
       </div>
+      <div className="uhint">Click a colored day to see its events</div>
     </div>
   );
 }

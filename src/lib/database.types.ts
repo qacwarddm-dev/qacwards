@@ -5,42 +5,18 @@ export type Json =
   | null
   | { [key: string]: Json | undefined }
   | Json[]
-
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
-  }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
       accreditation_cycles: {
         Row: {
+          closed_at: string | null
+          closed_by: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -52,6 +28,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -63,6 +41,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          closed_at?: string | null
+          closed_by?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -74,6 +54,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "accreditation_cycles_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "accreditation_cycles_created_by_fkey"
             columns: ["created_by"]
@@ -140,6 +127,73 @@ export type Database = {
           {
             foreignKeyName: "accreditor_expertise_profile_id_fkey"
             columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accreditor_reports: {
+        Row: {
+          accreditor_id: string
+          assignment_id: string
+          doc_code: string | null
+          grand_mean: number | null
+          overall_findings: string | null
+          qac_note: string | null
+          recommendation: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          signed_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accreditor_id: string
+          assignment_id: string
+          doc_code?: string | null
+          grand_mean?: number | null
+          overall_findings?: string | null
+          qac_note?: string | null
+          recommendation?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          signed_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accreditor_id?: string
+          assignment_id?: string
+          doc_code?: string | null
+          grand_mean?: number | null
+          overall_findings?: string | null
+          qac_note?: string | null
+          recommendation?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          signed_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accreditor_reports_accreditor_id_fkey"
+            columns: ["accreditor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accreditor_reports_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accreditor_reports_reviewed_by_fkey"
+            columns: ["reviewed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -235,8 +289,105 @@ export type Database = {
           },
         ]
       }
+      announcements: {
+        Row: {
+          audience: string
+          body: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_pinned: boolean
+          is_published: boolean
+          publish_on: string
+          title: string
+        }
+        Insert: {
+          audience?: string
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_pinned?: boolean
+          is_published?: boolean
+          publish_on?: string
+          title: string
+        }
+        Update: {
+          audience?: string
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_pinned?: boolean
+          is_published?: boolean
+          publish_on?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      area_ratings: {
+        Row: {
+          accreditor_id: string
+          assignment_id: string
+          indicator: number
+          rating: number | null
+          remark: string | null
+          requirement_area_id: string
+          updated_at: string
+        }
+        Insert: {
+          accreditor_id: string
+          assignment_id: string
+          indicator: number
+          rating?: number | null
+          remark?: string | null
+          requirement_area_id: string
+          updated_at?: string
+        }
+        Update: {
+          accreditor_id?: string
+          assignment_id?: string
+          indicator?: number
+          rating?: number | null
+          remark?: string | null
+          requirement_area_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "area_ratings_accreditor_id_fkey"
+            columns: ["accreditor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "area_ratings_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "area_ratings_requirement_area_id_fkey"
+            columns: ["requirement_area_id"]
+            isOneToOne: false
+            referencedRelation: "requirement_areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assignment_accreditors: {
         Row: {
+          acting_reason: string | null
           assignment_id: string
           profile_id: string
           rejection_note: string | null
@@ -244,6 +395,7 @@ export type Database = {
           response: Database["public"]["Enums"]["accreditor_response"]
         }
         Insert: {
+          acting_reason?: string | null
           assignment_id: string
           profile_id: string
           rejection_note?: string | null
@@ -251,6 +403,7 @@ export type Database = {
           response?: Database["public"]["Enums"]["accreditor_response"]
         }
         Update: {
+          acting_reason?: string | null
           assignment_id?: string
           profile_id?: string
           rejection_note?: string | null
@@ -386,28 +539,40 @@ export type Database = {
       }
       common_documents: {
         Row: {
+          category: string
           created_at: string
           file_size: number | null
           id: string
           storage_path: string
           title: string
+          updated_at: string
           uploaded_by: string | null
+          view_count: number
+          visible_to: string
         }
         Insert: {
+          category?: string
           created_at?: string
           file_size?: number | null
           id?: string
           storage_path: string
           title: string
+          updated_at?: string
           uploaded_by?: string | null
+          view_count?: number
+          visible_to?: string
         }
         Update: {
+          category?: string
           created_at?: string
           file_size?: number | null
           id?: string
           storage_path?: string
           title?: string
+          updated_at?: string
           uploaded_by?: string | null
+          view_count?: number
+          visible_to?: string
         }
         Relationships: [
           {
@@ -415,6 +580,55 @@ export type Database = {
             columns: ["uploaded_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_reviews: {
+        Row: {
+          created_at: string
+          decision: string
+          id: string
+          note: string | null
+          reviewer_id: string | null
+          submission_document_id: string
+        }
+        Insert: {
+          created_at?: string
+          decision: string
+          id?: string
+          note?: string | null
+          reviewer_id?: string | null
+          submission_document_id: string
+        }
+        Update: {
+          created_at?: string
+          decision?: string
+          id?: string
+          note?: string | null
+          reviewer_id?: string | null
+          submission_document_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_reviews_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_reviews_submission_document_id_fkey"
+            columns: ["submission_document_id"]
+            isOneToOne: false
+            referencedRelation: "submission_document_status"
+            referencedColumns: ["submission_document_id"]
+          },
+          {
+            foreignKeyName: "document_reviews_submission_document_id_fkey"
+            columns: ["submission_document_id"]
+            isOneToOne: false
+            referencedRelation: "submission_documents"
             referencedColumns: ["id"]
           },
         ]
@@ -847,6 +1061,10 @@ export type Database = {
           notary_page_no: string | null
           notary_series: number | null
           profile_id: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
           storage_path: string
           uploaded_at: string
         }
@@ -858,6 +1076,10 @@ export type Database = {
           notary_page_no?: string | null
           notary_series?: number | null
           profile_id: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
           storage_path: string
           uploaded_at?: string
         }
@@ -869,6 +1091,10 @@ export type Database = {
           notary_page_no?: string | null
           notary_series?: number | null
           profile_id?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
           storage_path?: string
           uploaded_at?: string
         }
@@ -884,6 +1110,13 @@ export type Database = {
             foreignKeyName: "ndas_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ndas_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1027,7 +1260,10 @@ export type Database = {
           id: string
           is_active: boolean
           is_internal_accreditor: boolean
+          local_no: string | null
           middle_initial: string | null
+          mobile: string | null
+          notif_prefs: Json
           position_id: string | null
           role: Database["public"]["Enums"]["user_role"]
           signature_path: string | null
@@ -1044,7 +1280,10 @@ export type Database = {
           id: string
           is_active?: boolean
           is_internal_accreditor?: boolean
+          local_no?: string | null
           middle_initial?: string | null
+          mobile?: string | null
+          notif_prefs?: Json
           position_id?: string | null
           role: Database["public"]["Enums"]["user_role"]
           signature_path?: string | null
@@ -1061,7 +1300,10 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_internal_accreditor?: boolean
+          local_no?: string | null
           middle_initial?: string | null
+          mobile?: string | null
+          notif_prefs?: Json
           position_id?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           signature_path?: string | null
@@ -1288,6 +1530,96 @@ export type Database = {
         }
         Relationships: []
       }
+      repository_files: {
+        Row: {
+          cert_status: string | null
+          created_at: string
+          doc_uuid: string
+          file_size: number | null
+          folder_id: string
+          id: string
+          is_archived: boolean
+          level_id: string | null
+          program_id: string
+          storage_path: string
+          title: string
+          unit_id: string | null
+          uploaded_by: string | null
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          cert_status?: string | null
+          created_at?: string
+          doc_uuid?: string
+          file_size?: number | null
+          folder_id: string
+          id?: string
+          is_archived?: boolean
+          level_id?: string | null
+          program_id: string
+          storage_path: string
+          title: string
+          unit_id?: string | null
+          uploaded_by?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          cert_status?: string | null
+          created_at?: string
+          doc_uuid?: string
+          file_size?: number | null
+          folder_id?: string
+          id?: string
+          is_archived?: boolean
+          level_id?: string | null
+          program_id?: string
+          storage_path?: string
+          title?: string
+          unit_id?: string | null
+          uploaded_by?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "repository_files_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "repository_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repository_files_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "accreditation_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repository_files_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repository_files_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "repository_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repository_files_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       repository_folder_prefs: {
         Row: {
           display_name: string | null
@@ -1324,67 +1656,6 @@ export type Database = {
           },
         ]
       }
-      repository_files: {
-        Row: {
-          created_at: string
-          doc_uuid: string
-          file_size: number | null
-          folder_id: string
-          id: string
-          is_archived: boolean
-          program_id: string
-          storage_path: string
-          title: string
-          uploaded_by: string | null
-        }
-        Insert: {
-          created_at?: string
-          doc_uuid?: string
-          file_size?: number | null
-          folder_id: string
-          id?: string
-          is_archived?: boolean
-          program_id: string
-          storage_path: string
-          title: string
-          uploaded_by?: string | null
-        }
-        Update: {
-          created_at?: string
-          doc_uuid?: string
-          file_size?: number | null
-          folder_id?: string
-          id?: string
-          is_archived?: boolean
-          program_id?: string
-          storage_path?: string
-          title?: string
-          uploaded_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "repository_files_folder_id_fkey"
-            columns: ["folder_id"]
-            isOneToOne: false
-            referencedRelation: "repository_folders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "repository_files_program_id_fkey"
-            columns: ["program_id"]
-            isOneToOne: false
-            referencedRelation: "programs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "repository_files_uploaded_by_fkey"
-            columns: ["uploaded_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       repository_folders: {
         Row: {
           created_at: string
@@ -1408,6 +1679,38 @@ export type Database = {
           slug?: string
         }
         Relationships: []
+      }
+      repository_units: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          location: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          location: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          location?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "repository_units_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       requirement_areas: {
         Row: {
@@ -1440,6 +1743,73 @@ export type Database = {
             columns: ["level_id"]
             isOneToOne: false
             referencedRelation: "accreditation_levels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_reports: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          filters: Json
+          id: string
+          scope: string
+          title: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          filters?: Json
+          id?: string
+          scope: string
+          title: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          filters?: Json
+          id?: string
+          scope?: string
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_reports_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1487,6 +1857,7 @@ export type Database = {
           file_size: number
           id: string
           is_current: boolean
+          is_draft: boolean
           page_count: number | null
           phase_document_id: string | null
           requirement_area_id: string | null
@@ -1494,6 +1865,7 @@ export type Database = {
           submission_id: string
           supersedes_id: string | null
           title: string
+          upload_note: string | null
           uploaded_at: string
           uploaded_by: string | null
           version: number
@@ -1503,6 +1875,7 @@ export type Database = {
           file_size: number
           id?: string
           is_current?: boolean
+          is_draft?: boolean
           page_count?: number | null
           phase_document_id?: string | null
           requirement_area_id?: string | null
@@ -1510,6 +1883,7 @@ export type Database = {
           submission_id: string
           supersedes_id?: string | null
           title: string
+          upload_note?: string | null
           uploaded_at?: string
           uploaded_by?: string | null
           version?: number
@@ -1519,6 +1893,7 @@ export type Database = {
           file_size?: number
           id?: string
           is_current?: boolean
+          is_draft?: boolean
           page_count?: number | null
           phase_document_id?: string | null
           requirement_area_id?: string | null
@@ -1526,6 +1901,7 @@ export type Database = {
           submission_id?: string
           supersedes_id?: string | null
           title?: string
+          upload_note?: string | null
           uploaded_at?: string
           uploaded_by?: string | null
           version?: number
@@ -1626,6 +2002,13 @@ export type Database = {
             foreignKeyName: "submission_returns_submission_id_fkey"
             columns: ["submission_id"]
             isOneToOne: false
+            referencedRelation: "submission_readiness"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "submission_returns_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
             referencedRelation: "submissions"
             referencedColumns: ["id"]
           },
@@ -1698,36 +2081,140 @@ export type Database = {
           },
         ]
       }
-      templates: {
+      system_backups: {
         Row: {
           created_at: string
+          created_by: string | null
           id: string
+          kind: string
+          log: string | null
+          note: string | null
+          size_bytes: number | null
+          status: string
+          storage_path: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind: string
+          log?: string | null
+          note?: string | null
+          size_bytes?: number | null
+          status: string
+          storage_path?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          log?: string | null
+          note?: string | null
+          size_bytes?: number | null
+          status?: string
+          storage_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_backups_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_versions: {
+        Row: {
+          created_at: string
+          file_name: string
+          id: string
+          storage_path: string
+          template_id: string
+          uploaded_by: string | null
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          id?: string
+          storage_path: string
+          template_id: string
+          uploaded_by?: string | null
+          version: number
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          id?: string
+          storage_path?: string
+          template_id?: string
+          uploaded_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_versions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_versions_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      templates: {
+        Row: {
+          change_note: string | null
+          created_at: string
+          group_key: string | null
+          id: string
+          is_published: boolean
           level_id: string | null
           phase_document_id: string | null
           requirement_area_id: string | null
           storage_path: string
           title: string
+          updated_at: string
           uploaded_by: string | null
+          version: number
         }
         Insert: {
+          change_note?: string | null
           created_at?: string
+          group_key?: string | null
           id?: string
+          is_published?: boolean
           level_id?: string | null
           phase_document_id?: string | null
           requirement_area_id?: string | null
           storage_path: string
           title: string
+          updated_at?: string
           uploaded_by?: string | null
+          version?: number
         }
         Update: {
+          change_note?: string | null
           created_at?: string
+          group_key?: string | null
           id?: string
+          is_published?: boolean
           level_id?: string | null
           phase_document_id?: string | null
           requirement_area_id?: string | null
           storage_path?: string
           title?: string
+          updated_at?: string
           uploaded_by?: string | null
+          version?: number
         }
         Relationships: [
           {
@@ -1754,6 +2241,50 @@ export type Database = {
           {
             foreignKeyName: "templates_uploaded_by_fkey"
             columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_invitations: {
+        Row: {
+          given_name: string
+          id: string
+          invited_at: string
+          invited_by: string | null
+          is_internal_accreditor: boolean
+          role: Database["public"]["Enums"]["user_role"]
+          sent_count: number
+          surname: string
+          webmail: string
+        }
+        Insert: {
+          given_name: string
+          id?: string
+          invited_at?: string
+          invited_by?: string | null
+          is_internal_accreditor?: boolean
+          role: Database["public"]["Enums"]["user_role"]
+          sent_count?: number
+          surname: string
+          webmail: string
+        }
+        Update: {
+          given_name?: string
+          id?: string
+          invited_at?: string
+          invited_by?: string | null
+          is_internal_accreditor?: boolean
+          role?: Database["public"]["Enums"]["user_role"]
+          sent_count?: number
+          surname?: string
+          webmail?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_invitations_invited_by_fkey"
+            columns: ["invited_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -2003,6 +2534,37 @@ export type Database = {
       }
     }
     Functions: {
+      accepted_on_submission: {
+        Args: { p_submission: string }
+        Returns: boolean
+      }
+      acts_as_accreditor: { Args: { target?: string }; Returns: boolean }
+      admin_end_sessions: {
+        Args: { p_session?: string; p_user?: string }
+        Returns: number
+      }
+      admin_last_activity: {
+        Args: never
+        Returns: {
+          last_at: string
+          profile_id: string
+        }[]
+      }
+      admin_queue_email: {
+        Args: { p_body: string; p_subject: string; p_to: string }
+        Returns: undefined
+      }
+      admin_sessions: {
+        Args: never
+        Returns: {
+          id: string
+          ip: string
+          last_seen: string
+          user_agent: string
+          user_id: string
+        }[]
+      }
+      admin_storage_usage: { Args: never; Returns: number }
       auth_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
@@ -2011,14 +2573,7 @@ export type Database = {
         Args: { p_max_count: number; p_route: string; p_window_seconds: number }
         Returns: boolean
       }
-      patch_evaluation_sheet: {
-        Args: { p_assignment: string; p_patch: Json }
-        Returns: Json
-      }
-      return_submission: {
-        Args: { p_assignment: string; p_note: string }
-        Returns: undefined
-      }
+      count_common_document_view: { Args: { p_id: string }; Returns: undefined }
       create_event: {
         Args: {
           p_description?: string
@@ -2036,6 +2591,11 @@ export type Database = {
       }
       has_nda: { Args: never; Returns: boolean }
       is_active_user: { Args: never; Returns: boolean }
+      is_qac: { Args: never; Returns: boolean }
+      log_self_event: {
+        Args: { p_detail?: string; p_kind: string }
+        Returns: undefined
+      }
       my_assigned_submission_ids: { Args: never; Returns: string[] }
       my_assignment_ids: { Args: never; Returns: string[] }
       my_program_ids: { Args: never; Returns: string[] }
@@ -2052,9 +2612,30 @@ export type Database = {
         }
         Returns: string
       }
+      patch_evaluation_sheet: {
+        Args: { p_assignment: string; p_patch: Json }
+        Returns: Json
+      }
       readiness_band: { Args: { percent: number }; Returns: string }
+      return_submission: {
+        Args: { p_assignment: string; p_note: string }
+        Returns: undefined
+      }
+      send_reminder: {
+        Args: { p_link?: string; p_profile: string; p_title: string }
+        Returns: undefined
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      sign_accreditor_report: {
+        Args: {
+          p_assignment: string
+          p_findings: string
+          p_grand_mean: number
+          p_recommendation: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       accreditor_response: "pending" | "accepted" | "rejected"
@@ -2106,21 +2687,18 @@ export type Database = {
     }
   }
 }
-
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
-
 type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
-
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2139,16 +2717,15 @@ export type Tables<
       ? R
       : never
     : never
-
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2164,16 +2741,15 @@ export type TablesInsert<
       ? I
       : never
     : never
-
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2189,16 +2765,15 @@ export type TablesUpdate<
       ? U
       : never
     : never
-
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2206,16 +2781,15 @@ export type Enums<
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
-
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2223,11 +2797,7 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
-
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       accreditor_response: ["pending", "accepted", "rejected"],
@@ -2282,8 +2852,5 @@ export const Constants = {
   },
 } as const
 
-// Convenience aliases — `supabase gen types` does not emit these; the app
-// imports them by name in several places, so they are re-added here rather
-// than inlining `Database["public"]["Enums"][...]` at every call site.
 export type UserRole = Database["public"]["Enums"]["user_role"]
 export type CycleStatus = Database["public"]["Enums"]["cycle_status"]

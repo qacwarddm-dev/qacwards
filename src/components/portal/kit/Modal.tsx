@@ -1,149 +1,100 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useId, useRef } from "react";
-import { X } from "lucide-react";
-import Link from "next/link";
-import Card from "./Card";
+import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
+import useClientValue from "./useClientValue";
+import { Scoped } from "./Scope";
 
-/**
- * Full-screen dialog overlay — internal_accreditor/02.1-Accept-Modal.png and
- * program_representative/07.6-Requirements-modal.png share this shell.
- *
- * Modal state is a URL query param, not component state (every other overlay
- * in the kit is a `Link`-driven route), so `closeHref` closes the dialog by
- * navigating back rather than by an `onClick` handler. Omitting it drops the
- * corner ✕ and centers the title, matching the Accept Confirmation frame,
- * which has no close affordance at all.
- */
+export const LAYER_ID = "qp-layer";
+
+export const getLayer = () => document.getElementById(LAYER_ID);
+
 export default function Modal({
-  title,
-  closeHref,
+  open = true,
   onClose,
-  titleAlign,
-  bare = false,
-  className = "w-[430px]",
+  title,
+  sub,
+  size,
+  locked,
+  topColor,
+  head,
+  footer,
+  footerStyle,
+  bodyStyle,
   children,
 }: {
-  title: string;
-  closeHref?: string;
-  /** State-driven alternative to `closeHref` for dialogs opened by a click. */
-  onClose?: () => void;
-  titleAlign?: "center" | "start";
-  /** No padding and no visible header: the children lay out the whole card
-   *  (hero banners, sticky footers). The title stays as the accessible name. */
-  bare?: boolean;
-  className?: string;
-  children: React.ReactNode;
+  open?: boolean;
+  onClose: () => void;
+  title?: React.ReactNode;
+  sub?: React.ReactNode;
+  size?: "wide" | "pal";
+  locked?: boolean;
+  topColor?: string;
+  head?: React.ReactNode;
+  footer?: React.ReactNode;
+  footerStyle?: React.CSSProperties;
+  bodyStyle?: React.CSSProperties;
+  children?: React.ReactNode;
 }) {
-  const closable = Boolean(closeHref || onClose);
-  // A ref, not an effect dependency: callers pass inline arrows, and re-running
-  // the effect on every render would yank focus back to the first field mid-typing.
-  const onCloseRef = useRef(onClose);
+  const layer = useClientValue(getLayer, null);
+  const mdRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose);
+  const lockedRef = useRef(locked);
   useEffect(() => {
-    onCloseRef.current = onClose;
+    closeRef.current = onClose;
+    lockedRef.current = locked;
   });
-  const align = titleAlign ?? (closable ? "start" : "center");
-  const router = useRouter();
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const titleId = useId();
 
   useEffect(() => {
-    const previouslyFocused = document.activeElement as HTMLElement | null;
-    const previousOverflow = document.body.style.overflow;
+    if (!open) return;
+    const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-
-    const node = dialogRef.current;
-    const focusable = node?.querySelectorAll<HTMLElement>(
-      'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])',
-    );
-    (focusable?.[0] ?? node)?.focus();
-
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        if (onCloseRef.current) onCloseRef.current();
-        else if (closeHref) router.push(closeHref);
-        return;
-      }
-      if (e.key !== "Tab") return;
-      const items = node?.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])',
-      );
-      if (!items || items.length === 0) return;
-      const first = items[0];
-      const last = items[items.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    }
-
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = previousOverflow;
-      previouslyFocused?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !lockedRef.current) closeRef.current();
     };
-  }, [closeHref, router]);
+    document.addEventListener("keydown", onKey);
+    mdRef.current?.scrollTo(0, 0);
+    return () => {
+      document.body.style.overflow = prev;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
-  return (
-    <div className="fixed inset-0 z-40 flex animate-[overlay-in_var(--motion-base)_var(--ease-out)] items-center justify-center bg-black/45 px-[20px]">
-      <Card
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        tabIndex={-1}
-        radius={16}
-        className={`animate-[modal-in_var(--motion-slow)_var(--ease-out)] outline-none ${
-          bare ? "flex max-h-[calc(100dvh-32px)] flex-col overflow-hidden" : "p-[28px]"
-        } ${className}`}
-      >
-        {bare ? (
-          <>
-            <h2 id={titleId} className="sr-only">
-              {title}
-            </h2>
-            {children}
-          </>
-        ) : (
-          <>
-            <div className={`flex items-start gap-[12px] ${align === "center" ? "justify-center" : "justify-between"}`}>
-              {align === "center" && closable && <span className="w-[18px] shrink-0" aria-hidden />}
-              <h2
-                id={titleId}
-                className={`text-heading font-bold leading-none text-black ${align === "center" ? "flex-1 text-center" : ""}`}
-              >
-                {title}
-              </h2>
-              {closeHref && !onClose && (
-                <Link
-                  href={closeHref}
-                  aria-label="Close"
-                  className="shrink-0 text-black transition-opacity hover:opacity-60"
-                >
-                  <X className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
-                </Link>
-              )}
-              {onClose && (
-                <button
-                  type="button"
-                  onClick={onClose}
-                  aria-label="Close"
-                  className="shrink-0 text-black transition-opacity hover:opacity-60"
-                >
-                  <X className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
-                </button>
-              )}
-            </div>
-            <div className="mt-[20px]">{children}</div>
-          </>
+  if (!open) return null;
+
+  const node = (
+    <div
+      className="ov show"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget && !locked) onClose();
+      }}
+    >
+      <div ref={mdRef} className={size ? `md ${size}` : "md"} role="dialog" aria-modal="true">
+        {head}
+        {title !== undefined && (
+          <div className="md-h" style={topColor ? { borderTop: `6px solid ${topColor}`, borderRadius: "20px 20px 0 0" } : undefined}>
+            {!locked && (
+              <button type="button" className="x" aria-label="Close" onClick={onClose}>
+                ×
+              </button>
+            )}
+            <h3>{title}</h3>
+            {sub !== undefined && <p>{sub}</p>}
+          </div>
         )}
-      </Card>
+        {children !== undefined && children !== null && (
+          <div className="md-b" style={bodyStyle}>
+            {children}
+          </div>
+        )}
+        {footer && (
+          <div className="md-f" style={footerStyle}>
+            {footer}
+          </div>
+        )}
+      </div>
     </div>
   );
+
+  return layer ? createPortal(<Scoped>{node}</Scoped>, layer) : node;
 }

@@ -67,12 +67,12 @@ import { draftToAuthMetadata, readDraft, saveDraft } from "./registration-draft"
  */
 const ROLE_LABELS = SYSTEM_ROLES.map((r) => r.label);
 
-export default function RegisterForm() {
+export default function RegisterForm({ invitedWebmail = "" }: { invitedWebmail?: string }) {
   const router = useRouter();
   const [surname, setSurname] = useState("");
   const [given, setGiven] = useState("");
   const [middle, setMiddle] = useState("");
-  const [webmail, setWebmail] = useState("");
+  const [webmail, setWebmail] = useState(invitedWebmail);
   const [role, setRole] = useState("");
   const [campus, setCampus] = useState("");
   const [college, setCollege] = useState("");

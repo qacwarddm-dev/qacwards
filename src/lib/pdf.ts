@@ -94,3 +94,37 @@ export async function stampUuid(
 
   return pdf.save();
 }
+
+export type TemplateChecks = { text: boolean; header: boolean; footer: boolean; code: boolean };
+
+/** The mockup's upload checks: readable text (not a scan) and the official PUP
+ *  template's header, footer and form code on the document. */
+export async function checkTemplate(bytes: Uint8Array, formCode: string | null): Promise<TemplateChecks> {
+  const { PDFParse } = await import("pdf-parse");
+  const parser = new PDFParse({ data: bytes.slice() });
+  try {
+    const { text } = await parser.getText();
+    const flat = text.replace(/\s+/g, " ").toLowerCase();
+    const readable = flat.replace(/[^a-z]/g, "").length > 40;
+    if (!formCode) return { text: readable, header: true, footer: true, code: true };
+    return {
+      text: readable,
+      header: flat.includes("polytechnic university of the philippines"),
+      footer: flat.includes("pup.edu.ph") || flat.includes("leading comprehensive polytechnic"),
+      code: flat.includes(formCode.toLowerCase()),
+    };
+  } catch {
+    return { text: false, header: false, footer: false, code: false };
+  } finally {
+    await parser.destroy().catch(() => {});
+  }
+}
+
+/** Append the pages of `extra` to `main` ("Additional document" in the upload form). */
+export async function mergePdfs(main: Uint8Array, extra: Uint8Array): Promise<Uint8Array> {
+  const a = await PDFDocument.load(main, { ignoreEncryption: true });
+  const b = await PDFDocument.load(extra, { ignoreEncryption: true });
+  const pages = await a.copyPages(b, b.getPageIndices());
+  for (const p of pages) a.addPage(p);
+  return a.save();
+}

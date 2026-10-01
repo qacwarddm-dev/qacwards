@@ -1,87 +1,36 @@
-import InternalAccreditorDashboard from "@/components/portal/screens/InternalAccreditorDashboard";
-import ProgramRepDashboard from "@/components/portal/screens/ProgramRepDashboard";
-import QacPersonnelDashboard from "@/components/portal/screens/QacPersonnelDashboard";
-import {
-  getEvaluationProgressAll,
-  getIaDashboard,
-  getMiniCalendarData,
-  getOngoingAccreditations,
-  getQacDashboard,
-  getRecentUploads,
-  getRepDashboard,
-  getUpcomingSchedule,
-} from "@/lib/dashboards";
+import RepDashboard from "@/components/portal/screens/rep/RepDashboard";
+import { getRepPrograms } from "@/lib/rep-portal";
+import { getCompletedVisits } from "@/lib/visit-evaluations";
+import IaDashboard from "@/components/portal/screens/ia/IaDashboard";
+import QacDashboard from "@/components/portal/screens/qac/QacDashboard";
+import { getCalendarEvents } from "@/lib/calendar-events";
+import { greeting, greetName } from "@/lib/greeting";
+import { getIaAssignments } from "@/lib/ia-portal";
+import { getNdaQueue, getQacOverview, getSystemStatus } from "@/lib/qac-portal";
+import { manilaDay } from "@/lib/program-names";
 import { requireCurrentUser } from "@/lib/current-user";
 
-/**
- * One URL, role-appropriate content. Every role's sidebar links to
- * `/portal/dashboard` in its own frames, so the route is shared and the screen
- * is chosen by the identity seam rather than by the path.
- *
- * Screens live in `components/portal/screens/` and are presentational — this
- * is the fetching half (B9), same split as `/portal/submission`.
- */
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ uploads?: string }>;
-}) {
+export default async function DashboardPage() {
   const user = await requireCurrentUser();
-  const uploadsOpen = (await searchParams).uploads === "all";
+  const hello = `${greeting()}, ${greetName(user.name, user.position)}`;
+  const today = manilaDay();
 
   if (user.role === "program_representative") {
-    const [data, uploads, schedule, calendar] = await Promise.all([
-      getRepDashboard(),
-      getRecentUploads({ withRepLinks: true }),
-      getUpcomingSchedule(),
-      getMiniCalendarData(),
-    ]);
-    return (
-      <ProgramRepDashboard
-        data={data}
-        uploads={uploads}
-        uploadsOpen={uploadsOpen}
-        schedule={schedule}
-        calendar={calendar}
-      />
-    );
+    const [programs, events, visits] = await Promise.all([getRepPrograms(), getCalendarEvents(), getCompletedVisits()]);
+    return <RepDashboard hello={hello} programs={programs} events={events} today={today} visits={visits} />;
   }
 
   if (user.role === "internal_accreditor") {
-    const [data, schedule, uploads, calendar] = await Promise.all([
-      getIaDashboard(user.id),
-      getUpcomingSchedule(),
-      getRecentUploads(),
-      getMiniCalendarData(),
-    ]);
-    return (
-      <InternalAccreditorDashboard
-        data={data}
-        schedule={schedule}
-        uploads={uploads}
-        uploadsOpen={uploadsOpen}
-        calendar={calendar}
-      />
-    );
+    const [assignments, events] = await Promise.all([getIaAssignments(user.id), getCalendarEvents()]);
+    return <IaDashboard hello={hello} assignments={assignments.filter((a) => a.myResponse === "accepted")} events={events} today={today} />;
   }
 
-  const [data, ongoing, evaluationProgress, schedule, uploads, calendar] = await Promise.all([
-    getQacDashboard(),
-    getOngoingAccreditations(),
-    getEvaluationProgressAll(),
-    getUpcomingSchedule(),
-    getRecentUploads(),
-    getMiniCalendarData(),
+  const [{ programs, totals }, ndas, events, system] = await Promise.all([
+    getQacOverview(),
+    getNdaQueue(),
+    getCalendarEvents(),
+    user.role === "qac_admin" ? getSystemStatus() : Promise.resolve(null),
   ]);
-  return (
-    <QacPersonnelDashboard
-      data={data}
-      ongoing={ongoing}
-      evaluationProgress={evaluationProgress}
-      schedule={schedule}
-      uploads={uploads}
-      uploadsOpen={uploadsOpen}
-      calendar={calendar}
-    />
-  );
+  const asOf = new Date().toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "Asia/Manila" });
+  return <QacDashboard hello={hello} programs={programs} totals={totals} ndas={ndas} events={events} today={today} asOf={asOf} system={system} />;
 }

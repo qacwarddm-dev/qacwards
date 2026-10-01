@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { programSlug } from "@/lib/submissions";
+
 import type { PortalRole } from "@/components/portal/portal-nav";
 
 /**
@@ -13,8 +13,6 @@ import type { PortalRole } from "@/components/portal/portal-nav";
  * the one table in this schema that grows without bound, which is exactly where
  * OFFSET degrades.
  */
-
-export type ActivityFilter = "all" | "submissions" | "agreements" | "evaluations" | "account";
 
 export type ActivityIcon =
   | "upload"
@@ -31,36 +29,12 @@ export type ActivityIcon =
   | "document"
   | "account";
 
-export type ActivityEntry = {
-  id: string;
-  at: string;
-  title: string;
-  context: string | null;
-  actor: string | null;
-  icon: ActivityIcon;
-  href: string | null;
-};
-
 export type ActivityCursor = { createdAt: string; id: string };
-export type ActivityFeed = { entries: ActivityEntry[]; next: ActivityCursor | null };
-
-const FILTER_TABLES: Record<Exclude<ActivityFilter, "all">, string[]> = {
-  submissions: ["submissions", "submission_documents", "submission_choices"],
-  agreements: ["ndas"],
-  evaluations: ["visit_evaluations", "evaluations", "evaluation_items", "assignment_accreditors"],
-  account: ["profiles", "accreditor_expertise"],
-};
-
-export function parseActivityFilter(value: string | undefined): ActivityFilter {
-  return value && value in FILTER_TABLES ? (value as ActivityFilter) : "all";
-}
 
 // Most audit rows are bookkeeping (autosaves, updated_at bumps, join rows) that
 // describe() drops, so one page of raw rows can yield only a handful of
 // sentences. Batches are read until there is enough to show.
 const BATCH = 100;
-const WANT = 25;
-const MAX_BATCHES = 5;
 const GROUP_WINDOW_MS = 15 * 60 * 1000;
 
 type Json = Record<string, unknown>;
@@ -77,13 +51,16 @@ type RawRow = {
   actor: { surname: string; given_name: string } | null;
 };
 
-type Link = "files" | "submission" | "evaluations" | "documents" | "events" | "assignment";
+type Link = "files" | "submission" | "evaluations" | "documents" | "events" | "assignment" | "aaccup-copc";
+
+export type ActivityCat = "sub" | "rev" | "asg" | "file" | "rep" | "ev" | "agr" | "set" | "acct" | "eval" | "sys";
 
 type Described = {
   title: string;
   icon: ActivityIcon;
+  cat?: ActivityCat;
   upload?: string;
-  ref: { submission?: string; phaseDocument?: string; area?: string; assignment?: string };
+  ref: { submission?: string; phaseDocument?: string; area?: string; assignment?: string; document?: string };
   link?: Link;
   extra?: string;
 };
@@ -170,6 +147,8 @@ function describe(r: RawRow, viewer: string | null): Described | null {
     case "accreditor_expertise":
       return { title: `Updated ${your} discipline expertise`, icon: "account", ref: {} };
     case "ndas":
+      if (became("status", "verified")) return { title: "Verified an NDA", icon: "agreement", cat: "agr", ref: {}, link: "documents", extra: str(n.file_id) ? `NDA File ID ${n.file_id}` : undefined };
+      if (became("status", "returned")) return { title: "Returned an NDA", icon: "agreement", cat: "agr", ref: {}, link: "documents", extra: str(n.review_note) };
       if (op === "insert") return { title: "Signed the Non-Disclosure Agreement", icon: "agreement", ref: {}, link: "documents" };
       if (changed("file_id") || changed("storage_path"))
         return { title: "Uploaded a new signed Non-Disclosure Agreement", icon: "agreement", ref: {}, link: "documents" };
@@ -224,9 +203,15 @@ function describe(r: RawRow, viewer: string | null): Described | null {
         return { title: `Updated ${title}`, icon: "event", ref: {}, link: "events", extra };
       return null;
     }
-    case "templates":
-    case "common_documents":
     case "repository_files": {
+      const title = str(row.title) ?? "a file";
+      if (op === "insert") return { title: `Uploaded ${title} to AACCUP & COPC`, icon: "document", ref: {}, link: "aaccup-copc" };
+      if (became("is_archived", true)) return { title: `Deleted ${title} from AACCUP & COPC`, icon: "remove", ref: {}, link: "aaccup-copc" };
+      if (changed("title")) return { title: `Renamed ${str(o.title) ?? "a file"} to ${title}`, icon: "document", ref: {}, link: "aaccup-copc" };
+      return null;
+    }
+    case "templates":
+    case "common_documents": {
       const title = str(row.title) ?? "a file";
       if (op === "insert") return { title: `Uploaded ${title} to Documents`, icon: "document", ref: {}, link: "documents" };
       if (op === "delete") return { title: `Removed ${title} from Documents`, icon: "remove", ref: {}, link: "documents" };
@@ -253,6 +238,47 @@ function describe(r: RawRow, viewer: string | null): Described | null {
       if (became("status", "declined")) return { title: "Declined a deadline extension", icon: "remove", ref, link: "assignment" };
       return null;
     }
+    case "document_reviews": {
+      const ref = { document: str(row.submission_document_id) };
+      if (op !== "insert") return null;
+      if (n.decision === "approved") return { title: "Approved {doc}", icon: "decision", cat: "rev", ref, link: "files" };
+      if (n.decision === "returned") return { title: "Returned {doc} for revision", icon: "remove", cat: "rev", ref, link: "files", extra: str(n.note) ? `“${n.note}”` : undefined };
+      if (n.decision === "undone") return { title: "Undid the decision on {doc}", icon: "decision", cat: "rev", ref, link: "files" };
+      return null;
+    }
+    case "accreditor_reports": {
+      const ref = { assignment: str(row.assignment_id) };
+      if (became("status", "submitted")) return { title: "Signed and submitted the evaluation report", icon: "evaluation", cat: "rev", ref, link: "assignment", extra: str(n.doc_code) };
+      if (became("status", "acknowledged")) return { title: "Acknowledged an evaluation report", icon: "decision", cat: "rev", ref, link: "assignment", extra: str(n.doc_code) };
+      if (became("status", "returned")) return { title: "Returned an evaluation report", icon: "remove", cat: "rev", ref, link: "assignment" };
+      return null;
+    }
+    case "account_events": {
+      const t: Record<string, string> = {
+        password_changed: "Changed the account password",
+        contact_updated: "Updated the contact details",
+        notif_prefs_updated: "Updated notification preferences",
+        signed_in: "Signed in from a new device",
+      };
+      return t[op] ? { title: t[op], icon: "account", cat: "acct", ref: {} } : null;
+    }
+    case "saved_reports":
+      return op === "insert" ? { title: `Generated the ${str(row.title) ?? "report"}`, icon: "document", cat: "rep", ref: {}, extra: str(row.scope) } : op === "delete" ? { title: `Deleted the ${str(row.title) ?? "report"}`, icon: "remove", cat: "rep", ref: {} } : null;
+    case "announcements":
+      if (op === "insert") return { title: `Posted the announcement “${str(row.title) ?? ""}”`, icon: "event", cat: "set", ref: {} };
+      if (became("is_published", true)) return { title: `Published “${str(row.title) ?? ""}”`, icon: "event", cat: "set", ref: {} };
+      return null;
+    case "site_settings":
+      return { title: `Updated ${String(str(row.key) ?? "system").replace(/_/g, " ")} settings`, icon: "account", cat: "set", ref: {} };
+    case "system_backups":
+      if (op !== "insert") return null;
+      return n.kind === "automatic"
+        ? { title: n.status === "ok" ? "Automatic backup finished" : "Automatic backup failed", icon: "document", cat: "sys", ref: {} }
+        : { title: "Created a manual backup", icon: "document", cat: "set", ref: {}, extra: str(n.note) };
+    case "repository_units":
+      return op === "insert" ? { title: `Created the folder ${str(row.name) ?? ""}`, icon: "document", cat: "file", ref: {} } : null;
+    case "template_versions":
+      return op === "insert" ? { title: `Uploaded v${String(row.version ?? "")} of a template`, icon: "document", cat: "file", ref: {} } : null;
     default:
       return null;
   }
@@ -265,161 +291,162 @@ function joinNames(names: string[]) {
   return `${names[0]}, ${names[1]} and ${names.length - 2} more`;
 }
 
-export async function getActivityFeed(
-  filter: ActivityFilter,
-  role: PortalRole,
-  cursor?: ActivityCursor,
-): Promise<ActivityFeed> {
+// ------------------------------------------------------- mockup activity
+
+const CAT_BY_TABLE: Record<string, ActivityCat> = {
+  submissions: "sub",
+  submission_documents: "sub",
+  submission_choices: "sub",
+  ndas: "agr",
+  visit_evaluations: "eval",
+  evaluations: "rev",
+  evaluation_items: "rev",
+  document_reviews: "rev",
+  accreditor_reports: "rev",
+  assignment_accreditors: "asg",
+  assignments: "asg",
+  profiles: "acct",
+  accreditor_expertise: "acct",
+  account_events: "acct",
+  events: "ev",
+  templates: "file",
+  template_versions: "file",
+  common_documents: "file",
+  repository_files: "file",
+  repository_units: "file",
+  saved_reports: "rep",
+  program_reps: "set",
+  accreditation_cycles: "set",
+  program_accreditations: "rev",
+  extension_requests: "asg",
+  site_settings: "set",
+  announcements: "set",
+  system_backups: "set",
+};
+
+export type MyActivityEntry = {
+  id: string;
+  at: string;
+  title: string;
+  context: string | null;
+  href: string | null;
+  cat: ActivityCat;
+  actor: string;
+  actorId: string | null;
+  actorRole: PortalRole | "system";
+  test: boolean;
+  ip: string | null;
+};
+
+export async function getActivityEntries(opts: {
+  actorId?: string;
+  role: PortalRole;
+  want?: number;
+  maxBatches?: number;
+}): Promise<MyActivityEntry[]> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   const viewer = user?.id ?? null;
-
-  const found: { raw: RawRow; d: Described }[] = [];
-  let next: ActivityCursor | null = cursor ?? null;
-
-  for (let batch = 0; batch < MAX_BATCHES && found.length < WANT; batch++) {
-    let query = supabase
+  const want = opts.want ?? 150;
+  const found: { raw: RawRow & { actor_role?: string | null; ip?: string | null }; d: Described }[] = [];
+  let cursor: ActivityCursor | null = null;
+  for (let batch = 0; batch < (opts.maxBatches ?? 10) && found.length < want; batch++) {
+    let q = supabase
       .from("activity_logs")
-      .select(
-        "id, action_type, target_table, target_id, old_value, new_value, created_at, actor_id, actor:actor_id (surname, given_name)",
-      )
+      .select("id, action_type, target_table, target_id, old_value, new_value, created_at, actor_id, ip_address, actor:actor_id (surname, given_name, role)")
       .order("created_at", { ascending: false })
       .order("id", { ascending: false })
       .limit(BATCH);
-    if (filter !== "all") query = query.in("target_table", FILTER_TABLES[filter]);
-    if (next) {
-      query = query.or(
-        `created_at.lt.${next.createdAt},and(created_at.eq.${next.createdAt},id.lt.${next.id})`,
-      );
-    }
-
-    const { data } = await query;
-    const rows = (data ?? []) as RawRow[];
+    if (opts.actorId) q = q.eq("actor_id", opts.actorId);
+    if (cursor) q = q.or(`created_at.lt.${cursor.createdAt},and(created_at.eq.${cursor.createdAt},id.lt.${cursor.id})`);
+    const { data } = await q;
+    const rows = (data ?? []) as unknown as (RawRow & { ip_address: unknown; actor: { surname: string; given_name: string; role: string } | null })[];
     for (const raw of rows) {
       const d = describe(raw, viewer);
-      if (d) found.push({ raw, d });
+      if (d) found.push({ raw: { ...raw, actor_role: raw.actor?.role ?? null, ip: raw.ip_address ? String(raw.ip_address) : null }, d });
     }
     const last = rows[rows.length - 1];
-    next = rows.length === BATCH && last ? { createdAt: last.created_at, id: last.id } : null;
-    if (!next) break;
+    cursor = rows.length === BATCH && last ? { createdAt: last.created_at, id: last.id } : null;
+    if (!cursor) break;
   }
 
-  const ids = (pick: (d: Described) => string | undefined) => [
-    ...new Set(found.map((f) => pick(f.d)).filter((v): v is string => Boolean(v))),
-  ];
-
-  const assignmentIds = ids((d) => d.ref.assignment);
-  const { data: assignments } = assignmentIds.length
-    ? await supabase.from("assignments").select("id, submission_id").in("id", assignmentIds)
+  const ids = (pick: (d: Described) => string | undefined) => [...new Set(found.map((f) => pick(f.d)).filter((v): v is string => Boolean(v)))];
+  const docIds = ids((d) => d.ref.document);
+  const { data: docs } = docIds.length
+    ? await supabase.from("submission_documents").select("id, title, submission_id, phase_document_id, requirement_area_id").in("id", docIds)
     : { data: [] };
-  const submissionOfAssignment = new Map((assignments ?? []).map((a) => [a.id, a.submission_id]));
-
-  const submissionIds = [
-    ...new Set([...ids((d) => d.ref.submission), ...(assignments ?? []).map((a) => a.submission_id)]),
-  ];
-  const phaseDocIds = ids((d) => d.ref.phaseDocument);
-  const areaIds = ids((d) => d.ref.area);
-
-  const [{ data: submissions }, { data: phaseDocs }, { data: areas }] = await Promise.all([
-    submissionIds.length
-      ? supabase
-          .from("submissions")
-          .select("id, program_id, level_id, programs(name), accreditation_levels(name)")
-          .in("id", submissionIds)
-      : Promise.resolve({ data: [] }),
-    phaseDocIds.length
-      ? supabase.from("phase_documents").select("id, phase_id, phases(ordinal, name)").in("id", phaseDocIds)
-      : Promise.resolve({ data: [] }),
-    areaIds.length
-      ? supabase.from("requirement_areas").select("id, name").in("id", areaIds)
-      : Promise.resolve({ data: [] }),
+  const docById = new Map((docs ?? []).map((x) => [x.id, x]));
+  const assignmentIds = ids((d) => d.ref.assignment);
+  const { data: assignments } = assignmentIds.length ? await supabase.from("assignments").select("id, submission_id").in("id", assignmentIds) : { data: [] };
+  const subOfAsg = new Map((assignments ?? []).map((a) => [a.id, a.submission_id]));
+  const submissionIds = [...new Set([...ids((d) => d.ref.submission), ...(assignments ?? []).map((a) => a.submission_id), ...(docs ?? []).map((x) => x.submission_id)])];
+  const phaseDocIds = [...new Set([...ids((d) => d.ref.phaseDocument), ...(docs ?? []).map((x) => x.phase_document_id).filter((v): v is string => Boolean(v))])];
+  const areaIds = [...new Set([...ids((d) => d.ref.area), ...(docs ?? []).map((x) => x.requirement_area_id).filter((v): v is string => Boolean(v))])];
+  const [{ data: subs }, { data: phaseDocs }, { data: areas }] = await Promise.all([
+    submissionIds.length ? supabase.from("submissions").select("id, program_id, level_id, programs(name), accreditation_levels(name)").in("id", submissionIds) : Promise.resolve({ data: [] }),
+    phaseDocIds.length ? supabase.from("phase_documents").select("id, name, phase_id, phases(ordinal, name)").in("id", phaseDocIds) : Promise.resolve({ data: [] }),
+    areaIds.length ? supabase.from("requirement_areas").select("id, name").in("id", areaIds) : Promise.resolve({ data: [] }),
   ]);
+  const subById = new Map((subs ?? []).map((x) => [x.id, x]));
+  const phaseById = new Map((phaseDocs ?? []).map((x) => [x.id, x]));
+  const areaById = new Map((areas ?? []).map((x) => [x.id, x]));
+  const { programShort } = await import("@/lib/program-names");
 
-  const subById = new Map((submissions ?? []).map((s) => [s.id, s]));
-  const phaseById = new Map((phaseDocs ?? []).map((p) => [p.id, p]));
-  const areaById = new Map((areas ?? []).map((a) => [a.id, a]));
-
-  const entries: (ActivityEntry & { groupKey: string | null; names: string[]; actorId: string | null })[] = [];
-
+  const out: (MyActivityEntry & { groupKey: string | null; names: string[] })[] = [];
   for (const { raw, d } of found) {
-    const subId = d.ref.submission ?? (d.ref.assignment ? submissionOfAssignment.get(d.ref.assignment) : undefined);
+    const doc = d.ref.document ? docById.get(d.ref.document) : undefined;
+    const subId = d.ref.submission ?? doc?.submission_id ?? (d.ref.assignment ? subOfAsg.get(d.ref.assignment) : undefined);
     const sub = subId ? subById.get(subId) : undefined;
-    const phaseDoc = d.ref.phaseDocument ? phaseById.get(d.ref.phaseDocument) : undefined;
-    const area = d.ref.area ? areaById.get(d.ref.area) : undefined;
-    const level = sub?.accreditation_levels?.name;
-    const program = sub?.programs?.name;
-    const phaseLabel = phaseDoc?.phases ? `Phase ${phaseDoc.phases.ordinal} (${phaseDoc.phases.name})` : undefined;
+    const phaseDoc = phaseById.get(d.ref.phaseDocument ?? doc?.phase_document_id ?? "");
+    const area = areaById.get(d.ref.area ?? doc?.requirement_area_id ?? "");
+    const docName = phaseDoc?.name ?? area?.name ?? doc?.title ?? "a document";
+    const title = d.title.replace("{doc}", docName);
+    const program = sub?.programs?.name ? programShort(sub.programs.name) : undefined;
+    const phaseLabel = phaseDoc?.phases ? `Phase ${phaseDoc.phases.ordinal} – ${phaseDoc.phases.name}` : undefined;
+    const context = [program, sub?.accreditation_levels?.name, phaseLabel ?? (area && !d.ref.document ? area.name : undefined), d.extra].filter(Boolean).join(" · ") || null;
 
-    const context =
-      [level, phaseLabel ?? area?.name ?? (level ? undefined : program)].filter(Boolean).join(" · ") ||
-      d.extra ||
-      null;
-
-    const slug = sub && program ? programSlug(sub.program_id, program) : null;
-    const base = slug && sub ? `/portal/submission?program=${slug}&level=${sub.level_id}` : null;
     let href: string | null = null;
     if (d.link === "documents") href = "/portal/documents";
+    else if (d.link === "aaccup-copc") href = opts.role === "program_representative" ? "/portal/documents?tab=reports" : "/portal/aaccup-copc";
     else if (d.link === "events") href = "/portal/events";
-    else if (role === "program_representative") {
-      if (d.link === "evaluations") href = "/portal/submission/evaluation";
-      else if (d.link === "files" && base && phaseDoc?.phases)
-        href = `${base}&view=phases&phase=${phaseDoc.phases.ordinal}&modal=files`;
-      else if (d.link === "files" && base && area) href = `${base}&view=requirements&area=${area.id}&modal=files`;
-      else if ((d.link === "submission" || d.link === "files") && base) href = `${base}&view=phases`;
-    } else if (d.link === "assignment" && d.ref.assignment) {
-      href =
-        role === "internal_accreditor"
-          ? `/portal/evaluation/${d.ref.assignment}`
-          : `/portal/assignment/${d.ref.assignment}`;
-    }
+    else if (opts.role === "program_representative" && sub) href = `/portal/submission?program=${sub.program_id}&level=${sub.level_id}`;
+    else if (opts.role === "program_representative" && d.link === "evaluations") href = "/portal/feedback?tab=eval";
+    else if (opts.role === "internal_accreditor" && d.ref.assignment) href = `/portal/evaluation?a=${d.ref.assignment}`;
+    else if ((opts.role === "qac_personnel" || opts.role === "qac_admin") && sub) href = phaseDoc ? `/portal/extension-monitoring?sub=${sub.id}` : `/portal/assignment?sub=${sub.id}`;
 
+    const cat = d.cat ?? CAT_BY_TABLE[raw.target_table] ?? "acct";
+    const actor = raw.actor ? `${raw.actor.surname}, ${raw.actor.given_name}` : "Mailer, System";
     const groupKey = d.upload && subId ? `${raw.actor_id}:${subId}:${phaseDoc?.phase_id ?? area?.id ?? ""}` : null;
-    const prev = entries[entries.length - 1];
-    if (
-      groupKey &&
-      prev?.groupKey === groupKey &&
-      new Date(prev.at).getTime() - new Date(raw.created_at).getTime() < GROUP_WINDOW_MS
-    ) {
+    const prev = out[out.length - 1];
+    if (groupKey && prev?.groupKey === groupKey && new Date(prev.at).getTime() - new Date(raw.created_at).getTime() < GROUP_WINDOW_MS) {
       prev.names.unshift(d.upload!);
       prev.title = `Uploaded ${joinNames(prev.names)}`;
       continue;
     }
-    if (
-      !groupKey &&
-      prev &&
-      prev.title === d.title &&
-      prev.actorId === raw.actor_id &&
-      new Date(prev.at).getTime() - new Date(raw.created_at).getTime() < GROUP_WINDOW_MS
-    ) {
+    const close = prev && prev.actorId === raw.actor_id && new Date(prev.at).getTime() - new Date(raw.created_at).getTime() < GROUP_WINDOW_MS;
+    if (!groupKey && close && d.ref.document && title.startsWith("Approved ") && prev.title.startsWith("Approved ") && prev.context === context) {
+      const m = prev.title.match(/^Approved (\d+) documents$/);
+      prev.title = `Approved ${m ? Number(m[1]) + 1 : 2} documents`;
       continue;
     }
-
-    entries.push({
+    if (!groupKey && close && prev.title === title) continue;
+    out.push({
       id: raw.id,
       at: raw.created_at,
-      title: d.title,
-      context,
-      actor: raw.actor_id === viewer ? null : raw.actor ? `${raw.actor.surname}, ${raw.actor.given_name}` : "System",
-      icon: d.icon,
-      href,
-      groupKey,
-      names: d.upload ? [d.upload] : [],
-      actorId: raw.actor_id,
-    });
-  }
-
-  return {
-    entries: entries.map(({ id, at, title, context, actor, icon, href }) => ({
-      id,
-      at,
       title,
       context,
-      actor,
-      icon,
       href,
-    })),
-    next,
-  };
+      cat,
+      actor,
+      actorId: raw.actor_id,
+      actorRole: (raw.actor_role as PortalRole | null) ?? "system",
+      test: /__T/.test(title),
+      ip: raw.ip ?? null,
+      groupKey,
+      names: d.upload ? [d.upload] : [],
+    });
+  }
+  return out.map(({ groupKey, names, ...e }) => e);
 }

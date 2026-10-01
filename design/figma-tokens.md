@@ -118,3 +118,25 @@ exemption is a decision on the record rather than an oversight.
 
 - Wire these into `tailwind.config.ts` under `theme.extend.colors` / `theme.extend.fontFamily` / `theme.extend.fontSize` once the Next.js app scaffolds, so components reference Tailwind classes (e.g. `text-maroon`, `font-qac`, `text-title`) instead of raw hex/px.
 - Load font files via `next/font` (local or Google Fonts) — confirm license/availability for Playfair Display SC and Inria Serif before hardcoding.
+
+## Portal (2026-10-01) — client HTML mockups are the source of truth
+
+The `/portal` UI is rebuilt 1:1 from the client's four HTML mockups (internal accreditor, program
+rep, QAC personnel, QAC admin). Their stylesheet is ported verbatim into
+`src/app/portal/portal.css` (scoped under `.qp`; hand additions in `portal-extra.css`), so the
+portal's tokens are the mockups' own, declared on `.qp`:
+
+| Token | Value | Use |
+|---|---|---|
+| `--maroon` | `#800000` | brand, primary buttons, active nav |
+| `--maroon2` | `#5c0000` | hero gradient end |
+| `--gold` / `--gold-soft` | `#eab308` / `#fff6d6` | pending / for-review |
+| `--green` / `--green-soft` | `#22a33a` / `#e9f7ec` | approved / ok |
+| `--red` / `--red-soft` | `#c62828` / `#fdecec` | returned / errors |
+| `--blue` / `--blue-soft` | `#1f4fa3` / `#e8eefb` | info / for QAC review |
+| `--text` / `--muted` | `#111` / `#6b6b6b` | body / secondary text |
+| `--line` / `--bg` | `#e5e5e5` / `#f3f3f3` | borders / page background |
+
+Type: Inter (`--font-inter`), 14px base. Sizes, radii and spacing come from the ported classes;
+new portal UI reuses those classes through the kit (`src/components/portal/kit/`) rather than
+inventing values. The public site and auth pages still use the tokens above this section.

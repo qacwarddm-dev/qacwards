@@ -1,71 +1,46 @@
-import InternalAccreditorAssignment from "@/components/portal/screens/InternalAccreditorAssignment";
-import QacPersonnelAccreditation from "@/components/portal/screens/QacPersonnelAccreditation";
+import IaAssignments from "@/components/portal/screens/ia/IaAssignments";
+import AssignForm from "@/components/portal/screens/qac/AssignForm";
+import QacAccreditation from "@/components/portal/screens/qac/QacAccreditation";
+import QacProgramDetail from "@/components/portal/screens/qac/QacProgramDetail";
 import { requireCurrentUser } from "@/lib/current-user";
-import { getAccreditationOverview, getAssignments } from "@/lib/assignments";
+import { getIaAssignments } from "@/lib/ia-portal";
+import { manilaDay } from "@/lib/program-names";
+import { getAssignFormData, getQacOverview } from "@/lib/qac-portal";
 
-/**
- * `/portal/assignment` — shared URL, role-branched content. QAC Personnel and
- * Internal Accreditor both link here from their sidebars, but the screens differ
- * (docs/qac_per.pdf's Accreditation Programs list vs internal_accreditor/02-
- * Accreditation), so the screen is chosen by the identity seam.
- *
- * Wired in B5. Both roles read the same `getAssignments()`; which rows come back
- * differs entirely by RLS — an accreditor sees the assignments they are on, QAC
- * sees all of them. No role filter is applied here, deliberately.
- *
- * Round 2 §2 adds a third case: a QAC Personnel who also acts as an Internal
- * Accreditor gets both panels stacked, because both are true of them. Their
- * invitations are filtered out of the full QAC list by `myResponse`, which is
- * null on every assignment they are not personally on — the accreditor panel
- * cannot simply take everything RLS returned, since RLS returns everything to
- * QAC.
- */
 export default async function AssignmentPage({
   searchParams,
 }: {
-  searchParams: Promise<{ confirm?: string }>;
+  searchParams: Promise<{ id?: string; stage?: string; new?: string; edit?: string; from?: string; p?: string; sub?: string }>;
 }) {
   const user = await requireCurrentUser();
-  const { confirm } = await searchParams;
-
-  const assignments = await getAssignments(user.id);
-
-  const myInvitations = assignments
-    .filter((a) => a.myResponse !== null)
-    .map((a) => ({
-      id: a.id,
-      campus: a.campus,
-      college: a.college,
-      program: a.program,
-      level: a.level,
-      status: a.status,
-      myResponse: a.myResponse,
-    }));
+  const sp = await searchParams;
 
   if (user.role === "internal_accreditor") {
-    return (
-      <>
-        <h1 className="sr-only">Assignment</h1>
-        <InternalAccreditorAssignment confirm={confirm} assignments={myInvitations} />
-      </>
-    );
+    return <IaAssignments assignments={await getIaAssignments(user.id)} />;
   }
 
-  const overview = await getAccreditationOverview();
+  const today = manilaDay();
+  const { programs } = await getQacOverview();
+  const byId = (id?: string) => (id ? (programs.find((p) => p.id === id) ?? null) : null);
 
+  if (sp.new) {
+    const data = await getAssignFormData(user.id);
+    return <AssignForm data={data} edit={byId(sp.edit)} from={byId(sp.from)} preset={byId(sp.p)} />;
+  }
+
+  const bySub = sp.sub ? programs.find((p) => p.submissionId === sp.sub) : null;
+  const detail = byId(sp.id) ?? bySub ?? null;
+  if (detail) {
+    const stage = sp.stage === "pre" || sp.stage === "req" || sp.stage === "rep" ? sp.stage : undefined;
+    return <QacProgramDetail p={detail} today={today} initialStage={stage} />;
+  }
+
+  const month = new Date().toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "Asia/Manila" });
+  const invitations = user.actsAsAccreditor ? (await getIaAssignments(user.id)).filter((a) => a.myResponse === "pending") : [];
   return (
     <>
-      <h1 className="sr-only">Accreditation</h1>
-      <QacPersonnelAccreditation data={overview} />
-      {/* Only once they actually hold one. An empty second panel under the QAC
-          table would be permanent furniture on every dual-role account. */}
-      {user.actsAsAccreditor && myInvitations.length > 0 && (
-        <InternalAccreditorAssignment
-          confirm={confirm}
-          assignments={myInvitations}
-          title="My Accreditation Assignments"
-        />
-      )}
+      <QacAccreditation programs={programs} today={today} monthLabel={month} />
+      {invitations.length > 0 && <IaAssignments assignments={invitations} />}
     </>
   );
 }

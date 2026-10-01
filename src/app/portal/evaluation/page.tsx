@@ -1,19 +1,36 @@
-import InternalAccreditorEvaluation from "@/components/portal/screens/InternalAccreditorEvaluation";
-import { getIaDashboard } from "@/lib/dashboards";
+import IaAccreditation, { type IaView } from "@/components/portal/screens/ia/IaAccreditation";
 import { requireCurrentUser } from "@/lib/current-user";
+import { getIaAssignments } from "@/lib/ia-portal";
+import { LEVEL_SHORT } from "@/lib/program-names";
+import { createClient } from "@/lib/supabase/server";
 
-/**
- * `/portal/evaluation` — only the Internal Accreditor's sidebar links here, so
- * there is no role switch yet. When a second role gets an Evaluation frame this
- * becomes the same `getCurrentUser()` switch as `/portal/dashboard`.
- */
-export default async function EvaluationPage() {
+export default async function EvaluationPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ a?: string; lv?: string; st?: string; ph?: string; ar?: string }>;
+}) {
   const user = await requireCurrentUser();
-  const data = await getIaDashboard(user.id);
+  const sp = await searchParams;
+  const supabase = await createClient();
+  const [all, { data: levels }] = await Promise.all([
+    getIaAssignments(user.id),
+    supabase.from("accreditation_levels").select("code, name").order("ordinal"),
+  ]);
+  const assignments = all.filter((a) => a.myResponse === "accepted");
+  const selected = sp.a ? (assignments.find((a) => a.id === sp.a) ?? null) : null;
+  const view: IaView = {
+    lv: sp.lv,
+    st: sp.st === "pre" || sp.st === "req" ? sp.st : undefined,
+    ph: sp.ph ? Number(sp.ph) : undefined,
+    ar: sp.ar,
+  };
   return (
-    <>
-      <h1 className="sr-only">Evaluation</h1>
-      <InternalAccreditorEvaluation data={data} />
-    </>
+    <IaAccreditation
+      assignments={assignments}
+      selected={selected}
+      view={view}
+      levels={(levels ?? []).map((l) => ({ code: l.code, name: l.name, short: LEVEL_SHORT[l.code] ?? l.code }))}
+      meId={user.id}
+    />
   );
 }

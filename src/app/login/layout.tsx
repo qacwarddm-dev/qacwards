@@ -8,7 +8,7 @@
  * its own footnote inside the panel, and the site footer would push the card into
  * a scroll.
  */
-import { ToastProvider } from "@/components/portal/kit";
+import ToastProvider from "@/components/portal/kit/ToastProvider";
 
 export default function LoginLayout({
   children,

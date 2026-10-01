@@ -1,0 +1,24 @@
+/* Mockup rules that live outside the generated sheet (IA-only shell bits). */
+.qp nav a .new{font-size:9px;font-weight:700;background:#fff4cc;color:#8a6d00;border-radius:7px;padding:2px 6px}
+.qp .st{display:block}
+.qp .rsearch input::placeholder,.qp .search input::placeholder{color:#999}
+.qp a.btn{text-decoration:none}
+.qp .pdfview{width:100%;height:100%;border:0;background:#fff}
+.qp .vw::after,.qp .vwrap .wm{pointer-events:none}
+.qp .vw .pdfview{position:absolute;inset:0;height:100%}
+.qp .fsp .pdfview{background:#fff}
+.qp .vw .tb{z-index:2}
+.qp .ia .hero::after{display:none}
+.qp .mt12{margin-top:12px}
+.qp .ia .ind textarea{min-height:38px}
+@media print{
+  .qp header,.qp nav,.qp .steps,.qp .acts,.qp .noprint,.qp .crumb,.qp .toast{display:none!important}
+  .qp{background:#fff}.qp main{padding:0}.qp .card{box-shadow:none;padding:0}
+  .qp .paper{box-shadow:none;max-width:none}
+  .qp .card:has(.done){display:none}
+}
+.qp .btn.bdanger{background:var(--red);border-color:var(--red);color:#fff}
+.qp .btn.wfull{width:100%;justify-content:center}
+.qp .mb8{margin-bottom:8px}
+.qp .sigpad.q{width:100%;max-width:520px;height:auto;aspect-ratio:520/170;border:2px dashed #d9b3b3;border-radius:14px;background:#fffdfb;cursor:crosshair;touch-action:none;display:block}
+.qp .mb16{margin-bottom:16px}

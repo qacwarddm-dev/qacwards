@@ -1,99 +1,80 @@
-/**
- * Portal component kit. Anything appearing on more than one screen lives here —
- * see the "Component kit" rule in CLAUDE.md. Screens pass data and variants;
- * components own their own spacing, radius, colour and type.
- */
-export { default as AccreditorPicker } from "./AccreditorPicker";
-export { default as AreaDocumentsModal } from "./AreaDocumentsModal";
-export { default as AreaGrid, type AreaGridItem } from "./AreaGrid";
-export { default as ActionMenu, type MenuItem } from "./ActionMenu";
-export { default as Alert, type AlertTone } from "./Alert";
-export { default as AvatarStack, type AvatarPerson } from "./AvatarStack";
+export { default as AccreditorChips } from "./AccreditorChips";
 export { default as BackLink } from "./BackLink";
-export { default as Badge } from "./Badge";
-export { default as Breadcrumb, type Crumb } from "./Breadcrumb";
-export { default as Button } from "./Button";
+export { default as Bar } from "./Bar";
+export { RBar } from "./Bar";
+export { default as Btn } from "./Btn";
+export type { BtnVariant } from "./Btn";
 export { default as Card } from "./Card";
-export { default as CardTitleBar } from "./CardTitleBar";
-export { default as ConfirmDialog } from "./ConfirmDialog";
-export { default as ConfirmModal } from "./ConfirmModal";
-export { default as CoverCard } from "./CoverCard";
-export {
-  default as DataTable,
-  type Column,
-  type DataTablePagination,
-  type DataTableSearch,
-  type Row,
-} from "./DataTable";
-export { default as DocCard } from "./DocCard";
-export { default as DocFileGrid, type DocFile } from "./DocFileGrid";
-export { default as DocTabs, type DocTab } from "./DocTabs";
-export { default as Dialog } from "./Dialog";
-export { default as DocumentBrowser } from "./DocumentBrowser";
-export { default as Drawer } from "./Drawer";
-export { default as EmptyState } from "./EmptyState";
-export { default as EvaluationSummary } from "./EvaluationSummary";
-export { default as EvaluationTaskRow } from "./EvaluationTaskRow";
-export {
-  FieldLabel,
-  PasswordField,
-  PasswordInput,
-  ReadOnlyField,
-  ReadOnlyValue,
-  SelectField,
-  SelectInput,
-  TextField,
-  TextareaField,
-  TextareaInput,
-  TextInput,
-} from "./Field";
-export { default as ExpertisePicker } from "./ExpertisePicker";
-export { default as FilterBar, type FilterSpec } from "./FilterBar";
-export { default as FileList, formatFileSize, type FileListEntry } from "./FileList";
-export { default as FolderCard } from "./FolderCard";
-export { default as FolderGrid, type FolderEntry } from "./FolderGrid";
-export { default as MiniCalendar, type MeetingKind } from "./MiniCalendar";
+export { CardHead } from "./Card";
+export { default as CertStatusSelect } from "./CertStatusSelect";
+export { CSTAT, CSDEF, certLevel } from "./CertStatusSelect";
+export { default as Crumbs } from "./Crumbs";
+export type { Crumb } from "./Crumbs";
+export { default as DocDetailModal } from "./DocDetailModal";
+export { default as DocRow } from "./DocRow";
+export { default as DocViewer } from "./DocViewer";
+export { useDocUrl, pdfSrc } from "./DocViewer";
+export { default as Donut } from "./Donut";
+export type { DonutPart } from "./Donut";
+export { default as Empty } from "./Empty";
+export { default as EvaluationPrompt } from "./EvaluationPrompt";
+export { default as EvaluationReport } from "./EvaluationReport";
+export { roman } from "./EvaluationReport";
+export type { ReportRow, ReportSigner, ReportData } from "./EvaluationReport";
+export { default as FileDrop } from "./FileDrop";
+export { default as FileViewModal } from "./FileViewModal";
+export { default as FilterPills } from "./FilterPills";
+export { default as FolderIcon } from "./FolderIcon";
+export { default as FullScreenViewer } from "./FullScreenViewer";
+export { HistoryList, Thread } from "./History";
+export type { HistoryEntry } from "./History";
+export { default as Icon } from "./Icon";
+export { BackIcon, NodeIcon } from "./Icon";
+export type { IconName } from "./Icon";
+export { default as Letterhead } from "./Letterhead";
+export { default as LevelRings } from "./LevelRings";
+export type { RingItem } from "./LevelRings";
+export { default as MiniCalendar } from "./MiniCalendar";
 export { default as Modal } from "./Modal";
-export {
-  CalendarLegend,
-  default as MonthCalendar,
-  type DayMark,
-} from "./MonthCalendar";
-export { default as NotificationRow } from "./NotificationRow";
-export { default as PageHeader } from "./PageHeader";
-export { default as Panel } from "./Panel";
-export { default as PanelHeader } from "./PanelHeader";
-export { default as PortalPage } from "./PortalPage";
-export { default as PdfChip } from "./PdfChip";
-export { default as ProgressRow } from "./ProgressRow";
-export { default as RecentUploads } from "./RecentUploads";
-export { default as RecentUploadsDialog, type UploadLogEntry } from "./RecentUploadsDialog";
-export { default as RadialProgress } from "./RadialProgress";
-export { default as ReadinessBar } from "./ReadinessBar";
-export { default as RowList } from "./RowList";
-export { default as SearchField } from "./SearchField";
-export { default as SectionHeading } from "./SectionHeading";
-export { default as SignatureBlock } from "./SignatureBlock";
-export { default as SignaturePad, type SignatureMode } from "./SignaturePad";
-export { default as Skeleton } from "./Skeleton";
-export {
-  default as SortMenu,
-  type SortDir,
-  type SortKey,
-  type SortState,
-} from "./SortMenu";
-export { default as Spinner } from "./Spinner";
-export { default as StarRating } from "./StarRating";
-export { default as StatCard, StatRow, type Stat } from "./StatCard";
-export { default as StatusBarChart, type StatusBar } from "./StatusBarChart";
-export { default as StatusPill, type DocStatus } from "./StatusPill";
-export { default as SuccessCheck } from "./SuccessCheck";
-export { default as SurveyFormModal, type SurveySaveResult } from "./SurveyFormModal";
-export { STATUS, type StatusKey, type StatusTone } from "./status";
-export { default as Stepper, type Step } from "./Stepper";
-export { default as ToastProvider, useToast, type Toast } from "./ToastProvider";
-export { default as UpcomingSchedule, type ScheduleEntry } from "./UpcomingSchedule";
-export { default as UploadList, type Upload } from "./UploadList";
-export { default as ViewAllLink } from "./ViewAllLink";
-export { default as ViewToggle, type BrowserView } from "./ViewToggle";
-export { default as VisuallyHidden } from "./VisuallyHidden";
+export { LAYER_ID, getLayer } from "./Modal";
+export { default as PhaseList } from "./PhaseList";
+export { Tracker } from "./PhaseList";
+export type { TrackStep, PhaseRow } from "./PhaseList";
+export { default as Pill } from "./Pill";
+export { pillClass, DocPill, ReviewChip } from "./Pill";
+export type { PillTone, DocState } from "./Pill";
+export { Avatar, usePhoto, PasswordForm } from "./ProfilePhoto";
+export type { PwRules } from "./ProfilePhoto";
+export { default as Result } from "./Result";
+export { useReviewActions, ReviewDocModal, ReviewDecision } from "./ReviewDoc";
+export { default as Ring } from "./Ring";
+export { default as RoleChip } from "./RoleChip";
+export { roleLabel } from "./RoleChip";
+export { default as Scope } from "./Scope";
+export { useScope, Scoped } from "./Scope";
+export { default as SearchBox } from "./SearchBox";
+export { default as SegTabs } from "./SegTabs";
+export type { SegTab } from "./SegTabs";
+export { default as SignaturePad } from "./SignaturePad";
+export { useSignaturePad, useSaveSignature } from "./SignaturePad";
+export { default as StageSwitch } from "./StageSwitch";
+export type { Stage } from "./StageSwitch";
+export { default as StatTile } from "./StatTile";
+export { StatGrid } from "./StatTile";
+export type { StatTileProps } from "./StatTile";
+export { default as SumRows } from "./SumRows";
+export { default as ToastProvider } from "./ToastProvider";
+export { useToast } from "./ToastProvider";
+export type { Toast } from "./ToastProvider";
+export { default as Toggle } from "./Toggle";
+export { default as UpcomingEvents } from "./UpcomingEvents";
+export type { NextDeadline } from "./UpcomingEvents";
+export { default as UploadFlow } from "./UploadFlow";
+export { TemplatePreview } from "./UploadFlow";
+export type { UploadMode, UploadTarget, TemplateFile } from "./UploadFlow";
+export { MON, MONL, WD, TC, UCOL, parseDay, fmt, daysBetween, cdTxt, evStart, evEnd, evStatus, evOn, rangeLabel, icsHref, nextDeadline, daysUntil, COLLEGE_COLOR } from "./calendar";
+export type { CalType, CalEvent } from "./calendar";
+export { printPaper } from "./printPaper";
+export { default as useAct } from "./useAct";
+export { default as useClientValue } from "./useClientValue";
+export { evalTitle, evalBadge, pendingOf, useEvaluations } from "./useEvaluations";

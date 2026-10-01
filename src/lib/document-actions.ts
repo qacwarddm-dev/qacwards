@@ -95,6 +95,10 @@ export async function uploadNda(formData: FormData): Promise<ActionResult> {
     notary_page_no: pageNo,
     notary_book_no: bookNo.toUpperCase(),
     notary_series: series,
+    status: "review",
+    review_note: null,
+    reviewed_by: null,
+    reviewed_at: null,
   });
 
   if (error) return { ok: false, error: error.message };
@@ -103,132 +107,19 @@ export async function uploadNda(formData: FormData): Promise<ActionResult> {
   return { ok: true };
 }
 
-/**
- * Add a file to a programme's AACCUP/COPC repository.
- *
- * Both a representative and QAC may write here (decision 12) — which of them is
- * calling is not checked, because two RLS policies already say so and a third
- * check in application code could only disagree with them.
- */
-export async function uploadRepositoryFile(formData: FormData): Promise<ActionResult> {
+export async function getOwnNdaUrl(): Promise<string | null> {
   const supabase = await createClient();
-
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Not signed in." };
-
-  const programId = String(formData.get("programId") ?? "");
-  const folderId = String(formData.get("folderId") ?? "");
-  const title = String(formData.get("title") ?? "").trim();
-  const file = formData.get("file");
-
-  if (!programId || !folderId) return { ok: false, error: "Choose a folder." };
-  if (!(file instanceof File)) return { ok: false, error: "Choose a file to upload." };
-  if (file.type !== "application/pdf") return { ok: false, error: "Repository files must be PDFs." };
-
-  const docUuid = crypto.randomUUID();
-  // {campus}/{college?}/{program}/{folder}/… per §2.8, keyed on the document uuid
-  // so two files of the same name cannot collide.
-  const path = `${programId}/${folderId}/${docUuid}.pdf`;
-
-  const stored = await uploadFile(supabase, BUCKETS.repository, path, file, {
-    contentType: "application/pdf",
-  });
-  if (stored.error) return { ok: false, error: stored.error };
-
-  const { error } = await supabase.from("repository_files").insert({
-    program_id: programId,
-    folder_id: folderId,
-    title: title || file.name,
-    storage_path: path,
-    file_size: file.size,
-    uploaded_by: user.id,
-  });
-
-  if (error) {
-    await supabase.storage.from(BUCKETS.repository).remove([path]);
-    return { ok: false, error: error.message };
-  }
-
-  revalidatePath("/portal/documents");
-  return { ok: true };
+  if (!user) return null;
+  const { data } = await supabase.from("ndas").select("storage_path").eq("profile_id", user.id).maybeSingle();
+  if (!data) return null;
+  const s = await supabase.storage.from(BUCKETS.ndas).createSignedUrl(data.storage_path, 300);
+  return s.data?.signedUrl ?? null;
 }
 
-/** Archive rather than delete — these are award records, and a web form should
- *  not be able to destroy them. There is no delete policy on the table at all. */
-export async function archiveRepositoryFile(fileId: string): Promise<ActionResult> {
+export async function countCommonView(id: string) {
   const supabase = await createClient();
-
-  const { error } = await supabase
-    .from("repository_files")
-    .update({ is_archived: true })
-    .eq("id", fileId);
-
-  if (error) return { ok: false, error: error.message };
-
-  revalidatePath("/portal/documents");
-  return { ok: true };
-}
-
-function cleanName(raw: string): string | null {
-  const name = raw.trim().replace(/\s+/g, " ");
-  return name.length >= 1 && name.length <= 150 ? name : null;
-}
-
-export async function renameRepositoryFile(id: string, rawTitle: string): Promise<ActionResult> {
-  const title = cleanName(rawTitle);
-  if (!title) return { ok: false, error: "Enter a name up to 150 characters." };
-
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("repository_files")
-    .update({ title })
-    .eq("id", id)
-    .select("id");
-  if (error) return { ok: false, error: error.message };
-  if (!data?.length) return { ok: false, error: "That file could not be renamed." };
-
-  revalidatePath("/portal/documents");
-  return { ok: true };
-}
-
-export async function renameRepositoryFolder(
-  programId: string,
-  folderId: string,
-  rawName: string,
-): Promise<ActionResult> {
-  const name = cleanName(rawName);
-  if (!name) return { ok: false, error: "Enter a name up to 150 characters." };
-
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("repository_folder_prefs")
-    .upsert({ program_id: programId, folder_id: folderId, display_name: name });
-  if (error) return { ok: false, error: error.message };
-
-  revalidatePath("/portal/documents");
-  return { ok: true };
-}
-
-export async function deleteRepositoryFolder(
-  programId: string,
-  folderId: string,
-): Promise<ActionResult> {
-  const supabase = await createClient();
-
-  const { error: archiveError } = await supabase
-    .from("repository_files")
-    .update({ is_archived: true })
-    .eq("program_id", programId)
-    .eq("folder_id", folderId);
-  if (archiveError) return { ok: false, error: archiveError.message };
-
-  const { error } = await supabase
-    .from("repository_folder_prefs")
-    .upsert({ program_id: programId, folder_id: folderId, hidden: true });
-  if (error) return { ok: false, error: error.message };
-
-  revalidatePath("/portal/documents");
-  return { ok: true };
+  await supabase.rpc("count_common_document_view", { p_id: id });
 }

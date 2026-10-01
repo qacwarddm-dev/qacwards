@@ -25,8 +25,8 @@ export function normalizeNdaFileId(raw: string): string | null {
   return FILE_ID_RE.test(id) ? id : null;
 }
 
-export async function stampNdaTemplate(fileId: string): Promise<Uint8Array> {
-  const pdf = await PDFDocument.load(await readFile(NDA_TEMPLATE_PATH));
+export async function stampNdaTemplate(fileId: string, template?: Uint8Array): Promise<Uint8Array> {
+  const pdf = await PDFDocument.load(template ?? (await readFile(NDA_TEMPLATE_PATH)));
   pdf.setKeywords([`${KEYWORD_PREFIX}${fileId}`]);
   pdf.setSubject(`QAC Non-Disclosure Agreement ${fileId}`);
 

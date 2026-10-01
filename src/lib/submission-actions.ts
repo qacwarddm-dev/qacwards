@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { BUCKETS, removeFile, signedUrl } from "@/lib/storage";
+import { BUCKETS, signedUrl } from "@/lib/storage";
 
 /**
  * Writes behind `/portal/submission`.
@@ -198,73 +198,6 @@ export async function submitForEvaluation(submissionId: string): Promise<ActionR
   return { ok: true };
 }
 
-export async function setWebsiteUrl(
-  submissionId: string,
-  url: string,
-): Promise<ActionResult> {
-  const supabase = await createClient();
-
-  const trimmed = url.trim();
-  if (trimmed !== "") {
-    try {
-      const parsed = new URL(trimmed);
-      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-        return { ok: false, error: "The website must be an http or https address." };
-      }
-    } catch {
-      return { ok: false, error: "That is not a valid web address." };
-    }
-  }
-
-  const { error } = await supabase
-    .from("submissions")
-    .update({ website_url: trimmed || null })
-    .eq("id", submissionId);
-
-  if (error) return { ok: false, error: error.message };
-
-  revalidatePath("/portal/submission");
-  return { ok: true };
-}
-
-/**
- * O-16: a representative may remove a document **before** submitting, never
- * after. Afterwards the only route is superseding, which keeps the original file
- * and the decision about it on the record.
- *
- * The RLS policy is what enforces the timing; this deletes the row first and the
- * object second, so a policy refusal leaves the file exactly where it was rather
- * than orphaning it.
- */
-export async function deleteDocument(documentId: string): Promise<ActionResult> {
-  const supabase = await createClient();
-
-  const { data: doc } = await supabase
-    .from("submission_documents")
-    .select("storage_path")
-    .eq("id", documentId)
-    .maybeSingle();
-
-  if (!doc) return { ok: false, error: "That document could not be found." };
-
-  const { error } = await supabase
-    .from("submission_documents")
-    .delete()
-    .eq("id", documentId);
-
-  if (error) {
-    return {
-      ok: false,
-      error: "That document can no longer be removed — the submission is in.",
-    };
-  }
-
-  await removeFile(supabase, BUCKETS.submissions, doc.storage_path);
-
-  revalidatePath("/portal/submission");
-  return { ok: true };
-}
-
 /** A one-minute signed URL, minted only after RLS has allowed the row to be read.
  *  Buckets are private, so this is the only way a document is ever served. */
 export async function getDocumentUrl(
@@ -284,4 +217,45 @@ export async function getDocumentUrl(
   if (signed.data === null) return { ok: false, error: signed.error };
 
   return { ok: true, url: signed.data };
+}
+
+/** "Continue draft" → Upload: the draft's file becomes the slot's current document. */
+export async function submitDraft(draftId: string, note?: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { data: draft } = await supabase
+    .from("submission_documents")
+    .select("id, submission_id, phase_document_id, requirement_area_id")
+    .eq("id", draftId)
+    .eq("is_draft", true)
+    .maybeSingle();
+  if (!draft) return { ok: false, error: "That draft could not be found." };
+  const column = draft.phase_document_id ? "phase_document_id" : "requirement_area_id";
+  const { data: current } = await supabase
+    .from("submission_documents")
+    .select("id, version")
+    .eq("submission_id", draft.submission_id)
+    .eq(column, (draft.phase_document_id ?? draft.requirement_area_id)!)
+    .eq("is_current", true)
+    .eq("is_draft", false)
+    .maybeSingle();
+  const { error } = await supabase
+    .from("submission_documents")
+    .update({
+      is_draft: false,
+      is_current: true,
+      supersedes_id: current?.id ?? null,
+      version: (current?.version ?? 0) + 1,
+      upload_note: note?.trim() || null,
+      uploaded_at: new Date().toISOString(),
+    })
+    .eq("id", draftId);
+  if (error) return { ok: false, error: error.message };
+  if (current) await supabase.from("submission_documents").update({ is_current: false }).eq("id", current.id);
+  await supabase
+    .from("submissions")
+    .update({ status: "in_progress", updated_at: new Date().toISOString() })
+    .eq("id", draft.submission_id)
+    .eq("status", "not_started");
+  revalidatePath("/portal/submission");
+  return { ok: true };
 }

@@ -32,6 +32,11 @@ const SOURCES = {
     table: "common_documents",
     bucket: BUCKETS.commonDocs,
   },
+  nda: {
+    table: "ndas",
+    bucket: BUCKETS.ndas,
+    key: "profile_id",
+  },
 } as const;
 
 type SourceKey = keyof typeof SOURCES;
@@ -53,12 +58,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unknown document." }, { status: 400 });
   }
 
-  const { table, bucket } = SOURCES[source];
+  const src = SOURCES[source];
+  const key = "key" in src ? src.key : "id";
 
   const { data: row } = await supabase
-    .from(table)
+    .from(src.table as "templates")
     .select("storage_path")
-    .eq("id", id)
+    .eq(key as "id", id)
     .maybeSingle();
 
   // Zero rows is what RLS returns to someone who may not read this — so a
@@ -71,7 +77,7 @@ export async function GET(request: NextRequest) {
   const asAttachment = request.nextUrl.searchParams.get("download") === "1";
   const signed = await signedUrl(
     supabase,
-    bucket as BucketName,
+    src.bucket as BucketName,
     row.storage_path,
     undefined,
     asAttachment,
