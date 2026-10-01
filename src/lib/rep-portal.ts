@@ -3,6 +3,7 @@ import { getMyPrograms } from "@/lib/submissions";
 import { allPhaseSlots, countSlots, emptyReview, getReferenceStructure, getSubmissionReviews, includedAreas, missingChoices } from "@/lib/reviews";
 import { programMid, programShort } from "@/lib/program-names";
 import type { RepProgram } from "@/lib/rep-model";
+import type { TemplateFile } from "@/components/portal/kit/UploadFlow";
 export * from "@/lib/rep-model";
 import type { CalEvent } from "@/components/portal/kit/calendar";
 import type { EventExtra } from "@/components/portal/screens/EventsScreen";
@@ -104,20 +105,25 @@ export async function getRepEventExtras(events: CalEvent[]): Promise<Record<stri
 }
 
 /** The downloadable PUP Document Template every upload form offers. */
-export async function getGeneralTemplate(): Promise<{ name: string; url: string | null }> {
+export async function getGeneralTemplate(): Promise<TemplateFile> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("templates")
-    .select("title, storage_path, group_key")
-    .or("group_key.eq.gen,title.ilike.%PUP Document Template%")
+    .select("id, title, storage_path, group_key, requirement_area_id, phase_document_id")
     .eq("is_published", true)
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (!data) return { name: "PUP-Document-Template.docx", url: null };
-  const { data: signed } = await supabase.storage.from("templates").createSignedUrl(data.storage_path, 600, { download: true });
-  const file = data.storage_path.split("/").pop() ?? "PUP-Document-Template.docx";
-  return { name: file.includes(".") ? file : "PUP-Document-Template.docx", url: signed?.signedUrl ?? null };
+    .order("updated_at", { ascending: false });
+  const link = (t: { id: string; storage_path: string }): { name: string; url: string } => {
+    const file = t.storage_path.split("/").pop() ?? "";
+    return { name: file.includes(".") ? file : "PUP-Document-Template.docx", url: `/api/documents/download?source=template&id=${t.id}&download=1` };
+  };
+  const rows = data ?? [];
+  const general = rows.find((t) => t.group_key === "gen" || /PUP Document Template/i.test(t.title));
+  const byRef: Record<string, { name: string; url: string }> = {};
+  for (const t of rows) {
+    const ref = t.requirement_area_id ?? t.phase_document_id;
+    if (ref && !byRef[ref]) byRef[ref] = link(t);
+  }
+  return { ...(general ? link(general) : { name: "PUP-Document-Template.docx", url: null }), byRef };
 }
 
 /** level id → visit date label, for levels whose survey visit already happened. */

@@ -63,6 +63,7 @@ async function admin() {
 function refresh() {
   revalidatePath("/portal/settings");
   revalidatePath("/portal/dashboard");
+  revalidatePath("/portal/assignment");
 }
 
 const DENIED = { ok: false as const, error: "Only the QAC Admin can change settings." };
@@ -70,6 +71,12 @@ const DENIED = { ok: false as const, error: "Only the QAC Admin can change setti
 export async function saveSetting<K extends SettingKey>(key: K, value: (typeof DEFAULTS)[K]): Promise<ActionResult> {
   const user = await admin();
   if (!user) return DENIED;
+  if (key === "rules") {
+    const r = value as (typeof DEFAULTS)["rules"];
+    const whole = (n: number) => Number.isInteger(n) && n >= 1;
+    if (!whole(r.perProgram)) return { ok: false, error: "Internal accreditors per program must be a whole number, at least 1." };
+    if (!whole(r.acceptDays) || !whole(r.evalDays)) return { ok: false, error: "Days must be whole numbers, at least 1." };
+  }
   const supabase = await createClient();
   const { error } = await supabase.from("site_settings").upsert({ key, value: value as never, updated_by: user.id, updated_at: new Date().toISOString() });
   if (error) return { ok: false, error: error.message };

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getSetting } from "@/lib/settings";
 import { canAdvanceAssignment } from "@/lib/assignment-transitions";
 
 /**
@@ -30,9 +31,9 @@ export async function createAssignment(
 ): Promise<{ ok: true; assignmentId: string } | { ok: false; error: string }> {
   const supabase = await createClient();
 
-  // Client's call 2026-09-06: every assignment team is exactly 2 accreditors.
-  if (accreditorIds.length !== 2) {
-    return { ok: false, error: "Choose exactly 2 accreditors." };
+  const { perProgram } = await getSetting(supabase, "rules");
+  if (accreditorIds.length !== perProgram) {
+    return { ok: false, error: `Choose exactly ${perProgram} accreditor${perProgram === 1 ? "" : "s"}.` };
   }
 
   const { data: submission } = await supabase

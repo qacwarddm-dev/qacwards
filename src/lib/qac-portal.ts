@@ -184,6 +184,8 @@ export type AssignForm = {
   load: Record<string, number>;
   me: string;
   evalDays: number;
+  perProgram: number;
+  acceptDays: number;
 };
 
 export async function getAssignFormData(meId: string): Promise<AssignForm> {
@@ -230,6 +232,8 @@ export async function getAssignFormData(meId: string): Promise<AssignForm> {
     load,
     me: meId,
     evalDays: Number(((rules?.value as { evalDays?: number } | null)?.evalDays ?? DEFAULTS.rules.evalDays)) || DEFAULTS.rules.evalDays,
+    perProgram: Number((rules?.value as { perProgram?: number } | null)?.perProgram) || DEFAULTS.rules.perProgram,
+    acceptDays: Number((rules?.value as { acceptDays?: number } | null)?.acceptDays) || DEFAULTS.rules.acceptDays,
   };
 }
 

@@ -55,16 +55,17 @@ export default function AssignForm({ data, edit, from, preset }: { data: Data; e
     .map((p) => ({ ...p, match: p.expertise.filter((e) => relevant.has(e)), coi: program ? program.college !== "NA" && p.college === program.college : false, b: busy(p.id), load: data.load[p.id] ?? 0 }));
   const elig = rows.filter((r) => r.match.length && !r.coi).sort((a, b) => Number(Boolean(a.b)) - Number(Boolean(b.b)) || a.load - b.load || a.name.localeCompare(b.name));
   const excl = rows.filter((r) => r.match.length && r.coi);
-  const sug = elig.filter((r) => !r.b).slice(0, 2).map((r) => r.id);
+  const need = data.perProgram;
+  const sug = elig.filter((r) => !r.b).slice(0, need).map((r) => r.id);
   const avail = elig.filter((r) => !r.b).length;
   const qac = data.people.filter((p) => p.qac);
-  const qShown = qopen || avail < 2 || qac.some((q) => sel.includes(q.id));
+  const qShown = qopen || avail < need || qac.some((q) => sel.includes(q.id));
   const discipline = [...relevant].slice(0, 1)[0];
-  const miss = repFirst ? [!program && "a program"].filter(Boolean) : [!program && "a program", !vd && "the site visit date", sel.length !== 2 && `${2 - sel.length > 0 ? `${2 - sel.length} more` : "only 2"} accreditor${Math.abs(2 - sel.length) === 1 ? "" : "s"}`].filter(Boolean);
+  const miss = repFirst ? [!program && "a program"].filter(Boolean) : [!program && "a program", !vd && "the site visit date", sel.length !== need && `${need - sel.length > 0 ? `${need - sel.length} more` : `only ${need}`} accreditor${Math.abs(need - sel.length) === 1 ? "" : "s"}`].filter(Boolean);
 
   function tog(id: string) {
     if (sel.includes(id)) setSel(sel.filter((x) => x !== id));
-    else if (sel.length >= 2) toast.say("Select exactly 2. Remove one first.", true);
+    else if (sel.length >= need) toast.say(`Select exactly ${need}. Remove one first.`, true);
     else setSel([...sel, id]);
   }
 
@@ -175,19 +176,19 @@ export default function AssignForm({ data, edit, from, preset }: { data: Data; e
           <div>
             <h3 style={{ fontSize: 15 }}>Eligible Accreditors</h3>
             <div className="sub">
-              {program ? `Auto-matched from expertise: ${elig.length} eligible${discipline ? ` for ${discipline}` : ""} · select exactly 2 (${sel.length}/2 selected)` : "Select a program to see eligible accreditors"}
+              {program ? `Auto-matched from expertise: ${elig.length} eligible${discipline ? ` for ${discipline}` : ""} · select exactly ${need} (${sel.length}/${need} selected)` : "Select a program to see eligible accreditors"}
             </div>
           </div>
-          {sug.length === 2 && sel.length < 2 && (
+          {sug.length === need && sel.length < need && (
             <Btn
               variant="o"
               sm
               onClick={() => {
                 setSel(sug);
-                toast.say("Suggested pair selected. You can still change it.");
+                toast.say("Suggested accreditors selected. You can still change it.");
               }}
             >
-              ✨ Use suggested pair
+              ✨ Use suggested
             </Btn>
           )}
         </div>
@@ -258,10 +259,10 @@ export default function AssignForm({ data, edit, from, preset }: { data: Data; e
             ⛔ Not listed because of conflict of interest (same college): {excl.map((r) => r.name).join(", ")}
           </div>
         )}
-        <div className={`qacbox${avail < 2 ? " warn" : ""}`}>
+        <div className={`qacbox${avail < need ? " warn" : ""}`}>
           <div className="qh" onClick={() => setQopen(!qopen)} role="button">
             <span>
-              {avail < 2 ? `⚠ Not enough available internal accreditors (${avail} of 2). ` : "Need a replacement? "}
+              {avail < need ? `⚠ Not enough available internal accreditors (${avail} of ${need}). ` : "Need a replacement? "}
               <b>Assign QAC Personnel as acting IA</b>
             </span>
             <span className="chev">{qShown ? "▾" : "▸"}</span>
@@ -310,7 +311,7 @@ export default function AssignForm({ data, edit, from, preset }: { data: Data; e
                               sm
                               disabled={Boolean(b)}
                               onClick={() => {
-                                if (sel.length >= 2) return toast.say("Select exactly 2. Remove one first.", true);
+                                if (sel.length >= need) return toast.say(`Select exactly ${need}. Remove one first.`, true);
                                 setReason(REASONS[0]);
                                 setCoi(false);
                                 setActFor(q.id);
@@ -342,7 +343,7 @@ export default function AssignForm({ data, edit, from, preset }: { data: Data; e
           ) : repFirst ? (
             "✅ Ready. The program rep is notified and can start uploading."
           ) : (
-            "✅ Ready. Both accreditors get an email and must accept within 3 days."
+            `✅ Ready. ${need === 1 ? "The accreditor gets" : "All accreditors get"} an email and must accept within ${data.acceptDays} days.`
           )}
         </span>
         <Btn disabled={Boolean(miss.length) || pending} onClick={submit}>
@@ -409,7 +410,7 @@ export default function AssignForm({ data, edit, from, preset }: { data: Data; e
               <br />
               {levelName} · visit {vd}
               <br />
-              {sel.map(name).join(" and ")} were emailed and must accept within 3 days. The visit was added to Events.
+              {sel.map(name).join(" and ")} {sel.length === 1 ? "was" : "were"} emailed and must accept within {data.acceptDays} days. The visit was added to Events.
             </p>
             )}
           </Result>

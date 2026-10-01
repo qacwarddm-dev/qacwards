@@ -123,6 +123,6 @@ export async function checkUploaded(
   const hit = data?.find((x) => x.name === file);
   if (!hit) return { error: "Upload did not complete. Try again." };
   const size = Number(hit.metadata?.size ?? 0);
-  if (size > o.max) return { error: "File is over 25 MB." };
+  if (size > o.max) return { error: `File is over ${Math.round(o.max / (1024 * 1024))} MB.` };
   return { size };
 }

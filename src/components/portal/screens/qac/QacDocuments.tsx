@@ -164,8 +164,7 @@ function Templates({ data }: { data: QacDocumentsData }) {
         <div className="empty">{q ? `No templates match “${q}”.` : "No templates in this group yet."}</div>
       )}
       <div className="sub" style={{ fontSize: 11.5, marginTop: 10 }}>
-        🔒 Program reps see area templates as <b>view only</b> (watermarked). The General template is downloadable from the upload forms. Every template must use the PUP header/footer and
-        form code <b>QAC-TPL-01</b>, which uploads are checked for.
+        Program reps can view and download these templates. Reps may also upload documents that don’t use them, such as a program’s own template.
       </div>
       {modal?.k === "up" && <TemplateUpload group={lv} groupLabel={g.label} row={modal.row} onClose={() => setModal(null)} />}
       {modal?.k === "hist" && <TemplateHistory row={modal.row} onClose={() => setModal(null)} />}
@@ -267,7 +266,7 @@ function TemplateUpload({ group, groupLabel, row, onClose }: { group: TplGroupKe
         <FileDrop
           exts={[".docx"]}
           className="dmdrop"
-          hint="Word document (.docx) · max 25 MB · must use the PUP header/footer and form code QAC-TPL-01"
+          hint="Word document (.docx) · max 25 MB"
           file={file}
           onFile={setFile}
         />

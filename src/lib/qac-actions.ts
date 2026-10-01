@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
-import { DEFAULTS, evalDeadline } from "@/lib/settings-model";
+import { evalDeadline } from "@/lib/settings-model";
+import { getSetting } from "@/lib/settings";
 import { createAssignmentForProgramLevel, ensureEvaluation, releaseScore } from "@/lib/assignment-actions";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
@@ -28,11 +29,10 @@ export async function saveAssignment(input: {
   dueDate: string | null;
 }): Promise<{ ok: true; assignmentId: string } | { ok: false; error: string }> {
   if (!(await qac())) return { ok: false, error: "Only QAC can assign accreditors." };
-  if (input.accreditorIds.length !== 2) return { ok: false, error: "Select exactly 2 accreditors." };
-  if (!input.siteVisitDate) return { ok: false, error: "Pick the site visit date." };
   const supabase = await createClient();
-  const { data: rules } = await supabase.from("site_settings").select("value").eq("key", "rules").maybeSingle();
-  const evalDays = Number((rules?.value as { evalDays?: number } | null)?.evalDays) || DEFAULTS.rules.evalDays;
+  const { perProgram, evalDays } = await getSetting(supabase, "rules");
+  if (input.accreditorIds.length !== perProgram) return { ok: false, error: `Select exactly ${perProgram} accreditor${perProgram === 1 ? "" : "s"}.` };
+  if (!input.siteVisitDate) return { ok: false, error: "Pick the site visit date." };
   const dueDate = input.dueDate || evalDeadline(input.siteVisitDate, evalDays);
   let id = input.assignmentId;
   if (!id) {

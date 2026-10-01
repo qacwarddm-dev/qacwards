@@ -268,7 +268,7 @@ export function SetupTab({ data }: { data: SetupData }) {
   const num = (k: keyof Rules) => (e: React.ChangeEvent<HTMLInputElement>) => setRules({ ...rules, [k]: Number(e.target.value) });
   return (
     <Card>
-      <CardHead title="Accreditation Setup" sub="The requirements every program rep and accreditor sees. Changes apply to the next cycle." />
+      <CardHead title="Accreditation Setup" sub="The requirements every program rep and accreditor sees. Area and document changes apply to the next cycle; the rules below apply right away." />
       <h3 className="h3s">Levels</h3>
       <div className="echips">
         {data.levels.map((l) => (
@@ -324,10 +324,6 @@ export function SetupTab({ data }: { data: SetupData }) {
             <option>1–5 (Poor to Excellent)</option>
             <option>AACCUP 0–5</option>
           </select>
-        </div>
-        <div>
-          <span>Official template form code checked on upload</span>
-          <input className="inp" value={rules.formCode} onChange={(e) => setRules({ ...rules, formCode: e.target.value })} style={{ width: 160 }} />
         </div>
       </div>
       <div className="subbar">

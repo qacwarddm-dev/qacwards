@@ -27,11 +27,10 @@ export type UploadTarget = {
   progress: { req: number; up: number };
 };
 
-export type TemplateFile = { name: string; url: string | null };
+export type TemplateFile = { name: string; url: string | null; byRef?: Record<string, { name: string; url: string }> };
 
 type Picked = { file: File; error: string | null };
-type Checks = { text: boolean; header: boolean; footer: boolean; code: boolean };
-type Row = { name: string; size: string; pct: number; state: "up" | "check" | "ok" | "bad"; msg?: string };
+type Row = { name: string; size: string; pct: number; state: "up" | "check" | "ok" };
 
 const MB = 1024 * 1024;
 const size = (b: number) => (b >= MB ? `${(b / MB).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
@@ -66,7 +65,7 @@ export function TemplatePreview({ onClose, back, tpl, viewer, goHref }: { onClos
     <Modal
       size="wide"
       title={back ? "Template preview" : tpl.name.replace(/\.docx$/, "")}
-      sub={back ? tpl.name : "🔒 View only · Template from the Quality Assurance Center · form code QAC-TPL-01"}
+      sub={back ? tpl.name : "Template from the Quality Assurance Center"}
       onClose={back ?? onClose}
       bodyStyle={{ background: "#e9e9e9" }}
       footer={
@@ -85,14 +84,14 @@ export function TemplatePreview({ onClose, back, tpl, viewer, goHref }: { onClos
           </>
         ) : (
           <>
-            {goHref && (
-              <span style={{ fontSize: 12, color: "var(--muted)", marginRight: "auto" }}>
-                Templates can’t be downloaded or printed here. When you’re ready, start the document from <b>Accreditation → Upload</b>.
-              </span>
-            )}
             <Btn variant="o" onClick={onClose}>
               Close
             </Btn>
+            {tpl.url && (
+              <Btn href={tpl.url} download={tpl.name}>
+                ⬇ Download template
+              </Btn>
+            )}
             {goHref && <Btn href={goHref}>Go to Accreditation ›</Btn>}
           </>
         )
@@ -116,7 +115,7 @@ export function TemplatePreview({ onClose, back, tpl, viewer, goHref }: { onClos
 
 export default function UploadFlow({
   t,
-  tpl,
+  tpl: general,
   me,
   onClose,
   onView,
@@ -127,19 +126,20 @@ export default function UploadFlow({
   onClose: () => void;
   onView?: () => void;
 }) {
-  const [stage, setStage] = useState<"form" | "tpl" | "uploading" | "rejected" | "success">("form");
+  const [stage, setStage] = useState<"form" | "tpl" | "uploading" | "success">("form");
   const [main, setMain] = useState<Picked | null>(null);
   const [extra, setExtra] = useState<Picked | null>(null);
   const [missing, setMissing] = useState(false);
   const [note, setNote] = useState("");
   const [rows, setRows] = useState<Row[]>([]);
-  const [rejected, setRejected] = useState<{ file: string; checks: Checks; scan: boolean } | null>(null);
   const [done, setDone] = useState<string[]>([]);
   const mainIn = useRef<HTMLInputElement>(null);
   const extraIn = useRef<HTMLInputElement>(null);
   const toast = useToast();
   const router = useRouter();
   const slot = t.slot;
+  const own = general.byRef?.[slot.refId];
+  const tpl: TemplateFile = own ?? general;
   const lastReturn = [...slot.history].reverse().find((h) => h.tone === "rev");
   const title = t.mode === "resubmit" ? "Resubmit document" : t.mode === "replace" ? "Replace file" : "Upload document";
   const draftName = t.mode === "draft" ? slot.draftFile : null;
@@ -202,16 +202,6 @@ export default function UploadFlow({
       (p) => setRows((rs) => rs.map((x) => ({ ...x, pct: p }))),
       () => setRows((rs) => rs.map((x) => ({ ...x, pct: 100, state: "check" }))),
     );
-    if (r.status === 422) {
-      const checks = r.body.checks as Checks;
-      const bad = String(r.body.file ?? main.file.name);
-      setRows((rs) => rs.map((x) => (x.name === bad ? { ...x, state: "bad", msg: String(r.body.error) } : { ...x, state: "ok" })));
-      setTimeout(() => {
-        setRejected({ file: bad, checks, scan: !checks.text });
-        setStage("rejected");
-      }, 900);
-      return;
-    }
     if (!r.ok) {
       setStage("form");
       return toast.say(String(r.body.error ?? "Upload failed."), true);
@@ -272,7 +262,7 @@ export default function UploadFlow({
           </Btn>
           <input ref={k === "main" ? mainIn : extraIn} type="file" accept="application/pdf,.pdf" hidden onChange={pick(k)} />
         </div>
-        <div className="hint">ⓘ PDF only · max 25 MB · must use the official PUP template</div>
+        <div className="hint">ⓘ PDF only · max 25 MB · the PUP template or your program’s own template</div>
       </>
     );
   };
@@ -291,78 +281,18 @@ export default function UploadFlow({
                 {r.state === "up" ? (
                   `${r.pct}% · ${r.size}`
                 ) : r.state === "check" ? (
-                  "Checking template…"
-                ) : r.state === "ok" ? (
-                  <span style={{ color: "#1b7a30" }}>✓ Template verified</span>
+                  "Saving…"
                 ) : (
-                  <span style={{ color: "var(--red)" }}>✕ {r.msg}</span>
+                  <span style={{ color: "#1b7a30" }}>✓ Uploaded</span>
                 )}
               </small>
               <div className="pbar">
                 <i style={{ width: `${r.pct}%` }} />
               </div>
             </div>
-            {r.state === "ok" ? <span style={{ fontSize: 18 }}>✅</span> : r.state === "bad" ? <span style={{ fontSize: 18 }}>❌</span> : <div className="spin" />}
+            {r.state === "ok" ? <span style={{ fontSize: 18 }}>✅</span> : <div className="spin" />}
           </div>
         ))}
-      </Modal>
-    );
-
-  if (stage === "rejected" && rejected)
-    return (
-      <Modal
-        onClose={onClose}
-        footer={
-          <>
-            {tpl.url && (
-              <Btn variant="o" href={tpl.url} download={tpl.name}>
-                ⬇ Download template
-              </Btn>
-            )}
-            <Btn
-              onClick={() => {
-                if (main?.file.name === rejected.file) setMain(null);
-                if (extra?.file.name === rejected.file) setExtra(null);
-                setStage("form");
-              }}
-            >
-              Choose another file
-            </Btn>
-          </>
-        }
-      >
-        <Result tone="bad" title="Upload not accepted">
-          <p>
-            <b style={{ color: "var(--text)" }}>{rejected.file}</b> {rejected.scan ? "is a scanned image, so the system can’t read it." : "doesn’t use the official PUP template."}
-            <br />
-            Nothing was submitted. Your other details are kept.
-          </p>
-          <div className="checks">
-            <span className="y">✓ PDF format</span>
-            <span className="y">✓ Under 25 MB</span>
-            {rejected.scan ? (
-              <span className="n">✕ Readable text</span>
-            ) : (
-              <>
-                <span className="y">✓ Readable text</span>
-                <span className={rejected.checks.header ? "y" : "n"}>{rejected.checks.header ? "✓" : "✕"} PUP header</span>
-                <span className={rejected.checks.footer ? "y" : "n"}>{rejected.checks.footer ? "✓" : "✕"} PUP footer</span>
-                <span className={rejected.checks.code ? "y" : "n"}>{rejected.checks.code ? "✓" : "✕"} Form code QAC-TPL-01</span>
-              </>
-            )}
-          </div>
-          <p style={{ marginTop: 14, fontSize: 12.5 }}>
-            {rejected.scan ? (
-              <>
-                Export the document from Word using <b>Save as PDF</b> instead of scanning it.
-              </>
-            ) : (
-              <>
-                Download the template, copy your content into it, and <b>Save as PDF</b>.
-              </>
-            )}
-          </p>
-        </Result>
       </Modal>
     );
 
@@ -460,7 +390,7 @@ export default function UploadFlow({
         <span className="docxi">DOCX</span>
         <div className="t">
           <b>{tpl.name}</b>
-          <small>{tpl.url ? "Official PUP header & footer · form code QAC-TPL-01" : "The QA Center hasn’t published this template yet"}</small>
+          <small>{tpl.url ? "Template from the Quality Assurance Center" : "The QA Center hasn’t published this template yet"}</small>
         </div>
         <Btn variant="gh" sm onClick={() => setStage("tpl")}>
           Preview

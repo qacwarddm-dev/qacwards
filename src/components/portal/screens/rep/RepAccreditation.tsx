@@ -297,8 +297,8 @@ function RepDocRow({ ctx, s, group, single, chosen, flash }: { ctx: Ctx; s: Slot
       sub={
         s.state === "missing"
           ? single
-            ? "One compiled PDF for this area · use the PUP template"
-            : "Not uploaded yet · use the PUP template"
+            ? "One compiled PDF for this area"
+            : "Not uploaded yet"
           : s.state === "draft"
             ? "Draft saved · not yet submitted"
             : `${s.file} · ${s.size} · ${s.date}${s.version > 1 ? ` · v${s.version}` : ""}`

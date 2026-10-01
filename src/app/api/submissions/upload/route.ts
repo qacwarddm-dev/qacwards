@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { BUCKETS, uploadFile } from "@/lib/storage";
-import { MAX_UPLOAD_BYTES, checkTemplate, inspectPdf, mergePdfs, stampUuid } from "@/lib/pdf";
+import { MAX_UPLOAD_BYTES, inspectPdf, mergePdfs, stampUuid } from "@/lib/pdf";
 
 /**
  * Upload one document into a submission.
@@ -111,12 +111,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: check.error }, { status: 415 });
   }
 
-  const { data: rules } = await supabase.from("site_settings").select("value").eq("key", "rules").maybeSingle();
-  const formCode = ((rules?.value as { formCode?: string } | null)?.formCode ?? "QAC-TPL-01").trim() || null;
-  const failures: { file: string; checks: Awaited<ReturnType<typeof checkTemplate>> }[] = [];
-  const mainChecks = await checkTemplate(original, formCode);
-  if (!Object.values(mainChecks).every(Boolean)) failures.push({ file: file.name, checks: mainChecks });
-
   let pageCount = check.pageCount;
   if (additional instanceof File && additional.size > 0) {
     if (additional.size > MAX_UPLOAD_BYTES) {
@@ -125,24 +119,8 @@ export async function POST(request: NextRequest) {
     const extra = new Uint8Array(await additional.arrayBuffer());
     const extraCheck = await inspectPdf(extra);
     if (!extraCheck.ok) return NextResponse.json({ error: `Additional document: ${extraCheck.error}` }, { status: 415 });
-    const extraTemplate = await checkTemplate(extra, formCode);
-    if (!Object.values(extraTemplate).every(Boolean)) failures.push({ file: additional.name, checks: extraTemplate });
-    if (!failures.length) {
-      original = new Uint8Array(await mergePdfs(original, extra));
-      pageCount += extraCheck.pageCount;
-    }
-  }
-  if (failures.length) {
-    const f = failures[0];
-    return NextResponse.json(
-      {
-        error: !f.checks.text ? "No readable text (scanned)" : "PUP header/footer & form code not found",
-        file: f.file,
-        checks: f.checks,
-        formCode,
-      },
-      { status: 422 },
-    );
+    original = new Uint8Array(await mergePdfs(original, extra));
+    pageCount += extraCheck.pageCount;
   }
 
   // Generated here rather than defaulted in the database, because the value has

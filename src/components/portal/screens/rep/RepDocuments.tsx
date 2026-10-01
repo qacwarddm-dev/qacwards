@@ -15,9 +15,11 @@ import { useToast } from "../../kit/ToastProvider";
 import { TemplatePreview } from "../../kit/UploadFlow";
 import type { RepDocumentsData, TemplateGroup } from "@/lib/rep-documents";
 import { countCommonView, getOwnNdaUrl, uploadNda } from "@/lib/document-actions";
+import { createClient } from "@/lib/supabase/browser";
+import { uploadDirect } from "@/lib/upload-client";
 
 type Tab = "templates" | "common" | "reports" | "records";
-const dl = (source: string, id: string) => `/api/documents/download?source=${source}&id=${id}`;
+const dl = (source: string, id: string, download?: boolean) => `/api/documents/download?source=${source}&id=${id}${download ? "&download=1" : ""}`;
 
 export default function RepDocuments({ data, me, initialTab }: { data: RepDocumentsData; me: string; initialTab?: Tab }) {
   const [tab, setTab] = useState<Tab>(initialTab ?? "templates");
@@ -126,6 +128,13 @@ function Templates({ groups, me }: { groups: TemplateGroup[]; me: string }) {
                   >
                     👁 View template
                   </Btn>
+                  {t.templateId && (
+                    <span onClick={(e) => e.stopPropagation()}>
+                      <Btn variant="o" href={dl("template", t.templateId, true)} download>
+                        ⬇ Download
+                      </Btn>
+                    </span>
+                  )}
                 </div>
               </div>
             ))}
@@ -134,9 +143,9 @@ function Templates({ groups, me }: { groups: TemplateGroup[]; me: string }) {
       ))}
       {preview &&
         (preview.id && preview.pdf ? (
-          <FileViewModal title={preview.name} sub="🔒 View only · Template from the Quality Assurance Center · form code QAC-TPL-01" src={dl("template", preview.id)} viewer={me} onClose={() => setPreview(null)} />
+          <FileViewModal title={preview.name} sub="Template from the Quality Assurance Center" src={dl("template", preview.id)} downloadHref={dl("template", preview.id, true)} viewer={me} onClose={() => setPreview(null)} />
         ) : (
-          <TemplatePreview tpl={{ name: preview.name, url: null }} viewer={me} goHref="/portal/submission" onClose={() => setPreview(null)} />
+          <TemplatePreview tpl={{ name: preview.name, url: preview.id ? dl("template", preview.id, true) : null }} viewer={me} goHref="/portal/submission" onClose={() => setPreview(null)} />
         ))}
     </>
   );
@@ -180,7 +189,7 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
   function pick(x: File | undefined) {
     if (!x) return;
     if (!/\.pdf$/i.test(x.name)) return toast.say("Only PDF files are accepted. Save the signed NDA as PDF.", true);
-    if (x.size > 5 * 1024 * 1024) return toast.say("File is larger than 5 MB. Please compress the scan.", true);
+    if (x.size > 10 * 1024 * 1024) return toast.say("File is larger than 10 MB. Please compress the scan.", true);
     setDownloaded(true);
     setFile(x);
     toast.say("File attached. Fill in the notarial details.");
@@ -194,7 +203,6 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
     setBad(b);
     if (Object.values(b).some(Boolean)) return toast.say("Please check the highlighted fields", true);
     const fd = new FormData();
-    fd.set("file", file!);
     fd.set("fileId", f.id.trim());
     fd.set("attorney", f.atty.trim());
     fd.set("docNo", f.doc.trim());
@@ -202,6 +210,13 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
     fd.set("bookNo", f.book.trim());
     fd.set("series", f.series.trim());
     start(async () => {
+      const { data } = await createClient().auth.getUser();
+      if (!data.user) return toast.say("Your session expired. Sign in again.", true);
+      const path = `${data.user.id}/nda-${crypto.randomUUID()}.pdf`;
+      fd.set("path", path);
+      fd.set("fileName", file!.name);
+      const up = await uploadDirect("ndas", path, file!, "application/pdf");
+      if (!up.ok) return toast.say(up.error, true);
       const r = await uploadNda(fd);
       if (!r.ok) return toast.say(r.error, true);
       toast.say("NDA submitted for verification");
@@ -356,7 +371,7 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
                 Change file
               </a>
             ) : (
-              "or drag and drop here · PDF only, max 5MB"
+              "or drag and drop here · PDF only, max 10MB"
             )}
           </span>
           <input ref={input} type="file" accept="application/pdf,.pdf" hidden onChange={(e) => pick(e.target.files?.[0])} />
