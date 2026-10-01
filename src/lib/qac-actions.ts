@@ -62,6 +62,34 @@ export async function saveAssignment(input: {
   return { ok: true, assignmentId: id };
 }
 
+export async function startAccreditation(input: { programId: string; levelId: string }): Promise<ActionResult> {
+  if (!(await qac())) return { ok: false, error: "Only QAC can start an accreditation." };
+  const supabase = await createClient();
+  const { data: latest } = await supabase.from("submissions").select("id").eq("program_id", input.programId).eq("level_id", input.levelId).limit(1);
+  if (latest?.length) return { ok: false, error: "That program already has this level started. Open it from the program list." };
+  const { data: cycle } = await supabase.from("accreditation_cycles").select("id").eq("status", "open").maybeSingle();
+  if (!cycle) return { ok: false, error: "No accreditation cycle is open yet." };
+  const { error } = await supabase.from("submissions").insert({ cycle_id: cycle.id, program_id: input.programId, level_id: input.levelId, status: "not_started" });
+  if (error) return { ok: false, error: error.message };
+  const [{ data: program }, { data: level }, { data: reps }] = await Promise.all([
+    supabase.from("programs").select("name").eq("id", input.programId).maybeSingle(),
+    supabase.from("accreditation_levels").select("name").eq("id", input.levelId).maybeSingle(),
+    supabase.from("program_reps").select("profile_id").eq("program_id", input.programId),
+  ]);
+  await Promise.all(
+    (reps ?? []).map((r) =>
+      supabase.rpc("send_reminder", {
+        p_profile: r.profile_id,
+        p_title: `QAC started ${level?.name ?? "an"} accreditation for ${program?.name ?? "your program"}. Upload your documents.`,
+        p_link: `/portal/submission?p=${input.programId}`,
+      }),
+    ),
+  );
+  refresh();
+  for (const p of ["/portal/submission", "/portal/dashboard"]) revalidatePath(p);
+  return { ok: true };
+}
+
 export async function sendReminder(profileId: string, title: string, link?: string): Promise<ActionResult> {
   if (!(await qac())) return { ok: false, error: "Only QAC can send reminders." };
   const supabase = await createClient();

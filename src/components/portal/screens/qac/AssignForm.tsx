@@ -12,7 +12,7 @@ import { useToast } from "../../kit/ToastProvider";
 import type { AssignForm as Data } from "@/lib/qac-portal";
 import type { QacProgram } from "@/lib/qac-model";
 import { relevantExpertise } from "@/lib/expertise-disciplines";
-import { saveAssignment } from "@/lib/qac-actions";
+import { saveAssignment, startAccreditation } from "@/lib/qac-actions";
 import { evalDeadline } from "@/lib/settings-model";
 
 const REASONS = [
@@ -41,7 +41,8 @@ export default function AssignForm({ data, edit, from, preset }: { data: Data; e
   const [actFor, setActFor] = useState<string | null>(null);
   const [reason, setReason] = useState(REASONS[0]);
   const [coi, setCoi] = useState(false);
-  const [done, setDone] = useState<{ id: string; programId: string } | null>(null);
+  const [repFirst, setRepFirst] = useState(!edit);
+  const [done, setDone] = useState<{ id: string; programId: string; started?: boolean } | null>(null);
   const [pending, start] = useTransition();
 
   const cats = data.programs.filter((p) => (col === "NA" ? p.campus === camp && p.college === "NA" : p.college === col && p.campus === camp));
@@ -59,7 +60,7 @@ export default function AssignForm({ data, edit, from, preset }: { data: Data; e
   const qac = data.people.filter((p) => p.qac);
   const qShown = qopen || avail < 2 || qac.some((q) => sel.includes(q.id));
   const discipline = [...relevant].slice(0, 1)[0];
-  const miss = [!program && "a program", !vd && "the site visit date", sel.length !== 2 && `${2 - sel.length > 0 ? `${2 - sel.length} more` : "only 2"} accreditor${Math.abs(2 - sel.length) === 1 ? "" : "s"}`].filter(Boolean);
+  const miss = repFirst ? [!program && "a program"].filter(Boolean) : [!program && "a program", !vd && "the site visit date", sel.length !== 2 && `${2 - sel.length > 0 ? `${2 - sel.length} more` : "only 2"} accreditor${Math.abs(2 - sel.length) === 1 ? "" : "s"}`].filter(Boolean);
 
   function tog(id: string) {
     if (sel.includes(id)) setSel(sel.filter((x) => x !== id));
@@ -69,6 +70,15 @@ export default function AssignForm({ data, edit, from, preset }: { data: Data; e
 
   function submit() {
     if (!program) return;
+    if (repFirst) {
+      start(async () => {
+        const r = await startAccreditation({ programId: program.id, levelId: lv });
+        if (!r.ok) return toast.say(r.error, true);
+        setDone({ id: "", programId: program.id, started: true });
+        router.refresh();
+      });
+      return;
+    }
     start(async () => {
       const r = await saveAssignment({ assignmentId: edit?.assignmentId ?? null, programId: program.id, levelId: lv, accreditorIds: sel, acting, siteVisitDate: vd, dueDate: dl || null });
       if (!r.ok) return toast.say(r.error, true);
@@ -135,6 +145,8 @@ export default function AssignForm({ data, edit, from, preset }: { data: Data; e
               ))}
             </select>
           </div>
+          {!repFirst && (
+            <>
           <div>
             <label className="fl">Site visit date *</label>
             <input className="inp" type="date" value={vd} min={new Date().toISOString().slice(0, 10)} onChange={(e) => (setVd(e.target.value), !dlSet && e.target.value && setDl(evalDeadline(e.target.value, data.evalDays)))} />
@@ -145,8 +157,19 @@ export default function AssignForm({ data, edit, from, preset }: { data: Data; e
             </label>
             <input className="inp" type="date" value={dl} onChange={(e) => (setDl(e.target.value), setDlSet(true))} />
           </div>
+            </>
+          )}
         </div>
+        {!lock && (
+          <label className="chk2" style={{ marginTop: 12 }}>
+            <input type="checkbox" checked={repFirst} onChange={(e) => setRepFirst(e.target.checked)} /> Let the program rep upload the documents first
+            <small style={{ display: "block", color: "var(--muted)", marginLeft: 22 }}>
+              The rep is notified and the level opens as “Not started”. Set the visit date and accreditors after they submit.
+            </small>
+          </label>
+        )}
       </div>
+      {!repFirst && (
       <div className="box fbx">
         <div className="ch" style={{ marginBottom: 8 }}>
           <div>
@@ -309,18 +332,21 @@ export default function AssignForm({ data, edit, from, preset }: { data: Data; e
           )}
         </div>
       </div>
+      )}
       <div className="subbar" style={{ border: 0 }}>
         <span className="sub" style={{ margin: 0 }}>
           {miss.length ? (
             <>
               Still needed: <b style={{ color: "var(--text)" }}>{miss.join(", ")}</b>
             </>
+          ) : repFirst ? (
+            "✅ Ready. The program rep is notified and can start uploading."
           ) : (
             "✅ Ready. Both accreditors get an email and must accept within 3 days."
           )}
         </span>
         <Btn disabled={Boolean(miss.length) || pending} onClick={submit}>
-          {lock ? "Save changes" : "Create Assignment"}
+          {lock ? "Save changes" : repFirst ? "Start accreditation" : "Create Assignment"}
         </Btn>
       </div>
       {actFor && (
@@ -370,7 +396,14 @@ export default function AssignForm({ data, edit, from, preset }: { data: Data; e
             </>
           }
         >
-          <Result tone="ok" title={lock ? "Assignment saved" : "Assignment created"}>
+          <Result tone="ok" title={done.started ? "Accreditation started" : lock ? "Assignment saved" : "Assignment created"}>
+            {done.started ? (
+              <p>
+                <b>{program.name}</b>
+                <br />
+                {levelName} is now open for the program rep. They were notified and can upload their documents.
+              </p>
+            ) : (
             <p>
               <b>{program.name}</b>
               <br />
@@ -378,6 +411,7 @@ export default function AssignForm({ data, edit, from, preset }: { data: Data; e
               <br />
               {sel.map(name).join(" and ")} were emailed and must accept within 3 days. The visit was added to Events.
             </p>
+            )}
           </Result>
         </Modal>
       )}
