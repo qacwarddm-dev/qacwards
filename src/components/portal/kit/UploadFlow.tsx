@@ -45,6 +45,7 @@ function post(form: FormData, onProgress: (p: number) => void, onSent: () => voi
   return new Promise<{ ok: boolean; status: number; body: Record<string, unknown> }>((resolve) => {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", "/api/submissions/upload");
+    xhr.timeout = 120_000;
     xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(Math.round((e.loaded / e.total) * 100));
     xhr.upload.onload = onSent;
     xhr.onload = () => {
@@ -52,9 +53,14 @@ function post(form: FormData, onProgress: (p: number) => void, onSent: () => voi
       try {
         body = JSON.parse(xhr.responseText);
       } catch {}
+      if (xhr.status >= 400 && !body.error) {
+        // The host rejects oversized bodies (about 4.5 MB) before our route runs, with a non-JSON reply.
+        body.error = xhr.status === 413 ? "That file is too large to upload. Compress it and try again." : `Upload failed (${xhr.status}). Try again.`;
+      }
       resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, body });
     };
     xhr.onerror = () => resolve({ ok: false, status: 0, body: { error: "The connection dropped. Try again." } });
+    xhr.ontimeout = () => resolve({ ok: false, status: 0, body: { error: "The upload timed out. Try again." } });
     xhr.send(form);
   });
 }

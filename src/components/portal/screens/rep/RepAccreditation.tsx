@@ -328,7 +328,6 @@ function PreCard({ ctx }: { ctx: Ctx }) {
   const ls = levelStatus(ctx.program, ctx.level);
   const phases = r?.phases ?? [];
   const sp = r ? countSlots(allPhaseSlots(r)) : null;
-  const done = sp ? sp.miss === 0 : false;
   const p = ctx.program.id;
   const l = ctx.level.levelId;
   return (
@@ -358,12 +357,12 @@ function PreCard({ ctx }: { ctx: Ctx }) {
         <div className="empty">Nothing uploaded for this level yet. Open a phase to upload its first document.</div>
       )}
       <div className="paf">
-        {!done && sp && (
+        {sp && sp.miss > 0 && (
           <span>
-            {sp.miss} document{sp.miss === 1 ? "" : "s"} left before you can continue
+            {sp.miss} document{sp.miss === 1 ? "" : "s"} still to upload
           </span>
         )}
-        <button type="button" className="pnext" disabled={!done} title={done ? undefined : "Upload all phase documents first"} onClick={() => router.push(href({ p, l, st: "req" }))}>
+        <button type="button" className="pnext" onClick={() => router.push(href({ p, l, st: "req" }))}>
           Next
         </button>
       </div>
@@ -382,7 +381,7 @@ function LevelCard({ ctx, visitDone }: { ctx: Ctx; visitDone?: string }) {
   const sp = levelCounts(level, "pre");
   const sr = levelCounts(level, "req");
   const ls = levelStatus(program, level, visitDone);
-  const rOpen = sp.miss === 0 && Boolean(r);
+  const rOpen = Boolean(r);
   const p = program.id;
   const l = level.levelId;
   const submitted = level.status === "submitted" || level.status === "under_evaluation" || level.status === "evaluated";
@@ -443,7 +442,7 @@ function LevelCard({ ctx, visitDone }: { ctx: Ctx; visitDone?: string }) {
           {
             key: "req",
             title: STN.req,
-            sub: rOpen ? `${sr.ap + sr.pe} of ${sr.req} uploaded${sr.re ? ` · ${sr.re} to revise` : ""}` : "🔒 Unlocks after all phase documents are uploaded",
+            sub: rOpen ? `${sr.ap + sr.pe} of ${sr.req} uploaded${sr.re ? ` · ${sr.re} to revise` : ""}` : "Nothing uploaded yet",
             pct: sr.pct,
             disabled: !rOpen,
           },
@@ -451,10 +450,9 @@ function LevelCard({ ctx, visitDone }: { ctx: Ctx; visitDone?: string }) {
       />
       {!rOpen ? (
         <div className="empty">
-          <div className="big">🔒</div>
-          <b style={{ color: "var(--text)" }}>Finish the Pre-Accreditation Phases first</b>
+          <b style={{ color: "var(--text)" }}>Nothing to show here yet</b>
           <br />
-          {sp.miss} phase document{sp.miss === 1 ? "" : "s"} left to upload.
+          Start with the Pre-Accreditation Phases.
           <br />
           <Btn className="mt12" onClick={() => router.push(href({ p, l, st: "pre" }))}>
             Go to phases
@@ -607,7 +605,6 @@ function PhaseView({ ctx, g, onTemplate }: { ctx: Ctx; g: PhaseGroup; onTemplate
   const idx = r.phases.findIndex((x) => x.id === g.id);
   const prev = r.phases[idx - 1];
   const next = r.phases[idx + 1];
-  const preDone = countSlots(allPhaseSlots(r)).miss === 0;
   const p = ctx.program.id;
   const l = ctx.level.levelId;
   return (
@@ -645,7 +642,7 @@ function PhaseView({ ctx, g, onTemplate }: { ctx: Ctx; g: PhaseGroup; onTemplate
             {next.name.split(" – ")[0]} ›
           </Btn>
         ) : (
-          <Btn disabled={!preDone} title={preDone ? undefined : "Upload all phase documents first"} onClick={() => router.push(href({ p, l, st: "req" }))}>
+          <Btn onClick={() => router.push(href({ p, l, st: "req" }))}>
             Accreditation Requirements ›
           </Btn>
         )}

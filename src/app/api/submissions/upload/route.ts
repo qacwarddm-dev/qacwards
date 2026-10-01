@@ -21,7 +21,7 @@ import { MAX_UPLOAD_BYTES, inspectPdf, mergePdfs, stampUuid } from "@/lib/pdf";
  * `accept="application/pdf"` and its "Maximum upload size of 25 MB" note are copy,
  * not controls (§8.1) — neither survives a direct POST.
  */
-export const runtime = "nodejs"; // pdf-parse and pdf-lib both need Node APIs
+export const runtime = "nodejs"; // pdf-lib needs Node APIs
 
 type UploadBody = {
   submissionId: string;

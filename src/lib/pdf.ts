@@ -23,9 +23,8 @@ export type PdfCheck =
 /**
  * Confirm the bytes really are a PDF and report how many pages.
  *
- * `pdf-parse` v2 exposes a `PDFParse` class rather than v1's default-export
- * function, and `getInfo().total` is the page count. It is imported lazily so the
- * pdfjs bundle it pulls in stays out of every request that uploads nothing.
+ * The page count comes from pdf-lib, which stampUuid needs anyway, so the upload
+ * route does not depend on pdfjs finding its worker file at runtime.
  */
 export async function inspectPdf(bytes: Uint8Array): Promise<PdfCheck> {
   // %PDF- magic number. A cheap first gate that rejects the renamed-executable
@@ -35,25 +34,15 @@ export async function inspectPdf(bytes: Uint8Array): Promise<PdfCheck> {
     return { ok: false, error: "That file is not a PDF." };
   }
 
-  const { PDFParse } = await import("pdf-parse");
-
-  // **Must be a copy.** pdf.js transfers the ArrayBuffer it is handed to its
-  // worker, which detaches the original — the caller's `bytes` would come back
-  // zero-length, and the very next step (stampUuid) fails with "No PDF header
-  // found" on a file that is perfectly valid. Caught by the round-trip test.
-  const parser = new PDFParse({ data: bytes.slice() });
-
   try {
-    const info = await parser.getInfo();
-    if (!info.total || info.total < 1) {
+    const pdf = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
+    const pageCount = pdf.getPageCount();
+    if (pageCount < 1) {
       return { ok: false, error: "That PDF has no readable pages." };
     }
-    return { ok: true, pageCount: info.total };
+    return { ok: true, pageCount };
   } catch {
     return { ok: false, error: "That PDF could not be read. It may be corrupt." };
-  } finally {
-    // Releases the pdfjs worker. Skipping it leaks a worker per upload.
-    await parser.destroy().catch(() => {});
   }
 }
 
