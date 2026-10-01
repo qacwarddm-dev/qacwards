@@ -16,45 +16,60 @@ export function useSignaturePad(width = 520, height = 150) {
     const c = canvas.current;
     if (!c) return;
     const ctx = c.getContext("2d")!;
-    let down = false;
-    const pos = (e: MouseEvent | TouchEvent) => {
+    let active: number | null = null;
+    const pos = (e: PointerEvent) => {
       const r = c.getBoundingClientRect();
-      const t = "touches" in e ? e.touches[0] : e;
-      return [((t.clientX - r.left) * c.width) / r.width, ((t.clientY - r.top) * c.height) / r.height] as const;
+      return [((e.clientX - r.left) * c.width) / r.width, ((e.clientY - r.top) * c.height) / r.height] as const;
     };
-    const start = (e: MouseEvent | TouchEvent) => {
-      down = true;
+    const start = (e: PointerEvent) => {
+      if (active !== null || (e.pointerType === "mouse" && e.button !== 0)) return;
+      active = e.pointerId;
+      try {
+        c.setPointerCapture(e.pointerId);
+      } catch {
+        // capture is only a nicety; drawing still works without it
+      }
       const [x, y] = pos(e);
       ctx.beginPath();
       ctx.moveTo(x, y);
-      e.preventDefault();
-    };
-    const move = (e: MouseEvent | TouchEvent) => {
-      if (!down) return;
-      const [x, y] = pos(e);
-      ctx.lineTo(x, y);
+      ctx.lineTo(x + 0.01, y);
       ctx.strokeStyle = "#1f3a7a";
       ctx.lineWidth = 2.4;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
       ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x, y);
       setDrawn(true);
       e.preventDefault();
     };
-    const end = () => (down = false);
-    c.addEventListener("mousedown", start);
-    c.addEventListener("mousemove", move);
-    window.addEventListener("mouseup", end);
-    c.addEventListener("touchstart", start, { passive: false });
-    c.addEventListener("touchmove", move, { passive: false });
-    c.addEventListener("touchend", end);
+    const move = (e: PointerEvent) => {
+      if (e.pointerId !== active) return;
+      const batch = e.getCoalescedEvents?.() ?? [];
+      for (const p of batch.length ? batch : [e]) {
+        const [x, y] = pos(p);
+        ctx.lineWidth = p.pointerType === "pen" && p.pressure > 0 ? 1.2 + p.pressure * 2.6 : 2.4;
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+      }
+      e.preventDefault();
+    };
+    const end = (e: PointerEvent) => {
+      if (e.pointerId !== active) return;
+      active = null;
+      if (c.hasPointerCapture?.(e.pointerId)) c.releasePointerCapture(e.pointerId);
+    };
+    c.addEventListener("pointerdown", start);
+    c.addEventListener("pointermove", move);
+    c.addEventListener("pointerup", end);
+    c.addEventListener("pointercancel", end);
     return () => {
-      c.removeEventListener("mousedown", start);
-      c.removeEventListener("mousemove", move);
-      window.removeEventListener("mouseup", end);
-      c.removeEventListener("touchstart", start);
-      c.removeEventListener("touchmove", move);
-      c.removeEventListener("touchend", end);
+      c.removeEventListener("pointerdown", start);
+      c.removeEventListener("pointermove", move);
+      c.removeEventListener("pointerup", end);
+      c.removeEventListener("pointercancel", end);
     };
   }, []);
   function clear() {
@@ -92,7 +107,11 @@ export function useSignaturePad(width = 520, height = 150) {
     setDrawn(true);
   }
   async function blob(): Promise<Blob | null> {
-    return new Promise((res) => canvas.current?.toBlob((b) => res(b), "image/png") ?? res(null));
+    return new Promise((res) => {
+      const c = canvas.current;
+      if (!c) return res(null);
+      c.toBlob((b) => res(b), "image/png");
+    });
   }
   return { canvas, drawn, clear, typeText, loadImage, blob, width, height };
 }
@@ -170,7 +189,7 @@ export default function SignatureTabs({ hasSaved }: { hasSaved: boolean }) {
             if (f) pad.loadImage(f).then(() => setMsg("Unsaved signature"));
           }}
         />
-        <canvas ref={padCanvas} className="sigpad" width={padWidth} height={padHeight} onMouseUp={() => pad.drawn && setMsg("Unsaved signature")} />
+        <canvas ref={padCanvas} className="sigpad" width={padWidth} height={padHeight} onPointerUp={() => pad.drawn && setMsg("Unsaved signature")} />
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: "var(--muted)", marginTop: 6 }}>
           <span>{mode === "draw" ? "Sign inside the box with a mouse, trackpad or finger." : mode === "type" ? "Your typed name is rendered as a signature." : "PNG with a transparent background works best."}</span>
           <a
