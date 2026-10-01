@@ -36,6 +36,7 @@ const SOURCES = {
     table: "ndas",
     bucket: BUCKETS.ndas,
     key: "profile_id",
+    titled: false,
   },
 } as const;
 
@@ -61,11 +62,12 @@ export async function GET(request: NextRequest) {
   const src = SOURCES[source];
   const key = "key" in src ? src.key : "id";
 
+  const titled = !("titled" in src);
   const { data: row } = await supabase
     .from(src.table as "templates")
-    .select("storage_path")
+    .select(titled ? "storage_path, title" : "storage_path")
     .eq(key as "id", id)
-    .maybeSingle();
+    .maybeSingle<{ storage_path: string; title?: string }>();
 
   // Zero rows is what RLS returns to someone who may not read this — so a
   // forbidden document and a missing one are the same 404, and the response never
@@ -75,12 +77,21 @@ export async function GET(request: NextRequest) {
   }
 
   const asAttachment = request.nextUrl.searchParams.get("download") === "1";
+  const ext = /\.[a-z0-9]{2,5}$/i.exec(row.storage_path)?.[0] ?? "";
+  // Supabase puts this in the Content-Disposition header as-is, and a raw en dash comes out as "%E2%80%93" in the saved file name.
+  const title = row.title
+    ?.replace(/[–—]/g, "-")
+    .normalize("NFKD")
+    .replace(/[^\x20-\x7e]|[\\/:*?"<>|]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const fileName = title ? (title.toLowerCase().endsWith(ext.toLowerCase()) ? title : `${title}${ext}`) : true;
   const signed = await signedUrl(
     supabase,
     src.bucket as BucketName,
     row.storage_path,
     undefined,
-    asAttachment,
+    asAttachment ? fileName : false,
   );
   if (signed.data === null) {
     return NextResponse.json({ error: signed.error }, { status: 500 });

@@ -33,19 +33,11 @@ export default function DocDetailModal({
       onClose={onClose}
       footer={
         <>
-          <Btn
-            variant="o"
-            onClick={() => {
-              if (!url) return;
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = slot.file ?? "document.pdf";
-              a.click();
-              toast.say(`Downloading ${slot.file}`);
-            }}
-          >
-            ⬇ Download
-          </Btn>
+          {slot.docId && (
+            <Btn variant="o" href={`/api/documents/download?source=submission&id=${slot.docId}&download=1`} download={slot.file ?? "document.pdf"} onClick={() => toast.say(`Downloading ${slot.file}`)}>
+              ⬇ Download
+            </Btn>
+          )}
           {slot.state === "returned" && onResubmit && <Btn onClick={onResubmit}>↺ Resubmit</Btn>}
           {slot.state === "pending" && onReplace && (
             <Btn variant="gh" onClick={onReplace}>

@@ -23,7 +23,7 @@ import { daysTo, levelName } from "@/lib/qac-model";
 import { shortDate } from "@/lib/program-names";
 
 const LOCN: Record<RepoLoc, string> = { main: "Main Campus", camp: "Campuses" };
-const fileUrl = (id: string) => `/api/documents/download?source=repository&id=${id}`;
+const fileUrl = (id: string, download?: boolean) => `/api/documents/download?source=repository&id=${id}${download ? "&download=1" : ""}`;
 
 type Nav = { loc: RepoLoc | null; unit: string | null; type: RepoType | null };
 
@@ -309,9 +309,10 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
       {modal?.k === "view" && T && (
         <FullScreenViewer
           url={fileUrl(modal.f.id)}
+          downloadHref={fileUrl(modal.f.id, true)}
           file={modal.f.title}
           meta={`${nav.unit} · ${T.name} · ${modal.f.program}${modal.f.to ? ` · valid until ${shortDate(modal.f.to)}` : ""}`}
-          note="View only"
+          note="Program reps can view this file in their Documents → Reports"
           onClose={() => setModal(null)}
         />
       )}

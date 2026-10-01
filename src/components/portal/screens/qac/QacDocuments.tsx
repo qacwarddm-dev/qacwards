@@ -130,8 +130,8 @@ function Templates({ data }: { data: QacDocumentsData }) {
                             View
                           </Btn>
                         ) : (
-                          <Btn variant="gh" sm href={dl("template", t.id, true)}>
-                            View
+                          <Btn variant="gh" sm href={dl("template", t.id, true)} download>
+                            ⬇ Download
                           </Btn>
                         )}{" "}
                         <Btn variant="o" sm onClick={() => setModal({ k: "up", row: t })}>
@@ -192,9 +192,10 @@ function Templates({ data }: { data: QacDocumentsData }) {
       {modal?.k === "view" && (
         <FullScreenViewer
           url={dl("template", modal.row.id!)}
+          downloadHref={dl("template", modal.row.id!, true)}
           file={modal.row.file ?? modal.row.name}
           meta={`${g.label} · ${modal.row.name} · v${modal.row.ver}`}
-          note="Watermarked for viewers outside QAC · downloads are logged"
+          note="Program reps can view and download this template"
           onClose={() => setModal(null)}
         />
       )}
@@ -415,9 +416,10 @@ function Common({ docs, deleted, colleges }: { docs: CommonDoc[]; deleted: Commo
       {modal?.k === "view" && (
         <FullScreenViewer
           url={dl("common", modal.d.id)}
+          downloadHref={dl("common", modal.d.id, true)}
           file={`${modal.d.title}.pdf`}
           meta={`Common Documents · ${modal.d.category}`}
-          note="Watermarked for viewers outside QAC · downloads are logged"
+          note="Watermarked for program reps, who can only view this file"
           onClose={() => setModal(null)}
         />
       )}
@@ -590,6 +592,7 @@ function Nda({ data, verify }: { data: QacDocumentsData; verify: string | null }
       {form === "view" && (
         <FullScreenViewer
           url={f.id ? dl("template", f.id) : "/api/documents/nda-template?preview=1"}
+          downloadHref={f.id ? dl("template", f.id, true) : undefined}
           file={f.file}
           meta={`Blank NDA form · v${f.ver}`}
           note="Program reps get this form stamped with their own NDA File ID"
@@ -681,6 +684,11 @@ function VerifyNda({ n, onClose }: { n: NdaItem; onClose: () => void }) {
       }
     >
       <DocViewer docId={null} url={dl("nda", n.id)} />
+      <div style={{ marginTop: 8 }}>
+        <Btn variant="o" sm href={dl("nda", n.id, true)} download>
+          ⬇ Download scanned NDA
+        </Btn>
+      </div>
       <div className="sub" style={{ margin: "12px 0 6px", fontSize: 12 }}>
         Details typed by the program rep when they submitted. Check that they match the scanned NDA.
       </div>

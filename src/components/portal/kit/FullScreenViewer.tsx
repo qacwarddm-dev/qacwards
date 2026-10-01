@@ -17,6 +17,7 @@ export default function FullScreenViewer({
   panelLabel,
   panel,
   note = "View only · program files can’t be downloaded or printed from here",
+  downloadHref,
   onClose,
 }: {
   docId?: string | null;
@@ -28,6 +29,7 @@ export default function FullScreenViewer({
   panelLabel?: string;
   panel?: React.ReactNode;
   note?: string;
+  downloadHref?: string;
   onClose: () => void;
 }) {
   const { url: fetched } = useDocUrl(directUrl ? null : (docId ?? null));
@@ -96,6 +98,13 @@ export default function FullScreenViewer({
           </button>
         </div>
         {status}
+        {downloadHref && (
+          <div className="fsg">
+            <a href={downloadHref} download title="Download this file">
+              ⬇ Download
+            </a>
+          </div>
+        )}
         {panel && (
           <div className="fsg">
             <button type="button" className={showPanel ? "on" : ""} onClick={() => setShowPanel(!showPanel)}>

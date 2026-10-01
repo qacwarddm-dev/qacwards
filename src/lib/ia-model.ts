@@ -63,7 +63,7 @@ export function iaStats(a: IaAssignment) {
     evalPct: total ? Math.round(((phaseAp + evalN) / total) * 100) : 0,
     pending: all.pe,
     returned: all.re,
-    ready: phases.every((s) => s.state === "approved") && areas.every((s) => s.state === "approved" && ratedCount(a.ratings[s.refId]) === 3),
+    ready: areas.every((s) => s.state === "approved" && ratedCount(a.ratings[s.refId]) === 3),
     areaTotal: areas.length,
     phaseCounts: countSlots(phases),
     areaCounts: countSlots(areas),

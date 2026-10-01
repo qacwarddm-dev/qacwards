@@ -222,7 +222,7 @@ function ReqCard({ a, signed, meId }: { a: IaAssignment; signed: boolean; meId: 
   const why = signed
     ? "✅ Signed and submitted to the QA Center."
     : s.ready
-      ? "✅ Everything is reviewed and rated. You can submit your evaluation."
+      ? "✅ All areas are reviewed and rated. You can submit your evaluation."
       : null;
   const areaTitle = r.levelCode === "III" ? "LEVEL III AREAS" : r.levelCode === "IV" ? "LEVEL IV AREAS" : "AREAS I–X";
   return (
@@ -314,8 +314,8 @@ function ReqCard({ a, signed, meId }: { a: IaAssignment; signed: boolean; meId: 
             <>
               To submit:{" "}
               {[
-                s.pending ? <b key="p" style={{ color: "var(--text)" }}>{s.pending} to review</b> : null,
-                s.returned ? <b key="r" style={{ color: "var(--red)" }}>{s.returned} waiting for resubmission</b> : null,
+                sa.pe ? <b key="p" style={{ color: "var(--text)" }}>{sa.pe} to review</b> : null,
+                sa.re ? <b key="r" style={{ color: "var(--red)" }}>{sa.re} waiting for resubmission</b> : null,
                 left ? <b key="l" style={{ color: "var(--text)" }}>{left} area{left === 1 ? "" : "s"} to evaluate</b> : null,
               ]
                 .filter(Boolean)
@@ -330,7 +330,7 @@ function ReqCard({ a, signed, meId }: { a: IaAssignment; signed: boolean; meId: 
               View signed report
             </Btn>
           ) : (
-            <Btn disabled={!s.ready} title={s.ready ? undefined : "Review and rate everything first"} onClick={() => router.push(`/portal/evaluation/submit?a=${a.id}`)}>
+            <Btn disabled={!s.ready} title={s.ready ? undefined : "Review and rate every area first"} onClick={() => router.push(`/portal/evaluation/submit?a=${a.id}`)}>
               Submit evaluation ›
             </Btn>
           )}

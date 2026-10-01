@@ -289,6 +289,7 @@ function PhaseDocs({ p, g, meId }: { p: QacProgram; g: PhaseGroup; meId: string 
       {fSlot && (
         <FullScreenViewer
           docId={fSlot.docId}
+          downloadHref={fSlot.docId ? `/api/documents/download?source=submission&id=${fSlot.docId}&download=1` : undefined}
           file={fSlot.file ?? fSlot.name}
           meta={`${p.short} · ${g.name} · ${fSlot.date}`}
           status={<ReviewChip state={fSlot.state} />}
@@ -300,7 +301,7 @@ function PhaseDocs({ p, g, meId }: { p: QacProgram; g: PhaseGroup; meId: string 
               <ReviewDecision slot={fSlot} locked={false} />
             </>
           }
-          note="Watermarked for viewers outside QAC · downloads are logged"
+          note="QAC can download this file; accreditors can only view it"
           onClose={() => setFull(null)}
         />
       )}

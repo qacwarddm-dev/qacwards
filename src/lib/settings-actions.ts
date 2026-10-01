@@ -459,9 +459,9 @@ export async function createBackup(note = "Manual"): Promise<ActionResult> {
 export async function backupUrl(id: string): Promise<DataResult<string>> {
   if (!(await admin())) return DENIED;
   const supabase = await createClient();
-  const { data: b } = await supabase.from("system_backups").select("storage_path").eq("id", id).maybeSingle();
+  const { data: b } = await supabase.from("system_backups").select("storage_path, created_at").eq("id", id).maybeSingle();
   if (!b?.storage_path) return { ok: false, error: "This backup has no file." };
-  const { data, error } = await supabase.storage.from(BUCKETS.backups).createSignedUrl(b.storage_path, 300, { download: true });
+  const { data, error } = await supabase.storage.from(BUCKETS.backups).createSignedUrl(b.storage_path, 300, { download: `QAC-WARDS-backup-${b.created_at.slice(0, 10)}.json` });
   if (error || !data) return { ok: false, error: error?.message ?? "Could not prepare the download." };
   return { ok: true, data: data.signedUrl };
 }
