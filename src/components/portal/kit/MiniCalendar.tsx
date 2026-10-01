@@ -44,7 +44,7 @@ export default function MiniCalendar({
     let c = "ud";
     let style: React.CSSProperties | undefined;
     if (e) {
-      c += " ev";
+      c += " has";
       style = { background: UCOL[e.type][0], color: UCOL[e.type][2] };
       if (e.end && e.end !== e.start) {
         const s0 = +dt === +evStart(e) || dt.getDay() === 0;
