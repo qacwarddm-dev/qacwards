@@ -5,7 +5,7 @@ import Btn from "./Btn";
 import useAct from "./useAct";
 import { shortDate } from "@/lib/program-names";
 
-type Item = { id: string; title: string; sub?: string; deletedAt: string; kind?: "program" };
+type Item = { id: string; title: string; sub?: string; deletedAt: string; kind?: "program" | "person" };
 type Res = { ok: true } | { ok: false; error: string };
 
 export default function RecentlyDeleted({
@@ -44,7 +44,7 @@ export default function RecentlyDeleted({
               {items.map((x) => (
                 <tr key={x.id}>
                   <td>
-                    {x.kind !== "program" && <span className="pdfi">PDF</span>} {x.title}
+                    {!x.kind && <span className="pdfi">PDF</span>} {x.title}
                     {x.sub && <small>{x.sub}</small>}
                   </td>
                   <td style={{ whiteSpace: "nowrap" }}>{shortDate(x.deletedAt)}</td>

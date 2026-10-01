@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
   // Bundled, pdfjs looks for pdf.worker.mjs beside its chunk and fails with
   // "Setting up fake worker failed" inside server actions.
   serverExternalPackages: ["pdf-parse", "pdfjs-dist"],
+  // The rep NDA upload still posts the file to a server action so it can be scanned.
+  experimental: { serverActions: { bodySizeLimit: "11mb" } },
   outputFileTracingIncludes: {
     "/api/documents/nda-template": ["./templates/qac-nda.pdf"],
     "/api/evaluations/[id]/sheet": ["./public/assets/logos/pup.png"],

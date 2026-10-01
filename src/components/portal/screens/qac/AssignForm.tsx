@@ -13,6 +13,7 @@ import type { AssignForm as Data } from "@/lib/qac-portal";
 import type { QacProgram } from "@/lib/qac-model";
 import { relevantExpertise } from "@/lib/expertise-disciplines";
 import { saveAssignment } from "@/lib/qac-actions";
+import { evalDeadline } from "@/lib/settings-model";
 
 const REASONS = [
   "No available internal accreditor with matching expertise",
@@ -33,6 +34,7 @@ export default function AssignForm({ data, edit, from, preset }: { data: Data; e
   const [lv, setLv] = useState(() => data.levels.find((l) => l.code === (base?.levelCode || "PSV"))?.id ?? data.levels[0]?.id ?? "");
   const [vd, setVd] = useState(edit?.visit ?? "");
   const [dl, setDl] = useState(edit?.due ?? "");
+  const [dlSet, setDlSet] = useState(Boolean(edit?.due));
   const [sel, setSel] = useState<string[]>(edit ? edit.team.filter((m) => m.response !== "rejected").map((m) => m.id) : []);
   const [acting, setActing] = useState<Record<string, string>>(() => Object.fromEntries((edit?.team ?? []).filter((m) => m.acting).map((m) => [m.id, m.acting!])));
   const [qopen, setQopen] = useState(false);
@@ -135,13 +137,13 @@ export default function AssignForm({ data, edit, from, preset }: { data: Data; e
           </div>
           <div>
             <label className="fl">Site visit date *</label>
-            <input className="inp" type="date" value={vd} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setVd(e.target.value)} />
+            <input className="inp" type="date" value={vd} min={new Date().toISOString().slice(0, 10)} onChange={(e) => (setVd(e.target.value), !dlSet && e.target.value && setDl(evalDeadline(e.target.value, data.evalDays)))} />
           </div>
           <div>
             <label className="fl">
-              Deadline <span style={{ fontWeight: 400, color: "var(--muted)" }}>(optional)</span>
+              Deadline <span style={{ fontWeight: 400, color: "var(--muted)" }}>(accreditors have {data.evalDays} days after the visit)</span>
             </label>
-            <input className="inp" type="date" value={dl} onChange={(e) => setDl(e.target.value)} />
+            <input className="inp" type="date" value={dl} onChange={(e) => (setDl(e.target.value), setDlSet(true))} />
           </div>
         </div>
       </div>

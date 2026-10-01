@@ -29,7 +29,7 @@ export const STABS: [string, [SettingsTab, string, string][]][] = [
 
 export const isSettingsTab = (t: unknown): t is SettingsTab => STABS.some(([, L]) => L.some(([k]) => k === t));
 
-export type Rules = { minReadiness: number; perProgram: number; acceptDays: number; scale: string; formCode: string };
+export type Rules = { minReadiness: number; perProgram: number; acceptDays: number; evalDays: number; scale: string; formCode: string };
 export type PublicInfo = {
   live: boolean;
   dir: boolean;
@@ -51,7 +51,7 @@ export type BackupPrefs = { auto: boolean; time: string; keep: number; files: bo
 export type NotifyPrefs = Record<string, boolean>;
 
 export const DEFAULTS = {
-  rules: { minReadiness: 10, perProgram: 2, acceptDays: 3, scale: "1–5 (Poor to Excellent)", formCode: "QAC-TPL-01" } as Rules,
+  rules: { minReadiness: 10, perProgram: 2, acceptDays: 3, evalDays: 3, scale: "1–5 (Poor to Excellent)", formCode: "QAC-TPL-01" } as Rules,
   public: {
     live: true,
     dir: true,
@@ -88,4 +88,10 @@ export const ROLE_LABEL: Record<string, [string, string]> = {
   internal_accreditor: ["Internal Accreditor", "#6b3fa0"],
   program_representative: ["Academic Program", "#1d7a35"],
   system: ["System account", "#666"],
+};
+
+export const evalDeadline = (visit: string, days: number) => {
+  const d = new Date(`${visit}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
 };

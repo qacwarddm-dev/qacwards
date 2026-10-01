@@ -17,6 +17,7 @@ import Result from "../../kit/Result";
 import SearchBox from "../../kit/SearchBox";
 import useAct from "../../kit/useAct";
 import { FTYPES, type RepoFile, type RepoLoc, type RepoType, type Repository } from "@/lib/repository-model";
+import { uploadDirect } from "@/lib/upload-client";
 import { createCopcFolder, deleteCopcFile, renameCopcFile, restoreCopcFile, uploadCopcFile } from "@/lib/repository-actions";
 import { daysTo, levelName } from "@/lib/qac-model";
 import { shortDate } from "@/lib/program-names";
@@ -450,7 +451,9 @@ function UploadModal({
     if (cert && !to) return toast.say("Enter the validity end date", true);
     if (cert && !status.trim()) return toast.say("Type the status written on the certificate", true);
     const fd = new FormData();
-    fd.set("file", file);
+    const path = `${prog}/${folderId}/${crypto.randomUUID()}.pdf`;
+    fd.set("path", path);
+    fd.set("fileName", file.name);
     fd.set("programId", prog);
     fd.set("folderId", folderId);
     if (customId) fd.set("unitId", customId);
@@ -462,7 +465,14 @@ function UploadModal({
       fd.set("status", status);
       fd.set("level", certLevel(status) ?? "");
     }
-    run(() => uploadCopcFile(fd), "Uploaded. Program reps of this college were notified.", onClose);
+    run(
+      async () => {
+        const up = await uploadDirect("repository", path, file, "application/pdf");
+        return up.ok ? uploadCopcFile(fd) : up;
+      },
+      "Uploaded. Program reps of this college were notified.",
+      onClose,
+    );
   };
 
   return (

@@ -212,8 +212,8 @@ export async function inviteUser(input: { surname: string; given: string; email:
   if (!input.surname.trim() || !input.given.trim()) return { ok: false, error: "Enter the name" };
   if (!/@pup\.edu\.ph$/i.test(email)) return { ok: false, error: "Use a PUP webmail (@pup.edu.ph)" };
   const supabase = await createClient();
-  const { data: dup } = await supabase.from("profiles").select("id").ilike("webmail", email).limit(1);
-  if (dup?.length) return { ok: false, error: "That webmail already has an account" };
+  const { data: dup } = await supabase.from("profiles").select("id, deleted_at").ilike("webmail", email).limit(1);
+  if (dup?.length) return { ok: false, error: dup[0].deleted_at ? "That person was deleted. Restore them from Recently Deleted." : "That webmail already has an account" };
   const { error } = await supabase.from("user_invitations").insert({
     webmail: email,
     surname: input.surname.trim(),
@@ -225,6 +225,54 @@ export async function inviteUser(input: { surname: string; given: string; email:
   if (error) return { ok: false, error: error.code === "23505" ? "That webmail was already invited" : error.message };
   const q = await queueInvite(email, input.given.trim(), input.role);
   if (q.error) return { ok: false, error: `Invitation saved, but the email could not be queued: ${q.error.message}` };
+  refresh();
+  return { ok: true };
+}
+
+const DONE_ASSIGNMENT = ["evaluated", "score_returned", "declined"];
+
+export async function deleteUser(id: string): Promise<ActionResult> {
+  const me = await admin();
+  if (!me) return DENIED;
+  if (me.id === id) return { ok: false, error: "You cannot delete your own account." };
+  const supabase = await createClient();
+  const { data: target } = await supabase.from("profiles").select("role, webmail, is_active, deleted_at").eq("id", id).maybeSingle();
+  if (!target || target.deleted_at) return { ok: false, error: "That user no longer exists." };
+  const mailer = (process.env.MAILER_EMAIL ?? "").toLowerCase();
+  if (mailer && target.webmail.toLowerCase() === mailer) return { ok: false, error: "The System account is locked." };
+  if (target.role === "qac_admin" && target.is_active) {
+    const { count } = await supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "qac_admin").eq("is_active", true).is("deleted_at", null);
+    if ((count ?? 0) <= 1) return { ok: false, error: "This is the last active QAC Admin." };
+  }
+  const { data: team } = await supabase.from("assignment_accreditors").select("assignments(status)").eq("profile_id", id).neq("response", "rejected");
+  if ((team ?? []).some((t) => t.assignments && !DONE_ASSIGNMENT.includes(t.assignments.status))) {
+    return { ok: false, error: "This person has evaluations in progress. Reassign them first." };
+  }
+  const { error } = await supabase.from("profiles").update({ is_active: false, deleted_at: new Date().toISOString() }).eq("id", id);
+  if (error) return { ok: false, error: error.message };
+  await supabase.rpc("admin_end_sessions", { p_user: id });
+  refresh();
+  revalidatePath("/portal/recently-deleted");
+  return { ok: true };
+}
+
+export async function restoreUser(id: string): Promise<ActionResult> {
+  if (!(await admin())) return DENIED;
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("profiles").update({ is_active: true, deleted_at: null }).eq("id", id).not("deleted_at", "is", null).select("id");
+  if (error) return { ok: false, error: error.message };
+  if (!data?.length) return { ok: false, error: "That user could not be restored." };
+  refresh();
+  revalidatePath("/portal/recently-deleted");
+  return { ok: true };
+}
+
+export async function deleteInvitation(id: string): Promise<ActionResult> {
+  if (!(await admin())) return DENIED;
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("user_invitations").delete().eq("id", id).select("id");
+  if (error) return { ok: false, error: error.message };
+  if (!data?.length) return { ok: false, error: "That invitation no longer exists." };
   refresh();
   return { ok: true };
 }

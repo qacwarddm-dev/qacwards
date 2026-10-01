@@ -87,7 +87,7 @@ export type UserRow = {
 export async function getUsersData(meId: string): Promise<UserRow[]> {
   const supabase = await createClient();
   const [{ data: people }, { data: inv }, { data: last }, { data: team }] = await Promise.all([
-    supabase.from("profiles").select("id, surname, given_name, middle_initial, webmail, role, is_active, is_internal_accreditor").order("surname"),
+    supabase.from("profiles").select("id, surname, given_name, middle_initial, webmail, role, is_active, is_internal_accreditor").is("deleted_at", null).order("surname"),
     supabase.from("user_invitations").select("id, webmail, surname, given_name, role, is_internal_accreditor, invited_at"),
     supabase.rpc("admin_last_activity"),
     supabase.from("assignment_accreditors").select("profile_id, response, assignments(status, submissions(programs(name)))").neq("response", "rejected"),
@@ -142,7 +142,7 @@ export type RepsData = {
 export async function getRepsData(): Promise<RepsData> {
   const supabase = await createClient();
   const [{ data: people }, { data: links }, { data: programs }] = await Promise.all([
-    supabase.from("profiles").select("id, surname, given_name, middle_initial, role").eq("role", "program_representative").order("surname"),
+    supabase.from("profiles").select("id, surname, given_name, middle_initial, role").eq("role", "program_representative").is("deleted_at", null).order("surname"),
     supabase.from("program_reps").select("profile_id, program_id, profiles(surname, given_name, middle_initial)"),
     supabase.from("programs").select("id, name, campuses(name), colleges(code)").is("deleted_at", null).order("name"),
   ]);

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
+import { DEFAULTS, evalDeadline } from "@/lib/settings-model";
 import { createAssignmentForProgramLevel, ensureEvaluation, releaseScore } from "@/lib/assignment-actions";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
@@ -30,9 +31,12 @@ export async function saveAssignment(input: {
   if (input.accreditorIds.length !== 2) return { ok: false, error: "Select exactly 2 accreditors." };
   if (!input.siteVisitDate) return { ok: false, error: "Pick the site visit date." };
   const supabase = await createClient();
+  const { data: rules } = await supabase.from("site_settings").select("value").eq("key", "rules").maybeSingle();
+  const evalDays = Number((rules?.value as { evalDays?: number } | null)?.evalDays) || DEFAULTS.rules.evalDays;
+  const dueDate = input.dueDate || evalDeadline(input.siteVisitDate, evalDays);
   let id = input.assignmentId;
   if (!id) {
-    const r = await createAssignmentForProgramLevel(input.programId, input.levelId, input.accreditorIds, input.dueDate, input.siteVisitDate);
+    const r = await createAssignmentForProgramLevel(input.programId, input.levelId, input.accreditorIds, dueDate, input.siteVisitDate);
     if (!r.ok) return r;
     id = r.assignmentId;
   } else {
@@ -48,7 +52,7 @@ export async function saveAssignment(input: {
       const { error } = await supabase.from("assignment_accreditors").insert(add.map((p) => ({ assignment_id: id!, profile_id: p })));
       if (error) return { ok: false, error: error.message };
     }
-    const { error } = await supabase.from("assignments").update({ site_visit_date: input.siteVisitDate, due_date: input.dueDate }).eq("id", id);
+    const { error } = await supabase.from("assignments").update({ site_visit_date: input.siteVisitDate, due_date: dueDate }).eq("id", id);
     if (error) return { ok: false, error: error.message };
   }
   for (const [pid, reason] of Object.entries(input.acting)) {

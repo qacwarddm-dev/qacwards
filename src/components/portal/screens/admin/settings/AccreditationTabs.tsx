@@ -315,6 +315,10 @@ export function SetupTab({ data }: { data: SetupData }) {
           <input className="inp" type="number" value={rules.acceptDays} onChange={num("acceptDays")} style={{ width: 90 }} />
         </div>
         <div>
+          <span>Days accreditors have to evaluate a program (counted from the site visit)</span>
+          <input className="inp" type="number" min={1} value={rules.evalDays} onChange={num("evalDays")} style={{ width: 90 }} />
+        </div>
+        <div>
           <span>Rating scale</span>
           <select className="inp" style={{ width: "auto" }} value={rules.scale} onChange={(e) => setRules({ ...rules, scale: e.target.value })}>
             <option>1–5 (Poor to Excellent)</option>

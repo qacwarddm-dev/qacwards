@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSubmissionReviews } from "@/lib/reviews";
 import { initialsOf, personName, programMid, programShort, shortDate } from "@/lib/program-names";
 import type { QacProgram, QacReport } from "@/lib/qac-model";
+import { DEFAULTS } from "@/lib/settings-model";
 export * from "@/lib/qac-model";
 
 const ACTIVE = ["not_started", "in_progress", "submitted", "under_evaluation", "returned"];
@@ -182,11 +183,12 @@ export type AssignForm = {
   busy: { id: string; date: string; short: string; assignmentId: string }[];
   load: Record<string, number>;
   me: string;
+  evalDays: number;
 };
 
 export async function getAssignFormData(meId: string): Promise<AssignForm> {
   const supabase = await createClient();
-  const [{ data: campuses }, { data: colleges }, { data: programs }, { data: levels }, { data: people }, { data: team }] = await Promise.all([
+  const [{ data: campuses }, { data: colleges }, { data: programs }, { data: levels }, { data: people }, { data: team }, { data: rules }] = await Promise.all([
     supabase.from("campuses").select("name, is_main").order("is_main", { ascending: false }).order("name"),
     supabase.from("colleges").select("code, name").order("code"),
     supabase.from("programs").select("id, name, colleges(code), campuses(name)").is("deleted_at", null).order("name"),
@@ -201,6 +203,7 @@ export async function getAssignFormData(meId: string): Promise<AssignForm> {
       .from("assignment_accreditors")
       .select("profile_id, response, assignments(id, status, site_visit_date, submissions(programs(name)))")
       .neq("response", "rejected"),
+    supabase.from("site_settings").select("value").eq("key", "rules").maybeSingle(),
   ]);
   const busy: AssignForm["busy"] = [];
   const load: Record<string, number> = {};
@@ -226,6 +229,7 @@ export async function getAssignFormData(meId: string): Promise<AssignForm> {
     busy,
     load,
     me: meId,
+    evalDays: Number(((rules?.value as { evalDays?: number } | null)?.evalDays ?? DEFAULTS.rules.evalDays)) || DEFAULTS.rules.evalDays,
   };
 }
 

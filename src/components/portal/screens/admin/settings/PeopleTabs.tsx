@@ -15,7 +15,7 @@ import useAct from "../../../kit/useAct";
 import type { ProgsData, RepsData, UserRow } from "@/lib/settings";
 import type { UserRole } from "@/lib/database.types";
 import { attachRepToProgram, detachRepFromProgram, reassignProgramCollege, setUserActive, setUserRole } from "@/lib/admin";
-import { addProgram, deleteProgram, editUser, endSessions, inviteUser, resendInvite, sendPasswordReset } from "@/lib/settings-actions";
+import { addProgram, deleteInvitation, deleteProgram, deleteUser, editUser, endSessions, inviteUser, resendInvite, sendPasswordReset } from "@/lib/settings-actions";
 import { initialsOf } from "@/lib/program-names";
 
 const ROLES: UserRole[] = ["qac_admin", "qac_personnel", "internal_accreditor", "program_representative"];
@@ -24,7 +24,7 @@ type UF = "all" | UserRole | "inactive";
 export function UsersTab({ users }: { users: UserRow[] }) {
   const [f, setF] = useState<UF>("all");
   const [q, setQ] = useState("");
-  const [modal, setModal] = useState<null | { k: "invite" } | { k: "role"; u: UserRow; to: UserRole } | { k: "deact" | "edit"; u: UserRow }>(null);
+  const [modal, setModal] = useState<null | { k: "invite" } | { k: "role"; u: UserRow; to: UserRole } | { k: "deact" | "edit" | "del"; u: UserRow }>(null);
   const { busy, run } = useAct();
   const cnt = (k: UF) => users.filter((u) => (k === "all" ? !u.sys : k === "inactive" ? u.status !== "active" : u.role === k && !u.sys)).length;
   const ql = q.toLowerCase();
@@ -98,9 +98,14 @@ export function UsersTab({ users }: { users: UserRow[] }) {
                   {u.sys ? (
                     <span className="sub">🔒 Locked</span>
                   ) : u.status === "invited" ? (
-                    <Btn variant="o" sm disabled={busy} onClick={() => run(() => resendInvite(u.id), `Invitation re-sent to ${u.email}`)}>
-                      Resend
-                    </Btn>
+                    <>
+                      <Btn variant="o" sm disabled={busy} onClick={() => run(() => resendInvite(u.id), `Invitation re-sent to ${u.email}`)}>
+                        Resend
+                      </Btn>{" "}
+                      <Btn variant="gh" sm title="Cancel invitation" onClick={() => setModal({ k: "del", u })}>
+                        🗑
+                      </Btn>
+                    </>
                   ) : (
                     <>
                       <Btn variant="gh" sm onClick={() => setModal({ k: "edit", u })}>
@@ -116,6 +121,14 @@ export function UsersTab({ users }: { users: UserRow[] }) {
                             Reactivate
                           </Btn>
                         ))}
+                      {!u.me && (
+                        <>
+                          {" "}
+                          <Btn variant="gh" sm title="Delete user" onClick={() => setModal({ k: "del", u })}>
+                            🗑
+                          </Btn>
+                        </>
+                      )}
                     </>
                   )}
                 </td>
@@ -182,7 +195,50 @@ export function UsersTab({ users }: { users: UserRow[] }) {
         </Modal>
       )}
       {modal?.k === "deact" && <Deactivate u={modal.u} onClose={() => setModal(null)} />}
+      {modal?.k === "del" && <DeleteUser u={modal.u} onClose={() => setModal(null)} />}
     </Card>
+  );
+}
+
+function DeleteUser({ u, onClose }: { u: UserRow; onClose: () => void }) {
+  const { busy, run } = useAct();
+  const invite = u.status === "invited";
+  const blocked = u.assigned.length > 0;
+  return (
+    <Modal
+      title={invite ? `Cancel the invitation for ${u.name}?` : `Delete ${u.name}?`}
+      sub={`${u.email} · ${roleLabel(u.role)}`}
+      onClose={onClose}
+      footer={
+        <>
+          <Btn variant="gh" onClick={onClose}>
+            Cancel
+          </Btn>
+          <Btn
+            variant="danger"
+            loading={busy}
+            disabled={blocked}
+            onClick={() => run(() => (invite ? deleteInvitation(u.id) : deleteUser(u.id)), invite ? "Invitation cancelled" : "User moved to Recently Deleted", onClose)}
+          >
+            {invite ? "Cancel invitation" : "Delete user"}
+          </Btn>
+        </>
+      }
+    >
+      {blocked && (
+        <div className="lockb" style={{ background: "#fff6d6" }}>
+          ⚠{" "}
+          <div>
+            Assigned to <b>{u.assigned.join(", ")}</b>. Reassign these programs before deleting.
+          </div>
+        </div>
+      )}
+      <p className="sub" style={{ lineHeight: 1.6 }}>
+        {invite
+          ? "The invitation link stops working. You can invite them again later."
+          : "They’re signed out of every device and removed from the Users list. Their past uploads and records are kept. You can bring them back from Recently Deleted."}
+      </p>
+    </Modal>
   );
 }
 

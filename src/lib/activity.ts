@@ -138,6 +138,7 @@ function describe(r: RawRow, viewer: string | null): Described | null {
         photo("avatar_path", "profile photo", "a", "photo") ??
         photo("signature_path", "e-signature", "an", "signature");
       if (media) return media;
+      if (changed("deleted_at")) return { title: `${n.deleted_at ? "Deleted" : "Restored"} ${personOf(n)}`, icon: "account", ref: {} };
       if (changed("is_active")) return { title: `${n.is_active ? "Reactivated" : "Deactivated"} ${personOf(n)}`, icon: "account", ref: {} };
       if (changed("role")) return { title: `Changed the role of ${personOf(n)}`, icon: "account", ref: {} };
       if (["surname", "given_name", "middle_initial", "position_id", "campus_id", "college_id"].some(changed))

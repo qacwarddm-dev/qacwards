@@ -17,6 +17,7 @@ import SumRows from "../../kit/SumRows";
 import useAct from "../../kit/useAct";
 import type { CommonDoc, QacDocumentsData, TplGroupKey, TplRow } from "@/lib/qac-documents";
 import type { NdaItem } from "@/lib/qac-portal";
+import { safeName, uploadDirect } from "@/lib/upload-client";
 import {
   deleteCommonDoc,
   replaceNdaForm,
@@ -33,6 +34,7 @@ type Tab = "tpl" | "common" | "nda";
 const dl = (source: string, id: string, download?: boolean) => `/api/documents/download?source=${source}&id=${id}${download ? "&download=1" : ""}`;
 const CATEGORIES = ["Institutional", "Policy", "AACCUP", "CHED", "Other"];
 const ALL = "All program reps";
+const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 export default function QacDocuments({ data, initialTab, verify }: { data: QacDocumentsData; initialTab: Tab; verify: string | null }) {
   const [tab, setTab] = useState<Tab>(initialTab);
@@ -213,7 +215,9 @@ function TemplateUpload({ group, groupLabel, row, onClose }: { group: TplGroupKe
     if (!file) return toast.say("Choose a .docx file first.", true);
     if (!row && !title.trim()) return toast.say("Enter what the template is for", true);
     const fd = new FormData();
-    fd.set("file", file);
+    const path = `${group}/${crypto.randomUUID()}/${safeName(file.name)}`;
+    fd.set("path", path);
+    fd.set("fileName", file.name);
     fd.set("group", group);
     if (row?.id) fd.set("id", row.id);
     if (row?.areaId) fd.set("areaId", row.areaId);
@@ -222,7 +226,14 @@ function TemplateUpload({ group, groupLabel, row, onClose }: { group: TplGroupKe
     fd.set("note", note);
     fd.set("publish", pub ? "1" : "");
     fd.set("notify", notify ? "1" : "");
-    run(() => saveTemplate(fd), pub ? "Template published" : "Template saved as draft", onClose);
+    run(
+      async () => {
+        const up = await uploadDirect("templates", path, file, DOCX);
+        return up.ok ? saveTemplate(fd) : up;
+      },
+      pub ? "Template published" : "Template saved as draft",
+      onClose,
+    );
   };
   return (
     <Modal
@@ -429,14 +440,23 @@ function CommonUpload({ d, colleges, onClose }: { d?: CommonDoc; colleges: [stri
     if (!title.trim()) return toast.say("Enter a title", true);
     if (scope === "sel" && !sel.length) return toast.say("Pick at least one college", true);
     const fd = new FormData();
-    fd.set("file", file);
+    const path = `${crypto.randomUUID()}/${safeName(file.name)}`;
+    fd.set("path", path);
+    fd.set("fileName", file.name);
     if (d) fd.set("id", d.id);
     fd.set("title", title);
     fd.set("category", cat);
     fd.set("visibleTo", scope === "all" ? ALL : `${sel.join(", ")} only`);
     fd.set("colleges", scope === "all" ? "" : sel.join(","));
     fd.set("notify", notify ? "1" : "");
-    run(() => saveCommonDoc(fd), "Document uploaded", onClose);
+    run(
+      async () => {
+        const up = await uploadDirect("common-docs", path, file, "application/pdf");
+        return up.ok ? saveCommonDoc(fd) : up;
+      },
+      "Document uploaded",
+      onClose,
+    );
   };
   return (
     <Modal
@@ -601,8 +621,17 @@ function NdaFormUpload({ ver, onClose }: { ver: number; onClose: () => void }) {
             onClick={() => {
               if (!file) return toast.say("Choose a file first.", true);
               const fd = new FormData();
-              fd.set("file", file);
-              run(() => replaceNdaForm(fd), "NDA form updated", onClose);
+              const path = `nda/${crypto.randomUUID()}/${safeName(file.name)}`;
+              fd.set("path", path);
+              fd.set("fileName", file.name);
+              run(
+                async () => {
+                  const up = await uploadDirect("templates", path, file, "application/pdf");
+                  return up.ok ? replaceNdaForm(fd) : up;
+                },
+                "NDA form updated",
+                onClose,
+              );
             }}
           >
             Upload

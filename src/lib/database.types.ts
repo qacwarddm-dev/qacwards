@@ -1261,6 +1261,7 @@ export type Database = {
           avatar_path: string | null
           campus_id: string | null
           college_id: string | null
+          deleted_at: string | null
           created_at: string
           given_name: string
           id: string
@@ -1281,6 +1282,7 @@ export type Database = {
           avatar_path?: string | null
           campus_id?: string | null
           college_id?: string | null
+          deleted_at?: string | null
           created_at?: string
           given_name: string
           id: string
@@ -1301,6 +1303,7 @@ export type Database = {
           avatar_path?: string | null
           campus_id?: string | null
           college_id?: string | null
+          deleted_at?: string | null
           created_at?: string
           given_name?: string
           id?: string

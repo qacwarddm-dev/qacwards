@@ -3,12 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
-import { BUCKETS, uploadFile } from "@/lib/storage";
+import { BUCKETS, checkUploaded } from "@/lib/storage";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
 const MAX = 25 * 1024 * 1024;
-const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 const GROUPS = ["areas", "l3", "l4", "gen"];
 
 function refresh() {
@@ -20,15 +19,6 @@ async function qac() {
   if (!user || (user.role !== "qac_personnel" && user.role !== "qac_admin")) return null;
   return user;
 }
-
-function checkFile(file: FormDataEntryValue | null, exts: string[]): File | string {
-  if (!(file instanceof File) || !file.size) return "Choose a file first.";
-  if (!exts.some((e) => file.name.toLowerCase().endsWith(e))) return `Wrong file type. Use ${exts.join(",")}.`;
-  if (file.size > MAX) return "File is over 25 MB.";
-  return file;
-}
-
-const safeName = (n: string) => n.replace(/[^\w.\-]+/g, "-").slice(-120);
 
 async function notifyReps(title: string, link: string, colleges: string[] = []) {
   const supabase = await createClient();
@@ -44,8 +34,8 @@ async function notifyReps(title: string, link: string, colleges: string[] = []) 
 export async function saveTemplate(fd: FormData): Promise<ActionResult> {
   const user = await qac();
   if (!user) return { ok: false, error: "Only QAC can manage templates." };
-  const file = checkFile(fd.get("file"), [".docx"]);
-  if (typeof file === "string") return { ok: false, error: file };
+  const path = String(fd.get("path") ?? "");
+  const fileName = String(fd.get("fileName") ?? "");
   const id = String(fd.get("id") ?? "") || null;
   const areaId = String(fd.get("areaId") ?? "") || null;
   const levelId = String(fd.get("levelId") ?? "") || null;
@@ -58,9 +48,8 @@ export async function saveTemplate(fd: FormData): Promise<ActionResult> {
   if (!id && !title) return { ok: false, error: "Enter what the template is for" };
 
   const supabase = await createClient();
-  const path = `${group}/${crypto.randomUUID()}/${safeName(file.name)}`;
-  const up = await uploadFile(supabase, BUCKETS.templates, path, file, { contentType: DOCX });
-  if (up.error) return { ok: false, error: up.error };
+  const up = await checkUploaded(supabase, BUCKETS.templates, { path, prefix: `${group}/`, name: fileName, exts: [".docx"], max: MAX });
+  if ("error" in up) return { ok: false, error: up.error };
 
   if (id) {
     const { data: cur } = await supabase.from("templates").select("title, version, storage_path, uploaded_by, is_published").eq("id", id).maybeSingle();
@@ -133,8 +122,8 @@ export async function setTemplatePublished(id: string, published: boolean): Prom
 export async function saveCommonDoc(fd: FormData): Promise<ActionResult> {
   const user = await qac();
   if (!user) return { ok: false, error: "Only QAC can manage common documents." };
-  const file = checkFile(fd.get("file"), [".pdf"]);
-  if (typeof file === "string") return { ok: false, error: file };
+  const path = String(fd.get("path") ?? "");
+  const fileName = String(fd.get("fileName") ?? "");
   const id = String(fd.get("id") ?? "") || null;
   const title = String(fd.get("title") ?? "").trim();
   const category = String(fd.get("category") ?? "Institutional");
@@ -143,11 +132,10 @@ export async function saveCommonDoc(fd: FormData): Promise<ActionResult> {
   if (!title) return { ok: false, error: "Enter a title" };
 
   const supabase = await createClient();
-  const path = `${crypto.randomUUID()}/${safeName(file.name)}`;
-  const up = await uploadFile(supabase, BUCKETS.commonDocs, path, file, { contentType: "application/pdf" });
-  if (up.error) return { ok: false, error: up.error };
+  const up = await checkUploaded(supabase, BUCKETS.commonDocs, { path, prefix: "", name: fileName, exts: [".pdf"], max: MAX });
+  if ("error" in up) return { ok: false, error: up.error };
 
-  const row = { title, category, visible_to: visibleTo, college_codes: collegeCodes, storage_path: path, file_size: file.size, uploaded_by: user.id, updated_at: new Date().toISOString() };
+  const row = { title, category, visible_to: visibleTo, college_codes: collegeCodes, storage_path: path, file_size: up.size, uploaded_by: user.id, updated_at: new Date().toISOString() };
   if (id) {
     const { data: old } = await supabase.from("common_documents").select("storage_path").eq("id", id).maybeSingle();
     const { error } = await supabase.from("common_documents").update(row).eq("id", id);
@@ -211,12 +199,10 @@ export async function reviewNda(profileId: string, ok: boolean, note: string): P
 export async function replaceNdaForm(fd: FormData): Promise<ActionResult> {
   const user = await qac();
   if (!user) return { ok: false, error: "Only QAC can replace the NDA form." };
-  const file = checkFile(fd.get("file"), [".pdf"]);
-  if (typeof file === "string") return { ok: false, error: file };
+  const path = String(fd.get("path") ?? "");
   const supabase = await createClient();
-  const path = `nda/${crypto.randomUUID()}/${safeName(file.name)}`;
-  const up = await uploadFile(supabase, BUCKETS.templates, path, file, { contentType: "application/pdf" });
-  if (up.error) return { ok: false, error: up.error };
+  const up = await checkUploaded(supabase, BUCKETS.templates, { path, prefix: "nda/", name: String(fd.get("fileName") ?? ""), exts: [".pdf"], max: MAX });
+  if ("error" in up) return { ok: false, error: up.error };
   const { data: cur } = await supabase.from("templates").select("id, version, storage_path, uploaded_by").eq("group_key", "nda").maybeSingle();
   if (cur) {
     await supabase

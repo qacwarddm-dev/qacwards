@@ -103,3 +103,26 @@ export function avatarPath(profileId: string, fileName: string): string {
 export function signaturePath(profileId: string): string {
   return `${profileId}/signature.png`;
 }
+
+/**
+ * Large files go from the browser straight to the bucket, because a server
+ * action body is capped at 1 MB by Next (4.5 MB on Vercel). The action then
+ * gets only the path and has to confirm the object is really there, under the
+ * prefix it expects, before it writes a row that points at it.
+ */
+export async function checkUploaded(
+  supabase: SupabaseClient,
+  bucket: BucketName,
+  o: { path: string; prefix: string; name: string; exts: string[]; max: number },
+): Promise<{ size: number } | { error: string }> {
+  if (!o.path.startsWith(o.prefix) || o.path.includes("..")) return { error: "Upload did not complete. Try again." };
+  if (!o.exts.some((e) => o.name.toLowerCase().endsWith(e))) return { error: `Wrong file type. Use ${o.exts.join(",")}.` };
+  const cut = o.path.lastIndexOf("/");
+  const file = o.path.slice(cut + 1);
+  const { data } = await supabase.storage.from(bucket).list(o.path.slice(0, cut), { search: file, limit: 10 });
+  const hit = data?.find((x) => x.name === file);
+  if (!hit) return { error: "Upload did not complete. Try again." };
+  const size = Number(hit.metadata?.size ?? 0);
+  if (size > o.max) return { error: "File is over 25 MB." };
+  return { size };
+}
