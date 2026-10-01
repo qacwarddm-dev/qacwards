@@ -164,7 +164,6 @@ function PreCard({ a, signed }: { a: IaAssignment; signed: boolean }) {
   const router = useRouter();
   const r = a.review!;
   const sp = countSlots(allPhaseSlots(r));
-  const rOpen = sp.miss === 0;
   return (
     <div className="card pac">
       {signed && <LockNote />}
@@ -197,11 +196,11 @@ function PreCard({ a, signed }: { a: IaAssignment; signed: boolean }) {
         <span>
           {sp.ap === sp.req
             ? "✅ All phase documents approved."
-            : !rOpen
+            : sp.miss > 0
               ? `The program still has ${sp.miss} document${sp.miss === 1 ? "" : "s"} to upload.`
               : `${sp.pe} document${sp.pe === 1 ? "" : "s"} waiting for your review${sp.re ? ` · ${sp.re} returned` : ""}`}
         </span>
-        <button type="button" className="pnext" disabled={!rOpen} title={rOpen ? undefined : "The program hasn’t uploaded all phase documents yet"} onClick={() => router.push(href(a.id, { st: "req" }))}>
+        <button type="button" className="pnext" onClick={() => router.push(href(a.id, { st: "req" }))}>
           Next
         </button>
       </div>
@@ -219,7 +218,6 @@ function ReqCard({ a, signed, meId }: { a: IaAssignment; signed: boolean; meId: 
   const all = countSlots([...phases, ...areas]);
   const sp = countSlots(phases);
   const sa = countSlots(areas);
-  const rOpen = sp.miss === 0;
   const left = s.areaTotal - s.evalN;
   const why = signed
     ? "✅ Signed and submitted to the QA Center."
@@ -264,96 +262,80 @@ function ReqCard({ a, signed, meId }: { a: IaAssignment; signed: boolean; meId: 
           {
             key: "req",
             title: STN.req,
-            sub: rOpen ? `${s.evalN} of ${s.areaTotal} areas evaluated${sa.pe ? ` · ${sa.pe} to review` : ""}` : "🔒 The program is still uploading the phase documents",
+            sub: `${s.evalN} of ${s.areaTotal} areas evaluated${sa.pe ? ` · ${sa.pe} to review` : ""}`,
             pct: s.areaTotal ? Math.round((s.evalN / s.areaTotal) * 100) : 0,
-            disabled: !rOpen,
           },
         ]}
       />
-      {!rOpen ? (
-        <div className="empty">
-          <div className="big">🔒</div>
-          <b style={{ color: "var(--text)" }}>The program hasn’t finished the Pre-Accreditation Phases</b>
-          <br />
-          {sp.miss} phase document{sp.miss === 1 ? "" : "s"} still to be uploaded by the program representative.
-          <br />
-          <Btn className="mt12" onClick={() => router.push(href(a.id, { st: "pre" }))}>
-            Go to phases
-          </Btn>
+      <div className="sech">
+        {areaTitle} <small>One compiled PDF per area · review the document, then rate the indicators</small>
+      </div>
+      <div className="box">
+        {areas.map((x) => {
+          const n = ratedCount(a.ratings[x.refId]);
+          const evaluated = x.state === "approved" && n === 3;
+          return (
+            <DocRow
+              key={x.refId}
+              state={x.state}
+              title={x.name}
+              sub={
+                x.state === "missing" ? (
+                  "Not uploaded by the program yet"
+                ) : (
+                  <>
+                    {x.file} · {x.size} · {x.date}
+                    {x.version > 1 ? ` · v${x.version}` : ""} · <span style={{ color: n === 3 ? "#1d7a35" : "inherit" }}>Rated {n}/3</span>
+                  </>
+                )
+              }
+              status={<ReviewChip state={x.state} />}
+              actions={
+                x.state === "missing" ? (
+                  <span className="wt">Waiting for upload</span>
+                ) : evaluated || signed || x.state === "returned" ? (
+                  <Btn variant="o" sm href={href(a.id, { st: "req", ar: x.refId })}>
+                    {x.state === "returned" ? "View" : "Open"}
+                  </Btn>
+                ) : (
+                  <Btn sm href={href(a.id, { st: "req", ar: x.refId })}>
+                    {x.state === "pending" ? "Review & rate" : "Evaluate"} ›
+                  </Btn>
+                )
+              }
+              remark={x.state === "returned" && x.returnNote ? { who: x.returnedById === meId ? "You" : (x.returnedBy ?? "").split(",")[0], text: x.returnNote, mine: x.returnedById === meId } : null}
+            />
+          );
+        })}
+      </div>
+      <div className="subbar">
+        <span className="sub" style={{ margin: 0 }}>
+          {why ?? (
+            <>
+              To submit:{" "}
+              {[
+                s.pending ? <b key="p" style={{ color: "var(--text)" }}>{s.pending} to review</b> : null,
+                s.returned ? <b key="r" style={{ color: "var(--red)" }}>{s.returned} waiting for resubmission</b> : null,
+                left ? <b key="l" style={{ color: "var(--text)" }}>{left} area{left === 1 ? "" : "s"} to evaluate</b> : null,
+              ]
+                .filter(Boolean)
+                .flatMap((x, i) => (i ? [", ", x] : [x]))}
+              .
+            </>
+          )}
+        </span>
+        <div style={{ display: "flex", gap: 8 }}>
+          {signed ? (
+            <Btn variant="o" href={`/portal/evaluation/submit?a=${a.id}&step=3`}>
+              View signed report
+            </Btn>
+          ) : (
+            <Btn disabled={!s.ready} title={s.ready ? undefined : "Review and rate everything first"} onClick={() => router.push(`/portal/evaluation/submit?a=${a.id}`)}>
+              Submit evaluation ›
+            </Btn>
+          )}
         </div>
-      ) : (
-        <>
-          <div className="sech">
-            {areaTitle} <small>One compiled PDF per area · review the document, then rate the indicators</small>
-          </div>
-          <div className="box">
-            {areas.map((x) => {
-              const n = ratedCount(a.ratings[x.refId]);
-              const evaluated = x.state === "approved" && n === 3;
-              return (
-                <DocRow
-                  key={x.refId}
-                  state={x.state}
-                  title={x.name}
-                  sub={
-                    x.state === "missing" ? (
-                      "Not uploaded by the program yet"
-                    ) : (
-                      <>
-                        {x.file} · {x.size} · {x.date}
-                        {x.version > 1 ? ` · v${x.version}` : ""} · <span style={{ color: n === 3 ? "#1d7a35" : "inherit" }}>Rated {n}/3</span>
-                      </>
-                    )
-                  }
-                  status={<ReviewChip state={x.state} />}
-                  actions={
-                    x.state === "missing" ? (
-                      <span className="wt">Waiting for upload</span>
-                    ) : evaluated || signed || x.state === "returned" ? (
-                      <Btn variant="o" sm href={href(a.id, { st: "req", ar: x.refId })}>
-                        {x.state === "returned" ? "View" : "Open"}
-                      </Btn>
-                    ) : (
-                      <Btn sm href={href(a.id, { st: "req", ar: x.refId })}>
-                        {x.state === "pending" ? "Review & rate" : "Evaluate"} ›
-                      </Btn>
-                    )
-                  }
-                  remark={x.state === "returned" && x.returnNote ? { who: x.returnedById === meId ? "You" : (x.returnedBy ?? "").split(",")[0], text: x.returnNote, mine: x.returnedById === meId } : null}
-                />
-              );
-            })}
-          </div>
-          <div className="subbar">
-            <span className="sub" style={{ margin: 0 }}>
-              {why ?? (
-                <>
-                  To submit:{" "}
-                  {[
-                    s.pending ? <b key="p" style={{ color: "var(--text)" }}>{s.pending} to review</b> : null,
-                    s.returned ? <b key="r" style={{ color: "var(--red)" }}>{s.returned} waiting for resubmission</b> : null,
-                    left ? <b key="l" style={{ color: "var(--text)" }}>{left} area{left === 1 ? "" : "s"} to evaluate</b> : null,
-                  ]
-                    .filter(Boolean)
-                    .flatMap((x, i) => (i ? [", ", x] : [x]))}
-                  .
-                </>
-              )}
-            </span>
-            <div style={{ display: "flex", gap: 8 }}>
-              {signed ? (
-                <Btn variant="o" href={`/portal/evaluation/submit?a=${a.id}&step=3`}>
-                  View signed report
-                </Btn>
-              ) : (
-                <Btn disabled={!s.ready} title={s.ready ? undefined : "Review and rate everything first"} onClick={() => router.push(`/portal/evaluation/submit?a=${a.id}`)}>
-                  Submit evaluation ›
-                </Btn>
-              )}
-            </div>
-          </div>
-        </>
-      )}
+      </div>
       {guide && <RatingGuide levelName={a.levelName} onClose={() => setGuide(false)} />}
     </div>
   );
@@ -368,7 +350,6 @@ function PhaseView({ a, g, crumbs, signed, meId }: { a: IaAssignment; g: PhaseGr
   const idx = r.phases.findIndex((p) => p.id === g.id);
   const prev = r.phases[idx - 1];
   const next = r.phases[idx + 1];
-  const preUploaded = countSlots(allPhaseSlots(r)).miss === 0;
   const [modal, setModal] = useState<{ slot: Slot; ret?: boolean } | null>(null);
   const [full, setFull] = useState<Slot | null>(null);
   const { ratings, set } = useRatings(a);
@@ -453,7 +434,7 @@ function PhaseView({ a, g, crumbs, signed, meId }: { a: IaAssignment; g: PhaseGr
               {next.name.split(" – ")[0]} ›
             </Btn>
           ) : (
-            <Btn disabled={!preUploaded} onClick={() => router.push(href(a.id, { st: "req" }))}>
+            <Btn onClick={() => router.push(href(a.id, { st: "req" }))}>
               Accreditation Requirements ›
             </Btn>
           )}
