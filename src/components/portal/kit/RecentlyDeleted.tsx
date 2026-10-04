@@ -20,7 +20,6 @@ export default function RecentlyDeleted({
   emptyText?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [cur, setCur] = useState<string | null>(null);
   const { busy, run } = useAct();
   if (!items.length) return page ? <div className="empty">{emptyText ?? "Nothing deleted."}</div> : null;
   return (
@@ -52,12 +51,8 @@ export default function RecentlyDeleted({
                     <Btn
                       variant="o"
                       sm
-                      loading={busy && cur === x.id}
                       disabled={busy}
-                      onClick={() => {
-                        setCur(x.id);
-                        run(() => onRestore(x.id), `“${x.title}” restored`);
-                      }}
+                      onClick={() => run(() => onRestore(x.id), `“${x.title}” restored`)}
                     >
                       Restore
                     </Btn>

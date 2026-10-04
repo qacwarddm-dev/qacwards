@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import useNav from "./nav";
 import MiniCalendar from "./MiniCalendar";
 import { MON, TC, WD, cdTxt, daysBetween, evEnd, evStart, parseDay, type CalEvent } from "./calendar";
 
@@ -28,7 +28,7 @@ export default function UpcomingEvents({
   variant: "ia" | "rep";
   tagsFor?: (e: CalEvent) => React.ReactNode;
 }) {
-  const router = useRouter();
+  const router = useNav();
   const t = parseDay(today);
   const upcoming = events.filter((e) => evEnd(e) >= t).slice(0, 4);
   const size = variant === "ia" ? 84 : 80;

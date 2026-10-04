@@ -51,13 +51,11 @@ export function usePhoto(profileId: string) {
   }
 
   async function remove() {
-    setConfirm(false);
-    setBusy(true);
     const supabase = createClient();
     const { data } = await supabase.from("profiles").select("avatar_path").eq("id", profileId).maybeSingle();
     if (data?.avatar_path) await removeFile(supabase, BUCKETS.avatars, data.avatar_path);
     const { error } = await supabase.from("profiles").update({ avatar_path: null }).eq("id", profileId);
-    setBusy(false);
+    setConfirm(false);
     if (error) return toast.say(error.message, true);
     await logSelfActivity("photo_removed");
     toast.say("Photo removed");

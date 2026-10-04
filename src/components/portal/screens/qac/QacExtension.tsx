@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import useNav from "../../kit/nav";
+import useBusy from "../../kit/useBusy";
 import BackLink from "../../kit/BackLink";
 import { RBar } from "../../kit/Bar";
 import Btn from "../../kit/Btn";
@@ -54,7 +55,7 @@ export default function QacExtension({ programs, program, phase, meId }: { progr
 }
 
 function ProgramList({ programs }: { programs: QacProgram[] }) {
-  const router = useRouter();
+  const router = useNav();
   const [f, setF] = useState<"review" | "all">("review");
   const ong = programs.filter((p) => p.inproc && p.review);
   const review = ong.filter((p) => phaseCounts(p).pe);
@@ -106,7 +107,7 @@ function ProgramList({ programs }: { programs: QacProgram[] }) {
 }
 
 function Phases({ p }: { p: QacProgram }) {
-  const router = useRouter();
+  const router = useNav();
   const phases = p.review!.phases;
   const all = phaseCounts(p);
   return (
@@ -179,9 +180,9 @@ function Phases({ p }: { p: QacProgram }) {
 }
 
 function PhaseDocs({ p, g, meId }: { p: QacProgram; g: PhaseGroup; meId: string }) {
-  const router = useRouter();
+  const router = useNav();
   const toast = useToast();
-  const [busy, start] = useTransition();
+  const [busy, start] = useBusy();
   const [modal, setModal] = useState<string | null>(null);
   const [full, setFull] = useState<string | null>(null);
   const phases = p.review!.phases;
@@ -260,7 +261,7 @@ function PhaseDocs({ p, g, meId }: { p: QacProgram; g: PhaseGroup; meId: string 
           </Btn>
         )}
         {pending.length > 0 && (
-          <Btn variant="o" loading={busy} onClick={approveAll}>
+          <Btn variant="o" disabled={busy} onClick={approveAll}>
             ✓ Approve all {pending.length} for review
           </Btn>
         )}

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import useBusy from "../../kit/useBusy";
 import Btn from "../../kit/Btn";
 import Card, { CardHead } from "../../kit/Card";
 import Empty from "../../kit/Empty";
@@ -187,7 +188,7 @@ export default function QacFeedback({ data }: { data: FeedbackData }) {
 
 function DetailModal({ f, onClose }: { f: FbProgram; onClose: () => void }) {
   const toast = useToast();
-  const [busy, start] = useTransition();
+  const [busy, start] = useBusy();
   const remind = () =>
     start(async () => {
       const rs = await Promise.all(f.waiting.map((id) => sendReminder(id, `Please answer the post-visit survey for ${f.short} · ${f.level}.`, "/portal/feedback?tab=eval")));
@@ -203,7 +204,7 @@ function DetailModal({ f, onClose }: { f: FbProgram; onClose: () => void }) {
       footer={
         <>
           {f.waiting.length > 0 && (
-            <Btn variant="o" loading={busy} onClick={remind}>
+            <Btn variant="o" disabled={busy} onClick={remind}>
               ✉ Send reminder
             </Btn>
           )}

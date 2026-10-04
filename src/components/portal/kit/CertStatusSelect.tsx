@@ -8,12 +8,10 @@ export const CSTAT: [string, string][] = [
   ["I", "Level I Accredited"],
   ["I", "Level I Re-accredited"],
   ["II", "Level II Re-accredited"],
-  ["III", "Level III Re-accredited – Phase 1"],
-  ["III", "Level III Re-accredited – Phase 2"],
-  ["IV", "Level IV Re-accredited – Phase 1"],
-  ["IV", "Level IV Re-accredited – Phase 2"],
+  ["III", "Level III Re-accredited"],
+  ["IV", "Level IV Re-accredited"],
 ];
-export const CSDEF: Record<string, string> = { PSV: "Candidate Status", I: "Level I Accredited", II: "Level II Re-accredited", III: "Level III Re-accredited – Phase 1", IV: "Level IV Re-accredited – Phase 1" };
+export const CSDEF: Record<string, string> = { PSV: "Candidate Status", I: "Level I Accredited", II: "Level II Re-accredited", III: "Level III Re-accredited", IV: "Level IV Re-accredited" };
 
 export default function CertStatusSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const known = CSTAT.some((c) => c[1] === value);

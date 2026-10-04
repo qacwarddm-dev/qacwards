@@ -15,7 +15,7 @@ export default function RepProfile({ p, initials, avatarUrl }: { p: ProfileView;
             👤 PROFILE
           </div>
           <Avatar initials={initials} url={avatarUrl} />
-          <Btn className="wfull mb8" disabled={photo.busy} onClick={photo.open}>
+          <Btn className="wfull mb8" loading={photo.busy} loadingLabel="Uploading…" onClick={photo.open}>
             ⬆ Upload new photo
           </Btn>
           <Btn variant="d" className="wfull" disabled={!avatarUrl || photo.busy} onClick={photo.askRemove}>

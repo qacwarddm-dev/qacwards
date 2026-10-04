@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import useNav from "../../kit/nav";
+import useBusy from "../../kit/useBusy";
 import AccreditorChips from "../../kit/AccreditorChips";
 import { RBar } from "../../kit/Bar";
 import Btn from "../../kit/Btn";
@@ -37,9 +37,9 @@ export default function QacDashboard({
   asOf: string;
   system: SystemStatus | null;
 }) {
-  const router = useRouter();
+  const router = useNav();
   const toast = useToast();
-  const [, start] = useTransition();
+  const [, start] = useBusy();
   const ong = programs.filter((p) => p.inproc);
 
   const T: Todo[] = [];

@@ -1,7 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import ActLink from "./kit/ActLink";
+import { useEffect, useState } from "react";
+import useNav, { startNav } from "./kit/nav";
+import useBusy from "./kit/useBusy";
 import Icon from "./kit/Icon";
 import Empty from "./kit/Empty";
 import { useToast } from "./kit/ToastProvider";
@@ -53,8 +55,8 @@ export default function TopBarActions({
 }) {
   const [open, setOpen] = useState<"nd" | "menu" | null>(null);
   const [tab, setTab] = useState<"all" | "unread">("all");
-  const [, start] = useTransition();
-  const router = useRouter();
+  const [, start] = useBusy();
+  const router = useNav();
   const toast = useToast();
   const unread = items.filter((n) => n.unread).length;
 
@@ -75,7 +77,8 @@ export default function TopBarActions({
 
   function openRow(n: PortalNotification) {
     setOpen(null);
-    start(async () => {
+    if (n.href) startNav(n.href);
+    return start(async () => {
       if (n.unread) await markNotificationRead(n.id);
       if (n.href) router.push(n.href);
       else router.refresh();
@@ -83,7 +86,7 @@ export default function TopBarActions({
   }
 
   function readAll() {
-    start(async () => {
+    return start(async () => {
       await markAllNotificationsRead();
       toast.say("All notifications marked as read");
       router.refresh();
@@ -91,6 +94,7 @@ export default function TopBarActions({
   }
 
   async function signOut() {
+    startNav("/login");
     await createClient().auth.signOut();
     router.push("/login");
     router.refresh();
@@ -120,9 +124,7 @@ export default function TopBarActions({
       <div className={`pop nd${open === "nd" ? " show" : ""}`} onClick={(e) => e.stopPropagation()}>
         <div className="nd-h">
           <b>Notifications</b>
-          <a className="lnk" role="button" onClick={readAll}>
-            Mark all as read
-          </a>
+          <ActLink onClick={readAll}>Mark all as read</ActLink>
         </div>
         <div className="nd-t">
           <span className={tab === "all" ? "on" : ""} onClick={() => setTab("all")}>

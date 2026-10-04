@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { getDocumentUrl } from "@/lib/submission-actions";
+import PdfFrame from "./PdfFrame";
+import Spinner from "./Spinner";
 
 export function useDocUrl(docId: string | null) {
   const [res, setRes] = useState<{ id: string; url: string | null; error: string | null } | null>(null);
@@ -55,9 +57,11 @@ export default function DocViewer({
             </div>
           )}
           {url ? (
-            <iframe className="pdfview" src={pdfSrc(url)} title="Document preview" />
+            <PdfFrame src={pdfSrc(url)} title="Document preview" />
+          ) : error ? (
+            <span style={{ color: "#999", fontSize: 13 }}>{error}</span>
           ) : (
-            <span style={{ color: "#999", fontSize: 13 }}>{error ?? "Loading…"}</span>
+            <Spinner label="Loading document…" />
           )}
         </>
       ) : (

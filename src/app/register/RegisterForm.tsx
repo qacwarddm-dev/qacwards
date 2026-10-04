@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import useNav from "@/components/portal/kit/nav";
 import {
   AuthAccountPrompt,
   AuthButton,
@@ -68,7 +68,7 @@ import { draftToAuthMetadata, readDraft, saveDraft } from "./registration-draft"
 const ROLE_LABELS = SYSTEM_ROLES.map((r) => r.label);
 
 export default function RegisterForm({ invitedWebmail = "" }: { invitedWebmail?: string }) {
-  const router = useRouter();
+  const router = useNav();
   const [surname, setSurname] = useState("");
   const [given, setGiven] = useState("");
   const [middle, setMiddle] = useState("");

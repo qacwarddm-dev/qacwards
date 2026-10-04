@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import useBusy from "./useBusy";
 import { useToast } from "./ToastProvider";
 
 type Res = { ok: true } | { ok: false; error: string };
@@ -9,7 +9,7 @@ type Res = { ok: true } | { ok: false; error: string };
 export default function useAct() {
   const router = useRouter();
   const toast = useToast();
-  const [busy, start] = useTransition();
+  const [busy, start] = useBusy();
   const run = (fn: () => Promise<Res>, done: string, after?: () => void) =>
     start(async () => {
       const r = await fn();

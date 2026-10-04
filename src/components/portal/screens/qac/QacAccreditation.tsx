@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import useNav from "../../kit/nav";
 import AccreditorChips from "../../kit/AccreditorChips";
 import { RBar } from "../../kit/Bar";
 import Btn from "../../kit/Btn";
@@ -18,7 +18,7 @@ import { shortDate } from "@/lib/program-names";
 type Tab = "proc" | "acc" | "all";
 
 export default function QacAccreditation({ programs, today, monthLabel }: { programs: QacProgram[]; today: string; monthLabel: string }) {
-  const router = useRouter();
+  const router = useNav();
   const [tab, setTab] = useState<Tab>("proc");
   const [lv, setLv] = useState("all");
   const [camp, setCamp] = useState("all");

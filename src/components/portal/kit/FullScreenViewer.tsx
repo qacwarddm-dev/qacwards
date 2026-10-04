@@ -6,6 +6,8 @@ import { Scoped } from "./Scope";
 import { getLayer } from "./Modal";
 import useClientValue from "./useClientValue";
 import { pdfSrc, useDocUrl } from "./DocViewer";
+import PdfFrame from "./PdfFrame";
+import Spinner from "./Spinner";
 
 export default function FullScreenViewer({
   docId,
@@ -32,7 +34,7 @@ export default function FullScreenViewer({
   downloadHref?: string;
   onClose: () => void;
 }) {
-  const { url: fetched } = useDocUrl(directUrl ? null : (docId ?? null));
+  const { url: fetched, error } = useDocUrl(directUrl ? null : (docId ?? null));
   const url = directUrl ?? fetched;
   const [page, setPage] = useState(1);
   const [zoom, setZoom] = useState(100);
@@ -117,11 +119,13 @@ export default function FullScreenViewer({
         </button>
       </div>
       <div className="fsb">
-        <div className="fsp" style={{ padding: 0, alignItems: "stretch" }}>
+        <div className="fsp" style={{ padding: 0, alignItems: "stretch", position: "relative" }}>
           {url ? (
-            <iframe key={`${page}-${zoom}`} className="pdfview" src={pdfSrc(url, page, zoom === 100 ? undefined : zoom)} title={file} style={{ flex: 1, minHeight: "100%" }} />
+            <PdfFrame src={pdfSrc(url, page, zoom === 100 ? undefined : zoom)} title={file} style={{ flex: 1, minHeight: "100%" }} />
           ) : (
-            <span style={{ margin: "auto", color: "#bbb" }}>Loading…</span>
+            <div style={{ margin: "auto" }}>
+              {error ? <span style={{ color: "#bbb" }}>{error}</span> : <Spinner label="Loading document…" />}
+            </div>
           )}
         </div>
         {panel && <div className={`fss${showPanel ? "" : " hide"}`}>{panel}</div>}

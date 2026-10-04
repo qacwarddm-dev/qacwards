@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import useBusy from "../../kit/useBusy";
 import Btn from "../../kit/Btn";
 import Card from "../../kit/Card";
 import Modal from "../../kit/Modal";
@@ -18,12 +19,12 @@ export default function IaAssignments({ assignments }: { assignments: IaAssignme
   const [decline, setDecline] = useState<IaAssignment | null>(null);
   const [agree, setAgree] = useState(false);
   const [reason, setReason] = useState("Conflict of interest");
-  const [pending, start] = useTransition();
+  const [pending, start] = useBusy();
   const toast = useToast();
   const router = useRouter();
 
   function respond(a: IaAssignment, response: "accepted" | "rejected") {
-    start(async () => {
+    return start(async () => {
       const r = await respondToAssignment(a.id, response, response === "rejected" ? reason : undefined);
       if (!r.ok) return toast.say(r.error, true);
       setAccept(null);
@@ -150,7 +151,7 @@ export default function IaAssignments({ assignments }: { assignments: IaAssignme
               <Btn variant="o" onClick={() => setDecline(null)}>
                 Cancel
               </Btn>
-              <Btn variant="d" loading={pending} onClick={() => respond(decline, "rejected")}>
+              <Btn variant="d" disabled={pending} onClick={() => respond(decline, "rejected")}>
                 Decline
               </Btn>
             </>

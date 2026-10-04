@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import TopLine from "@/components/portal/kit/TopLine";
 import { fontVariables } from "@/lib/fonts";
 import "./globals.css";
 import "./loaders.css";
@@ -29,7 +31,12 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
       className={`${fontVariables} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col font-main">{children}</body>
+      <body className="flex min-h-full flex-col font-main">
+        <Suspense fallback={null}>
+          <TopLine />
+        </Suspense>
+        {children}
+      </body>
     </html>
   );
 }

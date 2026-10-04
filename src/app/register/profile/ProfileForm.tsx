@@ -2,7 +2,7 @@
 
 import { ImagePlus, X } from "lucide-react";
 import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import useNav from "@/components/portal/kit/nav";
 import { AuthButton, AuthCard, AuthFormError, AuthShell } from "@/components/auth";
 import { createClient } from "@/lib/supabase/browser";
 import { BUCKETS, avatarPath, uploadFile } from "@/lib/storage";
@@ -39,7 +39,7 @@ import { clearDraft } from "../registration-draft";
 const MAX_BYTES = 2 * 1024 * 1024;
 
 export default function ProfileForm() {
-  const router = useRouter();
+  const router = useNav();
   const [preview, setPreview] = useState<string | null>(null);
   const [chosen, setChosen] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);

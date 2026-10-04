@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import useNav from "@/components/portal/kit/nav";
 import {
   AuthButton,
   AuthCard,
@@ -46,7 +46,7 @@ const OTP_LENGTH = 6;
 const RESEND_SECONDS = 59;
 
 export default function VerifyWebmailForm() {
-  const router = useRouter();
+  const router = useNav();
   const [otp, setOtp] = useState("");
   const [address, setAddress] = useState<string | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);

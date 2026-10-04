@@ -150,7 +150,7 @@ function NewCycle({ onClose }: { onClose: () => void }) {
           <Btn variant="gh" onClick={onClose}>
             Cancel
           </Btn>
-          <Btn loading={busy} onClick={() => run(() => openCycle({ name, start: a, end: b, carry }), "New cycle opened", onClose)}>
+          <Btn disabled={busy} onClick={() => run(() => openCycle({ name, start: a, end: b, carry }), "New cycle opened", onClose)}>
             Open cycle
           </Btn>
         </>
@@ -227,7 +227,7 @@ function ExtendCycle({ id, name, end, onClose }: { id: string; name: string; end
           <Btn variant="gh" onClick={onClose}>
             Cancel
           </Btn>
-          <Btn loading={busy} onClick={() => run(() => extendCycle(id, v, notify), "Cycle extended", onClose)}>
+          <Btn disabled={busy} onClick={() => run(() => extendCycle(id, v, notify), "Cycle extended", onClose)}>
             Save
           </Btn>
         </>
@@ -330,7 +330,7 @@ export function SetupTab({ data }: { data: SetupData }) {
         <span className="sub" style={{ margin: 0 }}>
           Saved changes are logged in Activity.
         </span>
-        <Btn loading={busy} onClick={() => run(() => saveSetting("rules", rules), "Setup saved")}>
+        <Btn disabled={busy} onClick={() => run(() => saveSetting("rules", rules), "Setup saved")}>
           Save changes
         </Btn>
       </div>
@@ -367,7 +367,7 @@ export function SetupTab({ data }: { data: SetupData }) {
               <Btn variant="gh" onClick={() => setModal(null)}>
                 Cancel
               </Btn>
-              <Btn variant="d" loading={busy} onClick={() => run(() => (modal.rm === "area" ? removeArea(modal.id) : removePhaseDoc(modal.id)), "Removed", () => setModal(null))}>
+              <Btn variant="d" disabled={busy} onClick={() => run(() => (modal.rm === "area" ? removeArea(modal.id) : removePhaseDoc(modal.id)), "Removed", () => setModal(null))}>
                 Remove
               </Btn>
             </>

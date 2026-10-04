@@ -4,7 +4,9 @@ import Btn from "./Btn";
 import { useDocUrl, pdfSrc } from "./DocViewer";
 import { Thread } from "./History";
 import Modal from "./Modal";
+import PdfFrame from "./PdfFrame";
 import { DocPill } from "./Pill";
+import Spinner from "./Spinner";
 import SumRows from "./SumRows";
 import { useToast } from "./ToastProvider";
 import type { Slot } from "@/lib/review-model";
@@ -23,7 +25,7 @@ export default function DocDetailModal({
   onResubmit?: () => void;
   onReplace?: () => void;
 }) {
-  const { url } = useDocUrl(slot.docId);
+  const { url, error } = useDocUrl(slot.docId);
   const toast = useToast();
   return (
     <Modal
@@ -51,8 +53,8 @@ export default function DocDetailModal({
       }
     >
       <div style={{ display: "grid", gridTemplateColumns: "200px 1fr", gap: 18 }}>
-        <div style={{ background: "#e9e9e9", borderRadius: 12, padding: 10, height: 260 }}>
-          {url ? <iframe src={pdfSrc(url)} title={slot.name} className="pdfview" style={{ boxShadow: "0 2px 8px rgba(0,0,0,.15)" }} /> : null}
+        <div style={{ background: "#e9e9e9", borderRadius: 12, padding: 10, height: 260, position: "relative" }}>
+          {url ? <PdfFrame src={pdfSrc(url)} title={slot.name} style={{ boxShadow: "0 2px 8px rgba(0,0,0,.15)" }} /> : error ? <span style={{ color: "#999", fontSize: 13 }}>{error}</span> : <Spinner label="Loading document…" />}
         </div>
         <div>
           <SumRows

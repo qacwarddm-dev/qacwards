@@ -2,6 +2,7 @@
 
 import Btn from "./Btn";
 import Modal from "./Modal";
+import PdfFrame from "./PdfFrame";
 
 /** A QAC file shown view-only: embedded, watermarked with the viewer's name. No download unless `downloadHref` is given. */
 export default function FileViewModal({
@@ -48,7 +49,7 @@ export default function FileViewModal({
       }
     >
       <div className="vwrap" style={{ maxWidth: 720, height: "70vh" }} onContextMenu={(e) => e.preventDefault()}>
-        {src ? <iframe className="pdfview" src={`${src}${src.includes("#") ? "" : "#toolbar=0&navpanes=0"}`} title={title} /> : <img src="/assets/portal/mockup/preview.jpg" alt="" draggable={false} />}
+        {src ? <PdfFrame src={`${src}${src.includes("#") ? "" : "#toolbar=0&navpanes=0"}`} title={title} /> : <img src="/assets/portal/mockup/preview.jpg" alt="" draggable={false} />}
         {!own && !downloadHref && viewer && (
           <div className="wm">
             {Array.from({ length: 6 }, (_, i) => (

@@ -1,10 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import useNav from "../../kit/nav";
 import BackLink from "../../kit/BackLink";
 import Btn from "../../kit/Btn";
-import CertStatusSelect, { certLevel } from "../../kit/CertStatusSelect";
+import CertStatusSelect, { CSTAT, certLevel } from "../../kit/CertStatusSelect";
 import { CardHead } from "../../kit/Card";
 import Crumbs, { type Crumb } from "../../kit/Crumbs";
 import FileDrop from "../../kit/FileDrop";
@@ -28,7 +28,7 @@ const fileUrl = (id: string, download?: boolean) => `/api/documents/download?sou
 type Nav = { loc: RepoLoc | null; unit: string | null; type: RepoType | null };
 
 export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: Nav; today: string }) {
-  const router = useRouter();
+  const router = useNav();
   const [q, setQ] = useState("");
   const [fv, setFv] = useState<"grid" | "list">("grid");
   const [sort, setSort] = useState<"name" | "date">("name");
@@ -356,7 +356,7 @@ function NewFolderModal({ loc, where, onClose }: { loc: RepoLoc; where: string; 
           <Btn variant="gh" onClick={onClose}>
             Cancel
           </Btn>
-          <Btn loading={busy} onClick={() => (v.trim() ? run(() => createCopcFolder(loc, v), "Folder created", onClose) : toast.say("Enter a folder name", true))}>
+          <Btn disabled={busy} onClick={() => (v.trim() ? run(() => createCopcFolder(loc, v), "Folder created", onClose) : toast.say("Enter a folder name", true))}>
             Create
           </Btn>
         </>
@@ -380,7 +380,7 @@ function RenameModal({ f, onClose }: { f: RepoFile; onClose: () => void }) {
           <Btn variant="gh" onClick={onClose}>
             Cancel
           </Btn>
-          <Btn loading={busy} onClick={() => (v.trim() ? run(() => renameCopcFile(f.id, v), "File renamed", onClose) : toast.say("Enter a name", true))}>
+          <Btn disabled={busy} onClick={() => (v.trim() ? run(() => renameCopcFile(f.id, v), "File renamed", onClose) : toast.say("Enter a name", true))}>
             Save
           </Btn>
         </>
@@ -402,7 +402,7 @@ function DeleteModal({ f, onClose }: { f: RepoFile; onClose: () => void }) {
           <Btn variant="gh" onClick={onClose}>
             Cancel
           </Btn>
-          <Btn variant="danger" loading={busy} onClick={() => run(() => deleteCopcFile(f.id), "File moved to Recently deleted", onClose)}>
+          <Btn variant="danger" disabled={busy} onClick={() => run(() => deleteCopcFile(f.id), "File moved to Recently deleted", onClose)}>
             Delete
           </Btn>
         </>
@@ -434,7 +434,7 @@ function UploadModal({
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [prog, setProg] = useState(programs[0]?.id ?? "");
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState(CSTAT[0][1]);
   const cert = type.key === "cert";
   const [from, setFrom] = useState(type.validity ? new Date().toISOString().slice(0, 10) : "");
   const [to, setTo] = useState(() => {
@@ -466,7 +466,7 @@ function UploadModal({
       fd.set("status", status);
       fd.set("level", certLevel(status) ?? "");
     }
-    run(
+    return run(
       async () => {
         const up = await uploadDirect("repository", path, file, "application/pdf");
         return up.ok ? uploadCopcFile(fd) : up;
@@ -487,7 +487,7 @@ function UploadModal({
           <Btn variant="gh" onClick={onClose}>
             Cancel
           </Btn>
-          <Btn loading={busy} onClick={save}>
+          <Btn disabled={busy} onClick={save}>
             {busy ? "Uploading…" : "Upload"}
           </Btn>
         </>

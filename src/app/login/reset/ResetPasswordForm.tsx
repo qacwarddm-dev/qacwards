@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import useNav from "@/components/portal/kit/nav";
 import {
   AuthButton,
   AuthCard,
@@ -30,7 +30,7 @@ import { createClient } from "@/lib/supabase/browser";
 const MIN_LENGTH = 8;
 
 export default function ResetPasswordForm() {
-  const router = useRouter();
+  const router = useNav();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [confirmError, setConfirmError] = useState<string | undefined>();

@@ -109,7 +109,7 @@ function Info({ p, initials, avatarUrl, admin }: { p: ProfileView; initials: str
     <div className="pgrid">
       <div style={{ textAlign: "center" }}>
         <Avatar initials={initials} url={avatarUrl} />
-        <Btn className="wfull mb8" disabled={photo.busy} onClick={photo.open}>
+        <Btn className="wfull mb8" loading={photo.busy} loadingLabel="Uploading…" onClick={photo.open}>
           ⬆ Upload new photo
         </Btn>
         <Btn variant="d" className="wfull" disabled={!avatarUrl || photo.busy} onClick={photo.askRemove}>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import useNav from "../../kit/nav";
 import Bar from "../../kit/Bar";
 import Btn from "../../kit/Btn";
 import Card, { CardHead } from "../../kit/Card";
@@ -31,7 +31,7 @@ export default function RepDashboard({
   today: string;
   visits: CompletedVisit[];
 }) {
-  const router = useRouter();
+  const router = useNav();
   const ev = useEvaluations(visits);
   const left = ev.visits.flatMap(pendingOf);
 

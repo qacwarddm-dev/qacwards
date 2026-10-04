@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
+import useNav from "@/components/portal/kit/nav";
 import {
   AuthAccountPrompt,
   AuthButton,
@@ -53,7 +54,7 @@ const INVALID = "That webmail and password do not match an account.";
 
 export default function LoginForm({ as }: { as?: string }) {
   void as; // the role picker's ?as= is cosmetic; the account carries the role
-  const router = useRouter();
+  const router = useNav();
   const params = useSearchParams();
   const [webmail, setWebmail] = useState("");
   const [password, setPassword] = useState("");

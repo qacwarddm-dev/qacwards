@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
+import useBusy from "../kit/useBusy";
 import Btn from "../kit/Btn";
 import Card from "../kit/Card";
 import Empty from "../kit/Empty";
@@ -405,7 +406,7 @@ function Detail({
   const n = daysBetween(today, evStart(e));
   const router = useRouter();
   const toast = useToast();
-  const [pending, start] = useTransition();
+  const [pending, start] = useBusy();
   const s0 = evStart(e);
   const e0 = evEnd(e);
   const date =
@@ -505,7 +506,7 @@ function AddEvent({
   const [date, setDate] = useState(today);
   const [time, setTime] = useState("9:00 AM – 12:00 NN");
   const [where, setWhere] = useState("");
-  const [pending, start] = useTransition();
+  const [pending, start] = useBusy();
   const toast = useToast();
   const router = useRouter();
   return (
@@ -522,7 +523,7 @@ function AddEvent({
             disabled={pending}
             onClick={() => {
               if (!title.trim() || !date) return toast.say("Enter a title and date", true);
-              start(async () => {
+              return start(async () => {
                 const r = await createPortalEvent({ title: title.trim(), type, programId: prog || null, date, time, where });
                 if (!r.ok) return toast.say(r.error, true);
                 onClose();

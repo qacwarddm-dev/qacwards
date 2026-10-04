@@ -1,7 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import useBusy from "../../../kit/useBusy";
+import ActLink from "../../../kit/ActLink";
 import Btn from "../../../kit/Btn";
 import Card, { CardHead } from "../../../kit/Card";
 import Modal from "../../../kit/Modal";
@@ -59,7 +61,7 @@ export function PublicTab({ data }: { data: PublicData }) {
             checked={p.live}
             onChange={(v) => {
               set({ live: v });
-              run(() => saveSetting("public", { ...p, live: v }), v ? "Public page published" : "Public page hidden");
+              return run(() => saveSetting("public", { ...p, live: v }), v ? "Public page published" : "Public page hidden");
             }}
           />
         </Kv>
@@ -203,7 +205,7 @@ export function PublicTab({ data }: { data: PublicData }) {
         <span className="sub" style={{ margin: 0 }}>
           {p.publishedAt ? `Last published ${shortDate(p.publishedAt)}${p.publishedBy ? ` by ${p.publishedBy}` : ""}` : "Not published from here yet"}
         </span>
-        <Btn loading={busy} onClick={() => run(() => saveSetting("public", { ...p, publishedAt: new Date().toISOString() }), "Public information saved and published")}>
+        <Btn disabled={busy} onClick={() => run(() => saveSetting("public", { ...p, publishedAt: new Date().toISOString() }), "Public information saved and published")}>
           Save &amp; publish
         </Btn>
       </div>
@@ -282,7 +284,7 @@ function NewAnnouncement({ today, onClose }: { today: string; onClose: () => voi
           <Btn variant="gh" onClick={onClose}>
             Cancel
           </Btn>
-          <Btn loading={busy} onClick={() => run(() => saveAnnouncement(v), "Announcement saved", onClose)}>
+          <Btn disabled={busy} onClick={() => run(() => saveAnnouncement(v), "Announcement saved", onClose)}>
             Save
           </Btn>
         </>
@@ -320,7 +322,7 @@ export function EmailTab({ data }: { data: EmailData }) {
   const [notify, setNotify] = useState(data.notify);
   const [modal, setModal] = useState<null | "send" | EmailData["groups"][number]>(null);
   const { busy, run, toast } = useAct();
-  const [sending, start] = useTransition();
+  const [sending, start] = useBusy();
   const sendNow = () =>
     start(async () => {
       const r = await sendQueuedEmailsNow();
@@ -348,9 +350,7 @@ export function EmailTab({ data }: { data: EmailData }) {
           <b style={{ color: data.failed ? "var(--red)" : undefined }}>{data.failed}</b>
           <small>
             {data.failed ? (
-              <a className="lnk" role="button" onClick={() => run(() => retryFailedEmails(), `${data.failed} emails re-queued`)}>
-                Retry
-              </a>
+              <ActLink onClick={() => run(() => retryFailedEmails(), `${data.failed} emails re-queued`)}>Retry</ActLink>
             ) : (
               "none"
             )}
@@ -404,7 +404,7 @@ export function EmailTab({ data }: { data: EmailData }) {
               onChange={(v) => {
                 const next = { ...notify, [k]: v };
                 setNotify(next);
-                run(() => saveSetting("notify", next), "Saved");
+                return run(() => saveSetting("notify", next), "Saved");
               }}
             />
           </Kv>
@@ -458,12 +458,12 @@ export function BackupTab({ data }: { data: BackupData }) {
   const [restore, setRestore] = useState<BackupData["rows"][number] | null>(null);
   const [log, setLog] = useState<BackupData["rows"][number] | null>(null);
   const { busy, run, toast } = useAct();
-  const [dl, startDl] = useTransition();
+  const [dl, startDl] = useBusy();
   const last = data.rows[0];
   const save = (patch: Partial<BackupPrefs>) => {
     const next = { ...prefs, ...patch };
     setPrefs(next);
-    run(() => saveSetting("backup", next), "Saved");
+    return run(() => saveSetting("backup", next), "Saved");
   };
   const download = (id: string) =>
     startDl(async () => {
@@ -487,8 +487,8 @@ export function BackupTab({ data }: { data: BackupData }) {
         title="Backup & Restore"
         sub="Database export (JSON), kept in the backups bucket"
         right={
-          <Btn loading={busy} onClick={() => run(() => createBackup(), "Backup finished")}>
-            {busy ? "Backing up…" : "💾 Back up now"}
+          <Btn disabled={busy} loadingLabel="Backing up…" onClick={() => run(() => createBackup(), "Backup finished")}>
+            💾 Back up now
           </Btn>
         }
       />
@@ -678,7 +678,7 @@ export function SecurityTab({ data }: { data: SecurityData }) {
             checked={s.maint}
             onChange={(v) => {
               set({ maint: v });
-              run(() => saveSetting("security", { ...s, maint: v }), v ? "Maintenance mode on" : "Maintenance mode off");
+              return run(() => saveSetting("security", { ...s, maint: v }), v ? "Maintenance mode on" : "Maintenance mode off");
             }}
           />
         </Kv>
@@ -744,7 +744,7 @@ export function SecurityTab({ data }: { data: SecurityData }) {
         <span className="sub" style={{ margin: 0 }}>
           Changes apply on each user’s next sign-in.
         </span>
-        <Btn loading={busy} onClick={() => run(() => saveSetting("security", s), "Security settings saved")}>
+        <Btn disabled={busy} onClick={() => run(() => saveSetting("security", s), "Security settings saved")}>
           Save changes
         </Btn>
       </div>

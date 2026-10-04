@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import useNav from "../../kit/nav";
+import useBusy from "../../kit/useBusy";
 import Btn from "../../kit/Btn";
 import EvaluationReport, { roman, type ReportData } from "../../kit/EvaluationReport";
 import Scope from "../../kit/Scope";
@@ -34,9 +35,9 @@ export default function IaSubmit({
   const [rec, setRec] = useState(a.report?.recommendation || DEFAULT_REC);
   const [att, setAtt] = useState(false);
   const [pwd, setPwd] = useState("");
-  const [pending, start] = useTransition();
+  const [pending, start] = useBusy();
   const toast = useToast();
-  const router = useRouter();
+  const router = useNav();
   const r = a.review!;
   const areas = includedAreas(r);
   const gm = grandMean(a);

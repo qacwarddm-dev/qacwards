@@ -41,7 +41,7 @@ export default function IaProfile({
         <div className="card" style={{ textAlign: "center" }}>
           <div className="sh">PROFILE</div>
           <Avatar initials={initials} url={avatarUrl} />
-          <Btn className="wfull mb8" disabled={photo.busy} onClick={photo.open}>
+          <Btn className="wfull mb8" loading={photo.busy} loadingLabel="Uploading…" onClick={photo.open}>
             ⬆ Upload New Photo
           </Btn>
           <Btn variant="d" className="wfull" disabled={!avatarUrl || photo.busy} onClick={photo.askRemove}>

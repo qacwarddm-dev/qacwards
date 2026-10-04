@@ -1,9 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import useNav from "./kit/nav";
 import Modal from "./kit/Modal";
 import Empty from "./kit/Empty";
+import Spinner, { MiniRing } from "./kit/Spinner";
 import { flatNav, navForUser, type PortalUser } from "./portal-nav";
 import { searchPortal, type SearchHit } from "@/lib/search-actions";
 
@@ -14,13 +15,15 @@ export default function CommandPalette({ user }: { user: PortalUser }) {
   const [q, setQ] = useState("");
   const [sel, setSel] = useState(0);
   const [remote, setRemote] = useState<SearchHit[]>([]);
+  const [found, setFound] = useState("");
   const input = useRef<HTMLInputElement>(null);
-  const router = useRouter();
+  const router = useNav();
 
   const reset = () => {
     setQ("");
     setSel(0);
     setRemote([]);
+    setFound("");
     setOpen(true);
   };
 
@@ -61,7 +64,9 @@ export default function CommandPalette({ user }: { user: PortalUser }) {
     let live = true;
     const t = setTimeout(async () => {
       const hits = await searchPortal(term);
-      if (live) setRemote(hits);
+      if (!live) return;
+      setRemote(hits);
+      setFound(term);
     }, 180);
     return () => {
       live = false;
@@ -74,6 +79,8 @@ export default function CommandPalette({ user }: { user: PortalUser }) {
     const p = term ? pages.filter((x) => `${x.title} ${x.sub}`.toLowerCase().includes(term)) : pages;
     return [...p, ...(term.length >= 2 ? remote : [])].slice(0, 14).map((h, i) => ({ ...h, key: `${h.group}${i}${h.href}` }));
   }, [q, pages, remote]);
+
+  const searching = q.trim().length >= 2 && found !== q.trim();
 
   function go(i: number) {
     const h = results[i];
@@ -107,6 +114,7 @@ export default function CommandPalette({ user }: { user: PortalUser }) {
               if (e.key === "Enter") go(sel);
             }}
           />
+          {searching && <MiniRing />}
           <kbd style={{ fontSize: 10, border: "1px solid #ccc", borderRadius: 4, padding: "1px 5px", color: "#777" }}>Esc</kbd>
         </div>
         <div style={{ maxHeight: "60vh", overflow: "auto", paddingBottom: 8 }}>
@@ -123,6 +131,8 @@ export default function CommandPalette({ user }: { user: PortalUser }) {
                 </div>
               );
             })
+          ) : searching ? (
+            <Spinner label="Searching…" />
           ) : (
             <Empty>No results for “{q}”.</Empty>
           )}

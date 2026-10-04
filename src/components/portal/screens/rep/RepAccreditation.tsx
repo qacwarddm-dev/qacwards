@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
+import useNav from "../../kit/nav";
+import useBusy from "../../kit/useBusy";
 import BackLink from "../../kit/BackLink";
 import Bar from "../../kit/Bar";
 import Btn from "../../kit/Btn";
@@ -65,7 +66,7 @@ export default function RepAccreditation({
   const [upload, setUpload] = useState<{ slot: Slot; mode: UploadMode; group: string } | null>(null);
   const [doc, setDoc] = useState<{ slot: Slot; group: string } | null>(null);
   const [tplOpen, setTplOpen] = useState(false);
-  const router = useRouter();
+  const router = useNav();
 
   if (!program) {
     const first = programs[0];
@@ -323,7 +324,7 @@ function tracker(c: Counts): TrackStep[] {
 }
 
 function PreCard({ ctx }: { ctx: Ctx }) {
-  const router = useRouter();
+  const router = useNav();
   const r = ctx.level.review;
   const ls = levelStatus(ctx.program, ctx.level);
   const phases = r?.phases ?? [];
@@ -371,10 +372,10 @@ function PreCard({ ctx }: { ctx: Ctx }) {
 }
 
 function LevelCard({ ctx, visitDone }: { ctx: Ctx; visitDone?: string }) {
-  const router = useRouter();
+  const router = useNav();
   const toast = useToast();
   const [confirm, setConfirm] = useState(false);
-  const [pending, start] = useTransition();
+  const [pending, start] = useBusy();
   const { level, program } = ctx;
   const r = level.review;
   const s = levelCounts(level);
@@ -393,7 +394,7 @@ function LevelCard({ ctx, visitDone }: { ctx: Ctx; visitDone?: string }) {
 
   function pick(ids: string[]) {
     if (!r) return;
-    start(async () => {
+    return start(async () => {
       const res = await setLevelChoices(r.submissionId, l, ids);
       if (!res.ok && ids.length === need) return toast.say(res.error, true);
       router.refresh();
@@ -599,7 +600,7 @@ function LevelCard({ ctx, visitDone }: { ctx: Ctx; visitDone?: string }) {
 }
 
 function PhaseView({ ctx, g, onTemplate }: { ctx: Ctx; g: PhaseGroup; onTemplate: () => void }) {
-  const router = useRouter();
+  const router = useNav();
   const r = ctx.level.review!;
   const c = countSlots(g.docs);
   const idx = r.phases.findIndex((x) => x.id === g.id);

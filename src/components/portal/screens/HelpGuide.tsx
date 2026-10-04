@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import useNav from "../kit/nav";
 import Btn from "../kit/Btn";
 import Scope from "../kit/Scope";
 import SearchBox from "../kit/SearchBox";
@@ -43,7 +43,7 @@ const REP_FAQ: Faq[] = [
 ];
 
 function Steps({ steps }: { steps: Step[] }) {
-  const router = useRouter();
+  const router = useNav();
   return (
     <div className="gs">
       {steps.map(([href, b, s], i) => (

@@ -1,8 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import useNav from "../../kit/nav";
 import BackLink from "../../kit/BackLink";
+import ActLink from "../../kit/ActLink";
 import Btn from "../../kit/Btn";
 import Card from "../../kit/Card";
 import Crumbs, { type Crumb } from "../../kit/Crumbs";
@@ -80,7 +81,7 @@ function defaultStage(a: IaAssignment): "pre" | "req" {
 }
 
 function ProgramView({ a, view, levels, meId }: { a: IaAssignment; view: IaView; levels: Level[]; meId: string }) {
-  const router = useRouter();
+  const router = useNav();
   const toast = useToast();
   const r = a.review!;
   const st = view.st ?? defaultStage(a);
@@ -161,7 +162,7 @@ function phaseTracker(c: Counts): TrackStep[] {
 }
 
 function PreCard({ a, signed }: { a: IaAssignment; signed: boolean }) {
-  const router = useRouter();
+  const router = useNav();
   const r = a.review!;
   const sp = countSlots(allPhaseSlots(r));
   return (
@@ -209,7 +210,7 @@ function PreCard({ a, signed }: { a: IaAssignment; signed: boolean }) {
 }
 
 function ReqCard({ a, signed, meId }: { a: IaAssignment; signed: boolean; meId: string }) {
-  const router = useRouter();
+  const router = useNav();
   const [guide, setGuide] = useState(false);
   const r = a.review!;
   const s = iaStats(a);
@@ -342,7 +343,7 @@ function ReqCard({ a, signed, meId }: { a: IaAssignment; signed: boolean; meId: 
 }
 
 function PhaseView({ a, g, crumbs, signed, meId }: { a: IaAssignment; g: PhaseGroup; crumbs: Crumb[]; signed: boolean; meId: string }) {
-  const router = useRouter();
+  const router = useNav();
   const toast = useToast();
   const r = a.review!;
   const c = countSlots(g.docs);
@@ -460,7 +461,7 @@ function PhaseView({ a, g, crumbs, signed, meId }: { a: IaAssignment; g: PhaseGr
 }
 
 function AreaView({ a, slot, crumbs, signed, meId }: { a: IaAssignment; slot: Slot; crumbs: Crumb[]; signed: boolean; meId: string }) {
-  const router = useRouter();
+  const router = useNav();
   const toast = useToast();
   const r = a.review!;
   const areas = includedAreas(r);
@@ -525,9 +526,7 @@ function AreaView({ a, slot, crumbs, signed, meId }: { a: IaAssignment; slot: Sl
                   ✓ <b>Document approved.</b> Now rate the indicators below.
                 </span>
                 {!signed && (
-                  <a className="lnk" role="button" onClick={() => decide(slot, "undone")}>
-                    Undo
-                  </a>
+                  <ActLink onClick={() => decide(slot, "undone")}>Undo</ActLink>
                 )}
               </div>
             ) : slot.state === "returned" ? (

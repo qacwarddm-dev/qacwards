@@ -1,7 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import useNav from "../../kit/nav";
+import useBusy from "../../kit/useBusy";
 import AccreditorChips from "../../kit/AccreditorChips";
 import BackLink from "../../kit/BackLink";
 import { RBar } from "../../kit/Bar";
@@ -36,9 +37,9 @@ const AST: Record<string, [string, "ok" | "pend" | "ret" | "miss"]> = {
 };
 
 export default function QacProgramDetail({ p, today, initialStage }: { p: QacProgram; today: string; initialStage?: Stage }) {
-  const router = useRouter();
+  const router = useNav();
   const toast = useToast();
-  const [pending, start] = useTransition();
+  const [pending, start] = useBusy();
   const c = phaseCounts(p);
   const areas = p.review ? includedAreas(p.review) : [];
   const a = countSlots(areas);
@@ -54,14 +55,14 @@ export default function QacProgramDetail({ p, today, initialStage }: { p: QacPro
   const approvedPct = c.req ? Math.round((c.ap / c.req) * 100) : 0;
 
   function remind(id: string, name: string) {
-    start(async () => {
+    return start(async () => {
       const r = await sendReminder(id, `Reminder from QAC: ${p.short} ${p.levelName} is waiting for you.`, "/portal/assignment");
       toast.say(r.ok ? `Reminder sent to ${name}` : r.error, !r.ok);
     });
   }
 
   function decide(accId: string, decision: "acknowledged" | "returned", note?: string) {
-    start(async () => {
+    return start(async () => {
       const r = await reviewReport(p.assignmentId!, accId, decision, note);
       if (!r.ok) return toast.say(r.error, true);
       setReport(null);
@@ -349,7 +350,7 @@ export default function QacProgramDetail({ p, today, initialStage }: { p: QacPro
                   <Btn variant="d" onClick={() => (setRet(viewing.id), setRetNote(""), setReport(null))}>
                     ↺ Return
                   </Btn>
-                  <Btn loading={pending} onClick={() => decide(viewing.id, "acknowledged")}>
+                  <Btn disabled={pending} onClick={() => decide(viewing.id, "acknowledged")}>
                     ✓ Acknowledge
                   </Btn>
                 </>
@@ -386,7 +387,7 @@ export default function QacProgramDetail({ p, today, initialStage }: { p: QacPro
               <Btn variant="gh" onClick={() => setRet(null)}>
                 Cancel
               </Btn>
-              <Btn variant="d" loading={pending} onClick={() => (retNote.trim() ? decide(ret, "returned", retNote) : toast.say("Add a remark first", true))}>
+              <Btn variant="d" disabled={pending} onClick={() => (retNote.trim() ? decide(ret, "returned", retNote) : toast.say("Add a remark first", true))}>
                 ↺ Return report
               </Btn>
             </>
@@ -410,9 +411,9 @@ function RecordResult({ p, onClose }: { p: QacProgram; onClose: () => void }) {
     d.setFullYear(d.getFullYear() + 2);
     return d.toISOString().slice(0, 10);
   });
-  const [pending, start] = useTransition();
+  const [pending, start] = useBusy();
   const toast = useToast();
-  const router = useRouter();
+  const router = useNav();
   return (
     <Modal
       title={`Record visit result · ${p.short}`}

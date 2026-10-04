@@ -178,7 +178,7 @@ function Templates({ data }: { data: QacDocumentsData }) {
               <Btn variant="gh" onClick={() => setModal(null)}>
                 Cancel
               </Btn>
-              <Btn variant="d" loading={busy} onClick={() => run(() => setTemplatePublished(modal.row.id!, false), "Template hidden", () => setModal(null))}>
+              <Btn variant="d" disabled={busy} onClick={() => run(() => setTemplatePublished(modal.row.id!, false), "Template hidden", () => setModal(null))}>
                 Hide
               </Btn>
             </>
@@ -226,7 +226,7 @@ function TemplateUpload({ group, groupLabel, row, onClose }: { group: TplGroupKe
     fd.set("note", note);
     fd.set("publish", pub ? "1" : "");
     fd.set("notify", notify ? "1" : "");
-    run(
+    return run(
       async () => {
         const up = await uploadDirect("templates", path, file, DOCX);
         return up.ok ? saveTemplate(fd) : up;
@@ -246,7 +246,7 @@ function TemplateUpload({ group, groupLabel, row, onClose }: { group: TplGroupKe
           <Btn variant="gh" onClick={onClose}>
             Cancel
           </Btn>
-          <Btn loading={busy} onClick={save}>
+          <Btn disabled={busy} onClick={save}>
             {replace ? "Upload new version" : "Add template"}
           </Btn>
         </>
@@ -400,7 +400,7 @@ function Common({ docs, deleted, colleges }: { docs: CommonDoc[]; deleted: Commo
               <Btn variant="gh" onClick={() => setModal(null)}>
                 Cancel
               </Btn>
-              <Btn variant="danger" loading={busy} onClick={() => run(() => deleteCommonDoc(modal.d.id), "Document moved to Recently deleted", () => setModal(null))}>
+              <Btn variant="danger" disabled={busy} onClick={() => run(() => deleteCommonDoc(modal.d.id), "Document moved to Recently deleted", () => setModal(null))}>
                 Delete
               </Btn>
             </>
@@ -450,7 +450,7 @@ function CommonUpload({ d, colleges, onClose }: { d?: CommonDoc; colleges: [stri
     fd.set("visibleTo", scope === "all" ? ALL : `${sel.join(", ")} only`);
     fd.set("colleges", scope === "all" ? "" : sel.join(","));
     fd.set("notify", notify ? "1" : "");
-    run(
+    return run(
       async () => {
         const up = await uploadDirect("common-docs", path, file, "application/pdf");
         return up.ok ? saveCommonDoc(fd) : up;
@@ -470,7 +470,7 @@ function CommonUpload({ d, colleges, onClose }: { d?: CommonDoc; colleges: [stri
           <Btn variant="gh" onClick={onClose}>
             Cancel
           </Btn>
-          <Btn loading={busy} onClick={save}>
+          <Btn disabled={busy} onClick={save}>
             {d ? "Replace" : "Upload"}
           </Btn>
         </>
@@ -626,7 +626,7 @@ function NdaFormUpload({ ver, onClose }: { ver: number; onClose: () => void }) {
               const path = `nda/${crypto.randomUUID()}/${safeName(file.name)}`;
               fd.set("path", path);
               fd.set("fileName", file.name);
-              run(
+              return run(
                 async () => {
                   const up = await uploadDirect("templates", path, file, "application/pdf");
                   return up.ok ? replaceNdaForm(fd) : up;
@@ -657,7 +657,7 @@ function VerifyNda({ n, onClose }: { n: NdaItem; onClose: () => void }) {
   const act = (ok: boolean) => {
     if (ok && !chk) return toast.say("Tick the box after checking the details against the scan", true);
     if (!ok && !rem.trim()) return toast.say("Add a remark so the program rep knows what to fix", true);
-    run(() => reviewNda(n.id, ok, rem), ok ? `NDA verified. ${n.who} can now open Common Documents.` : "NDA returned. The rep will re-upload it.", onClose);
+    return run(() => reviewNda(n.id, ok, rem), ok ? `NDA verified. ${n.who} can now open Common Documents.` : "NDA returned. The rep will re-upload it.", onClose);
   };
   return (
     <Modal
@@ -673,10 +673,10 @@ function VerifyNda({ n, onClose }: { n: NdaItem; onClose: () => void }) {
             <Btn variant="gh" onClick={onClose}>
               Cancel
             </Btn>
-            <Btn variant="d" loading={busy} onClick={() => act(false)}>
+            <Btn variant="d" disabled={busy} onClick={() => act(false)}>
               ↺ Return
             </Btn>
-            <Btn loading={busy} onClick={() => act(true)}>
+            <Btn disabled={busy} onClick={() => act(true)}>
               ✓ Verify NDA
             </Btn>
           </>

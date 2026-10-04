@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Fragment, useMemo, useRef, useState, useTransition } from "react";
+import { Fragment, useMemo, useRef, useState } from "react";
+import useBusy from "../../kit/useBusy";
 import BackLink from "../../kit/BackLink";
 import Btn from "../../kit/Btn";
 import Empty from "../../kit/Empty";
@@ -10,6 +11,7 @@ import FolderIcon from "../../kit/FolderIcon";
 import Icon from "../../kit/Icon";
 import Pill from "../../kit/Pill";
 import SegTabs from "../../kit/SegTabs";
+import { MiniRing } from "../../kit/Spinner";
 import StatTile, { StatGrid } from "../../kit/StatTile";
 import { useToast } from "../../kit/ToastProvider";
 import { TemplatePreview } from "../../kit/UploadFlow";
@@ -178,7 +180,8 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
   const [bad, setBad] = useState<Record<string, boolean>>({});
   const [drag, setDrag] = useState(false);
   const [view, setView] = useState<{ title: string; src: string | null; own?: boolean } | null>(null);
-  const [pending, start] = useTransition();
+  const [pending, start] = useBusy();
+  const [opening, setOpening] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const toast = useToast();
   const router = useRouter();
@@ -209,7 +212,7 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
     fd.set("pageNo", f.page.trim());
     fd.set("bookNo", f.book.trim());
     fd.set("series", f.series.trim());
-    start(async () => {
+    return start(async () => {
       const { data } = await createClient().auth.getUser();
       if (!data.user) return toast.say("Your session expired. Sign in again.", true);
       const path = `${data.user.id}/nda-${crypto.randomUUID()}.pdf`;
@@ -295,7 +298,18 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
           </div>
           <div className="ndsep" />
           <div className="nds" style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
-            <button type="button" className="nbtn o" onClick={async () => setView({ title: "Submitted NDA", src: await getOwnNdaUrl(), own: true })}>
+            <button
+              type="button"
+              className="nbtn o"
+              disabled={opening}
+              aria-busy={opening || undefined}
+              onClick={async () => {
+                setOpening(true);
+                const src = await getOwnNdaUrl().finally(() => setOpening(false));
+                setView({ title: "Submitted NDA", src, own: true });
+              }}
+            >
+              {opening && <MiniRing />}
               View submitted NDA
             </button>
           </div>
@@ -432,7 +446,7 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
             <Btn variant="gh" onClick={() => setFile(null)}>
               Cancel
             </Btn>
-            <Btn loading={pending} onClick={submit}>
+            <Btn disabled={pending} onClick={submit}>
               Submit NDA
             </Btn>
           </div>

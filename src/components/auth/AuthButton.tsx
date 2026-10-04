@@ -1,5 +1,5 @@
-import { Loader2 } from "lucide-react";
 import Link from "next/link";
+import { MiniRing } from "@/components/portal/kit/Spinner";
 
 /**
  * Auth-screen button.
@@ -99,13 +99,7 @@ export default function AuthButton({
       className={look}
       {...rest}
     >
-      {loading && (
-        <Loader2
-          className="h-[16px] w-[16px] shrink-0 animate-spin"
-          strokeWidth={2.5}
-          aria-hidden
-        />
-      )}
+      {loading && <MiniRing />}
       {children}
     </button>
   );

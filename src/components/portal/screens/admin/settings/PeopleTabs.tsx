@@ -1,7 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import useNav from "../../../kit/nav";
+import ActLink from "../../../kit/ActLink";
 import Btn from "../../../kit/Btn";
 import Card, { CardHead } from "../../../kit/Card";
 import FilterPills from "../../../kit/FilterPills";
@@ -163,7 +164,7 @@ export function UsersTab({ users }: { users: UserRow[] }) {
               <Btn variant="gh" onClick={() => setModal(null)}>
                 Cancel
               </Btn>
-              <Btn loading={busy} onClick={() => run(() => setUserRole(modal.u.id, modal.to), "Role changed", () => setModal(null))}>
+              <Btn disabled={busy} onClick={() => run(() => setUserRole(modal.u.id, modal.to), "Role changed", () => setModal(null))}>
                 Change role
               </Btn>
             </>
@@ -216,8 +217,7 @@ function DeleteUser({ u, onClose }: { u: UserRow; onClose: () => void }) {
           </Btn>
           <Btn
             variant="danger"
-            loading={busy}
-            disabled={blocked}
+            disabled={busy || blocked}
             onClick={() => run(() => (invite ? deleteInvitation(u.id) : deleteUser(u.id)), invite ? "Invitation cancelled" : "User moved to Recently Deleted", onClose)}
           >
             {invite ? "Cancel invitation" : "Delete user"}
@@ -302,7 +302,7 @@ function Invite({ onClose }: { onClose: () => void }) {
           <Btn variant="gh" onClick={onClose}>
             Cancel
           </Btn>
-          <Btn loading={busy} onClick={() => run(() => inviteUser(v), `Invitation sent to ${v.email}`, onClose)}>
+          <Btn disabled={busy} onClick={() => run(() => inviteUser(v), `Invitation sent to ${v.email}`, onClose)}>
             Send invitation
           </Btn>
         </>
@@ -362,7 +362,7 @@ function EditUser({ u, onClose }: { u: UserRow; onClose: () => void }) {
           <Btn variant="gh" onClick={onClose}>
             Cancel
           </Btn>
-          <Btn loading={busy} onClick={() => run(() => editUser(u.id, { surname, given, ia }), "User updated", onClose)}>
+          <Btn disabled={busy} onClick={() => run(() => editUser(u.id, { surname, given, ia }), "User updated", onClose)}>
             Save
           </Btn>
         </>
@@ -408,7 +408,7 @@ function EditUser({ u, onClose }: { u: UserRow; onClose: () => void }) {
 }
 
 export function RepsTab({ data, sel }: { data: RepsData; sel: string | null }) {
-  const router = useRouter();
+  const router = useNav();
   const cur = data.reps.find((r) => r.id === sel) ?? data.reps[0];
   const [q, setQ] = useState("");
   const [rm, setRm] = useState<{ id: string; name: string; campus: string } | null>(null);
@@ -457,19 +457,17 @@ export function RepsTab({ data, sel }: { data: RepsData; sel: string | null }) {
                 <div className="sug">
                   {sug.length ? (
                     sug.map((p) => (
-                      <a
+                      <ActLink
                         key={p.id}
-                        role="button"
-                        onClick={() =>
-                          run(() => attachRepToProgram(cur.id, p.id), `${p.name} added to ${cur.name}`, () => setQ(""))
-                        }
+                        plain
+                        onClick={() => run(() => attachRepToProgram(cur.id, p.id), `${p.name} added to ${cur.name}`, () => setQ(""))}
                       >
                         <b>{p.name}</b>
                         <small>
                           {p.college} · {p.campus}
                           {p.rep ? ` · currently ${p.rep}` : ""}
                         </small>
-                      </a>
+                      </ActLink>
                     ))
                   ) : (
                     <div className="sub" style={{ padding: 10 }}>
@@ -520,7 +518,7 @@ export function RepsTab({ data, sel }: { data: RepsData; sel: string | null }) {
               <Btn variant="gh" onClick={() => setRm(null)}>
                 Cancel
               </Btn>
-              <Btn variant="d" loading={busy} onClick={() => run(() => detachRepFromProgram(cur.id, rm.id), "Program removed", () => setRm(null))}>
+              <Btn variant="d" disabled={busy} onClick={() => run(() => detachRepFromProgram(cur.id, rm.id), "Program removed", () => setRm(null))}>
                 Remove
               </Btn>
             </>
@@ -709,7 +707,7 @@ export function ProgsTab({ data, initialFilter }: { data: ProgsData; initialFilt
               <Btn variant="gh" onClick={() => setMove(null)}>
                 Cancel
               </Btn>
-              <Btn loading={busy} onClick={() => run(() => reassignProgramCollege(move.p.id, move.to), `Program moved to ${col(move.to)?.code}`, () => setMove(null))}>
+              <Btn disabled={busy} onClick={() => run(() => reassignProgramCollege(move.p.id, move.to), `Program moved to ${col(move.to)?.code}`, () => setMove(null))}>
                 Move program
               </Btn>
             </>
@@ -739,7 +737,7 @@ export function ProgsTab({ data, initialFilter }: { data: ProgsData; initialFilt
               <Btn variant="gh" onClick={() => setDel(null)}>
                 Cancel
               </Btn>
-              <Btn variant="danger" loading={busy} onClick={() => run(() => deleteProgram(del.id), "Program moved to Recently Deleted", () => setDel(null))}>
+              <Btn variant="danger" disabled={busy} onClick={() => run(() => deleteProgram(del.id), "Program moved to Recently Deleted", () => setDel(null))}>
                 Delete
               </Btn>
             </>
@@ -768,7 +766,7 @@ function AddProgram({ data, onClose }: { data: ProgsData; onClose: () => void })
           <Btn variant="gh" onClick={onClose}>
             Cancel
           </Btn>
-          <Btn loading={busy} onClick={() => run(() => addProgram(n, c, m), "Program added", onClose)}>
+          <Btn disabled={busy} onClick={() => run(() => addProgram(n, c, m), "Program added", onClose)}>
             Add
           </Btn>
         </>

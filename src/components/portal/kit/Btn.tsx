@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import { MiniRing } from "./Spinner";
 
 export type BtnVariant = "s" | "o" | "g" | "d" | "gh" | "gn" | "danger" | "plain";
@@ -14,7 +17,7 @@ type Common = {
 type AsButton = Common & {
   href?: undefined;
   download?: undefined;
-  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => unknown;
   disabled?: boolean;
   loading?: boolean;
   loadingLabel?: React.ReactNode;
@@ -36,7 +39,8 @@ function cls(variant: BtnVariant, sm?: boolean, extra?: string, loading?: boolea
 
 export default function Btn(props: AsButton | AsLink) {
   const { variant = "s", sm, className, children, title } = props;
-  const loading = props.href === undefined && props.loading;
+  const [waiting, setWaiting] = useState(false);
+  const loading = props.href === undefined && (props.loading || waiting);
   const c = cls(variant, sm, className, loading);
   if (props.href !== undefined) {
     if (props.download !== undefined || props.external || props.href.startsWith("mailto:") || props.href.startsWith("data:")) {
@@ -52,8 +56,18 @@ export default function Btn(props: AsButton | AsLink) {
       </Link>
     );
   }
+  const click = props.onClick;
+  const onClick = click
+    ? (e: React.MouseEvent<HTMLButtonElement>) => {
+        const r = click(e);
+        if (r instanceof Promise) {
+          setWaiting(true);
+          r.finally(() => setWaiting(false));
+        }
+      }
+    : undefined;
   return (
-    <button type={props.type ?? "button"} form={props.form} className={c} onClick={props.onClick} disabled={props.disabled || loading} aria-busy={loading || undefined} title={title}>
+    <button type={props.type ?? "button"} form={props.form} className={c} onClick={onClick} disabled={props.disabled || loading} aria-busy={loading || undefined} title={title}>
       {loading && <MiniRing />}
       {loading && props.loadingLabel !== undefined ? props.loadingLabel : children}
     </button>

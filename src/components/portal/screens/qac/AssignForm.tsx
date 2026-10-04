@@ -1,7 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
+import useNav from "../../kit/nav";
+import useBusy from "../../kit/useBusy";
 import BackLink from "../../kit/BackLink";
 import Btn from "../../kit/Btn";
 import Empty from "../../kit/Empty";
@@ -24,7 +25,7 @@ const REASONS = [
 ];
 
 export default function AssignForm({ data, edit, from, preset }: { data: Data; edit: QacProgram | null; from: QacProgram | null; preset: QacProgram | null }) {
-  const router = useRouter();
+  const router = useNav();
   const toast = useToast();
   const base = edit ?? from ?? preset;
   const lock = Boolean(edit);
@@ -43,7 +44,7 @@ export default function AssignForm({ data, edit, from, preset }: { data: Data; e
   const [coi, setCoi] = useState(false);
   const [repFirst, setRepFirst] = useState(!edit);
   const [done, setDone] = useState<{ id: string; programId: string; started?: boolean } | null>(null);
-  const [pending, start] = useTransition();
+  const [pending, start] = useBusy();
 
   const cats = data.programs.filter((p) => (col === "NA" ? p.campus === camp && p.college === "NA" : p.college === col && p.campus === camp));
   const program = data.programs.find((p) => p.id === prog) ?? (lock ? null : cats[0] ?? null);
@@ -72,15 +73,14 @@ export default function AssignForm({ data, edit, from, preset }: { data: Data; e
   function submit() {
     if (!program) return;
     if (repFirst) {
-      start(async () => {
+      return start(async () => {
         const r = await startAccreditation({ programId: program.id, levelId: lv });
         if (!r.ok) return toast.say(r.error, true);
         setDone({ id: "", programId: program.id, started: true });
         router.refresh();
       });
-      return;
     }
-    start(async () => {
+    return start(async () => {
       const r = await saveAssignment({ assignmentId: edit?.assignmentId ?? null, programId: program.id, levelId: lv, accreditorIds: sel, acting, siteVisitDate: vd, dueDate: dl || null });
       if (!r.ok) return toast.say(r.error, true);
       setDone({ id: r.assignmentId, programId: program.id });

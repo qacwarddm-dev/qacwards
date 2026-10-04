@@ -2,6 +2,7 @@
 
 import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef } from "react";
+import { NAV_START, isPageNav, setNavigating } from "./nav";
 
 const STEPS: [number, number][] = [
   [0, 0.35],
@@ -26,6 +27,7 @@ export default function TopLine() {
     const el = bar.current;
     if (!el || !running.current) return;
     running.current = false;
+    setNavigating(false);
     clear();
     el.style.transform = "scaleX(1)";
     timers.current.push(setTimeout(() => (el.style.opacity = "0"), 300));
@@ -35,6 +37,7 @@ export default function TopLine() {
     const el = bar.current;
     if (!el || running.current) return;
     running.current = true;
+    setNavigating(true);
     clear();
     el.style.transition = "none";
     el.style.opacity = "1";
@@ -55,14 +58,13 @@ export default function TopLine() {
       if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
       const a = (e.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
       if (!a || (a.target && a.target !== "_self") || a.hasAttribute("download")) return;
-      const url = new URL(a.href, location.href);
-      if (url.origin !== location.origin) return;
-      if (url.pathname === location.pathname && url.search === location.search) return;
-      start();
+      if (isPageNav(new URL(a.href, location.href))) start();
     };
-    document.addEventListener("click", onClick);
+    document.addEventListener("click", onClick, true);
+    window.addEventListener(NAV_START, start);
     return () => {
-      document.removeEventListener("click", onClick);
+      document.removeEventListener("click", onClick, true);
+      window.removeEventListener(NAV_START, start);
       clear();
     };
   }, [start]);

@@ -193,7 +193,7 @@ function FormModal({
             {step ? "‹ Back" : "Cancel"}
           </Btn>
           <span style={{ fontSize: 11.5, color: "var(--muted)" }}>Answers are saved as you go</span>
-          <Btn loading={busy} onClick={next}>
+          <Btn disabled={busy} onClick={next}>
             {last ? "Submit" : "Next ›"}
           </Btn>
         </>

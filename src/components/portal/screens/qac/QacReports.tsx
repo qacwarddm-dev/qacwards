@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useMemo, useRef, useState } from "react";
+import useBusy from "../../kit/useBusy";
 import Btn from "../../kit/Btn";
 import Card, { CardHead } from "../../kit/Card";
 import Letterhead from "../../kit/Letterhead";
@@ -47,7 +48,7 @@ export default function QacReports({
 }) {
   const router = useRouter();
   const toast = useToast();
-  const [, start] = useTransition();
+  const [, start] = useBusy();
   const [q, setQ] = useState("");
   const [year, setYear] = useState("all");
   const [type, setType] = useState("all");
@@ -309,7 +310,7 @@ function PreviewModal({
 }) {
   const router = useRouter();
   const toast = useToast();
-  const [busy, start] = useTransition();
+  const [busy, start] = useBusy();
   const paper = useRef<HTMLDivElement>(null);
   const d = useMemo(() => reportData(r.type, r.filters, programs, catalog), [r, programs, catalog]);
 
@@ -343,7 +344,7 @@ function PreviewModal({
           {r.id ? (
             <Btn onClick={onClose}>Close</Btn>
           ) : (
-            <Btn loading={busy} onClick={save}>
+            <Btn disabled={busy} onClick={save}>
               Save report
             </Btn>
           )}

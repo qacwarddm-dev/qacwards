@@ -1,7 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import useBusy from "./useBusy";
+import ActLink from "./ActLink";
 import Btn from "./Btn";
 import DocViewer from "./DocViewer";
 import Modal from "./Modal";
@@ -11,13 +13,13 @@ import type { Slot } from "@/lib/review-model";
 import { reviewDocument } from "@/lib/review-actions";
 
 export function useReviewActions() {
-  const [pending, start] = useTransition();
+  const [pending, start] = useBusy();
   const toast = useToast();
   const router = useRouter();
   function decide(slot: Slot, decision: "approved" | "returned" | "undone", note?: string, done?: () => void) {
     if (!slot.docId) return;
     if (decision === "returned" && !note?.trim()) return toast.say("Add a remark first so the program knows what to fix", true);
-    start(async () => {
+    return start(async () => {
       const r = await reviewDocument(slot.docId!, decision, note);
       if (!r.ok) return toast.say(r.error, true);
       toast.say(decision === "approved" ? `${slot.name} approved` : decision === "returned" ? "Returned to the program with your remark" : "Decision undone");
@@ -67,13 +69,13 @@ export function ReviewDocModal({
               disabled={pending}
               onClick={() => {
                 if (!ret) return setRet(true);
-                decide(slot, "returned", note, onClose);
+                return decide(slot, "returned", note, onClose);
               }}
             >
               ↺ {ret ? "Send return" : "Return for revision"}
             </Btn>
             {!startReturn && (
-              <Btn variant="g" loading={pending} onClick={() => decide(slot, "approved", undefined, onClose)}>
+              <Btn variant="g" disabled={pending} onClick={() => decide(slot, "approved", undefined, onClose)}>
                 ✓ Approve
               </Btn>
             )}
@@ -81,7 +83,7 @@ export function ReviewDocModal({
         ) : (
           <>
             {allowUndo && !locked && slot.state === "approved" && (
-              <Btn variant="gh" loading={pending} onClick={() => decide(slot, "undone", undefined, onClose)}>
+              <Btn variant="gh" disabled={pending} onClick={() => decide(slot, "undone", undefined, onClose)}>
                 Undo approval
               </Btn>
             )}
@@ -134,9 +136,7 @@ export function ReviewDecision({ slot, locked }: { slot: Slot; locked: boolean }
             ✓ <b>Document approved.</b>
           </span>
           {!locked && (
-            <a className="lnk" role="button" onClick={() => decide(slot, "undone")}>
-              Undo
-            </a>
+            <ActLink onClick={() => decide(slot, "undone")}>Undo</ActLink>
           )}
         </div>
       ) : slot.state === "returned" ? (
