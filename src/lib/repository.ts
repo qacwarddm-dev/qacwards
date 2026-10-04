@@ -4,6 +4,23 @@ import { personName, programShort } from "@/lib/program-names";
 import { FTYPES, type RepoFile, type RepoLoc, type RepoProgram, type RepoType, type RepoUnit, type Repository } from "@/lib/repository-model";
 export * from "@/lib/repository-model";
 
+const PAGE = 1000;
+
+async function loadAllFiles(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const rows = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data } = await supabase
+      .from("repository_files")
+      .select("id, title, program_id, folder_id, unit_id, created_at, is_archived, archived_at, valid_from, valid_until, cert_status, accreditation_levels(code), profiles:uploaded_by(surname, given_name)")
+      .order("created_at", { ascending: false })
+      .order("id")
+      .range(from, from + PAGE - 1);
+    rows.push(...(data ?? []));
+    if ((data?.length ?? 0) < PAGE) break;
+  }
+  return { data: rows };
+}
+
 export async function getRepository(): Promise<Repository> {
   const supabase = await createClient();
   const [{ data: folders }, { data: colleges }, { data: campuses }, { data: custom }, { data: programs }, { data: files }] = await Promise.all([
@@ -12,10 +29,7 @@ export async function getRepository(): Promise<Repository> {
     supabase.from("campuses").select("name, is_main").eq("is_main", false).order("name"),
     supabase.from("repository_units").select("id, location, name").order("created_at"),
     supabase.from("programs").select("id, name, campuses(name, is_main), colleges(code)").is("deleted_at", null).order("name"),
-    supabase
-      .from("repository_files")
-      .select("id, title, program_id, folder_id, unit_id, created_at, is_archived, archived_at, valid_from, valid_until, cert_status, accreditation_levels(code), profiles:uploaded_by(surname, given_name)")
-      .order("created_at", { ascending: false }),
+    loadAllFiles(supabase),
   ]);
 
   const folderIds = {} as Record<RepoType, string>;
