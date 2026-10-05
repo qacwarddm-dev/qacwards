@@ -18,7 +18,7 @@ import SearchBox from "../../kit/SearchBox";
 import useAct from "../../kit/useAct";
 import { FTYPES, type RepoFile, type RepoLoc, type RepoType, type Repository } from "@/lib/repository-model";
 import { uploadDirect } from "@/lib/upload-client";
-import { createCopcFolder, deleteCopcFile, renameCopcFile, restoreCopcFile, uploadCopcFile } from "@/lib/repository-actions";
+import { createCopcFolder, deleteCopcFile, deleteCopcFolder, renameCopcFile, renameCopcFolder, restoreCopcFile, uploadCopcFile } from "@/lib/repository-actions";
 import { daysTo, levelName } from "@/lib/qac-model";
 import { shortDate } from "@/lib/program-names";
 
@@ -32,7 +32,7 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
   const [q, setQ] = useState("");
   const [fv, setFv] = useState<"grid" | "list">("grid");
   const [sort, setSort] = useState<"name" | "date">("name");
-  const [modal, setModal] = useState<null | { k: "folder" } | { k: "upload" } | { k: "rename" | "delete" | "view"; f: RepoFile }>(null);
+  const [modal, setModal] = useState<null | { k: "folder" } | { k: "upload" } | { k: "rename" | "delete" | "view"; f: RepoFile } | { k: "renameFolder" | "deleteFolder"; id: string; name: string }>(null);
 
   const go = (n: Partial<Nav>) => {
     const next = { ...nav, ...n };
@@ -275,6 +275,16 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
         <div className="rtool r2">
           <div className="rbtns">
             {T ? <Btn onClick={() => setModal({ k: "upload" })}>⬆ Upload file</Btn> : <Btn variant="o" onClick={() => setModal({ k: "folder" })}>＋ New folder</Btn>}
+            {!T && unit?.customId && (
+              <>
+                <Btn variant="gh" onClick={() => setModal({ k: "renameFolder", id: unit.customId!, name: unit.name })}>
+                  Rename folder
+                </Btn>
+                <Btn variant="gh" title="Delete folder" onClick={() => setModal({ k: "deleteFolder", id: unit.customId!, name: unit.name })}>
+                  🗑 Delete folder
+                </Btn>
+              </>
+            )}
           </div>
           <SearchBox variant="r-sm" value={q} onChange={setQ} placeholder={T ? "Search files" : "Search folders"} />
           <div className="rbtns">
@@ -304,6 +314,10 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
           onClose={() => setModal(null)}
         />
       )}
+      {modal?.k === "renameFolder" && (
+        <RenameFolderModal id={modal.id} name={modal.name} onClose={() => setModal(null)} onDone={(name) => go({ unit: name })} />
+      )}
+      {modal?.k === "deleteFolder" && <DeleteFolderModal id={modal.id} name={modal.name} onClose={() => setModal(null)} onDone={() => go({ unit: null, type: null })} />}
       {modal?.k === "rename" && <RenameModal f={modal.f} onClose={() => setModal(null)} />}
       {modal?.k === "delete" && <DeleteModal f={modal.f} onClose={() => setModal(null)} />}
       {modal?.k === "view" && T && (
@@ -364,6 +378,77 @@ function NewFolderModal({ loc, where, onClose }: { loc: RepoLoc; where: string; 
     >
       <label className="fl">Folder name</label>
       <input className="inp" autoFocus value={v} onChange={(e) => setV(e.target.value)} placeholder={loc === "camp" ? "e.g. Lopez Extension" : "e.g. Institute of Technology"} />
+    </Modal>
+  );
+}
+
+function RenameFolderModal({ id, name, onClose, onDone }: { id: string; name: string; onClose: () => void; onDone: (name: string) => void }) {
+  const [v, setV] = useState(name);
+  const { busy, run, toast } = useAct();
+  const save = () =>
+    v.trim()
+      ? run(
+          () => renameCopcFolder(id, v),
+          "Folder renamed",
+          () => {
+            onClose();
+            onDone(v.trim().replace(/\s+/g, " "));
+          },
+        )
+      : toast.say("Enter a folder name", true);
+  return (
+    <Modal
+      title="Rename folder"
+      onClose={onClose}
+      footer={
+        <>
+          <Btn variant="gh" onClick={onClose}>
+            Cancel
+          </Btn>
+          <Btn disabled={busy} onClick={save}>
+            Save
+          </Btn>
+        </>
+      }
+    >
+      <label className="fl">Folder name</label>
+      <input className="inp" autoFocus value={v} onChange={(e) => setV(e.target.value)} />
+    </Modal>
+  );
+}
+
+function DeleteFolderModal({ id, name, onClose, onDone }: { id: string; name: string; onClose: () => void; onDone: () => void }) {
+  const { busy, run } = useAct();
+  return (
+    <Modal
+      onClose={onClose}
+      footer={
+        <>
+          <Btn variant="gh" onClick={onClose}>
+            Cancel
+          </Btn>
+          <Btn
+            variant="danger"
+            disabled={busy}
+            onClick={() =>
+              run(
+                () => deleteCopcFolder(id),
+                "Folder deleted",
+                () => {
+                  onClose();
+                  onDone();
+                },
+              )
+            }
+          >
+            Delete
+          </Btn>
+        </>
+      }
+    >
+      <Result tone="danger" icon="🗑" title={`Delete “${name}”?`}>
+        <p>Only empty folders can be deleted. Files inside must be deleted first.</p>
+      </Result>
     </Modal>
   );
 }

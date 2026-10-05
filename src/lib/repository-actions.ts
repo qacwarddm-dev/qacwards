@@ -114,3 +114,27 @@ export async function createCopcFolder(loc: "main" | "camp", raw: string): Promi
   refresh();
   return { ok: true };
 }
+
+export async function renameCopcFolder(id: string, raw: string): Promise<ActionResult> {
+  if (!(await qac())) return { ok: false, error: "Only QAC can rename folders." };
+  const name = raw.trim().replace(/\s+/g, " ");
+  if (!name || name.length > 120) return { ok: false, error: "Enter a folder name" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("repository_units").update({ name }).eq("id", id).select("id");
+  if (error) return { ok: false, error: error.code === "23505" ? "A folder with that name already exists." : error.message };
+  if (!data?.length) return { ok: false, error: "That folder could not be renamed." };
+  refresh();
+  return { ok: true };
+}
+
+export async function deleteCopcFolder(id: string): Promise<ActionResult> {
+  if (!(await qac())) return { ok: false, error: "Only QAC can delete folders." };
+  const supabase = await createClient();
+  const { count } = await supabase.from("repository_files").select("id", { count: "exact", head: true }).eq("unit_id", id).eq("is_archived", false);
+  if (count) return { ok: false, error: `This folder still has ${count} file${count > 1 ? "s" : ""}. Delete or move them first.` };
+  const { data, error } = await supabase.from("repository_units").delete().eq("id", id).select("id");
+  if (error) return { ok: false, error: error.message };
+  if (!data?.length) return { ok: false, error: "That folder could not be deleted." };
+  refresh();
+  return { ok: true };
+}

@@ -250,12 +250,12 @@ export default function AuthSelect({
                   id={optionId(i)}
                   role="option"
                   aria-selected={isSelected}
-                  // Pointer, not click: the document pointerdown handler above
-                  // would otherwise close the list before the click landed.
-                  onPointerDown={(e) => {
-                    e.preventDefault();
-                    commit(i);
-                  }}
+                  // Commit on click, not pointerdown: on touch a pointerdown fires
+                  // at the start of a scroll drag, so the list selected the item
+                  // under the finger and closed before it could scroll past it.
+                  // mousedown's preventDefault keeps focus on the trigger.
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => commit(i)}
                   onPointerEnter={() => setActive(i)}
                   className={`t-body flex cursor-pointer items-center gap-[var(--space-2)] rounded-[var(--radius-sm)] px-[var(--space-3)] py-[10px] text-black ${
                     i === active ? "bg-[var(--tint-maroon)]" : ""
