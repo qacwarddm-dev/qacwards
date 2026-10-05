@@ -78,6 +78,8 @@
   "76": "B6 — Repository, NDA, common documents",
   "77": "QacProgramDetail.tsx",
   "78": "notifications.ts",
+  "79": "reports/page.tsx",
+  "80": "loadDocsAndReviews",
   "81": "graphify reference: query, path, explain",
   "82": "B4 — Submissions",
   "83": "AuthShell.tsx",

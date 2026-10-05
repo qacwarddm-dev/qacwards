@@ -82,15 +82,21 @@ export type UserRow = {
   me: boolean;
   sys: boolean;
   assigned: string[];
+  positionId: string | null;
+  position: string | null;
 };
 
-export async function getUsersData(meId: string): Promise<UserRow[]> {
+export type PositionOption = { id: string; name: string; scope: "program" | "qac" };
+export type UsersData = { users: UserRow[]; positions: PositionOption[] };
+
+export async function getUsersData(meId: string): Promise<UsersData> {
   const supabase = await createClient();
-  const [{ data: people }, { data: inv }, { data: last }, { data: team }] = await Promise.all([
-    supabase.from("profiles").select("id, surname, given_name, middle_initial, webmail, role, is_active, is_internal_accreditor").is("deleted_at", null).order("surname"),
+  const [{ data: people }, { data: inv }, { data: last }, { data: team }, { data: positions }] = await Promise.all([
+    supabase.from("profiles").select("id, surname, given_name, middle_initial, webmail, role, is_active, is_internal_accreditor, position_id, positions(name)").is("deleted_at", null).order("surname"),
     supabase.from("user_invitations").select("id, webmail, surname, given_name, role, is_internal_accreditor, invited_at"),
     supabase.rpc("admin_last_activity"),
     supabase.from("assignment_accreditors").select("profile_id, response, assignments(status, submissions(programs(name)))").neq("response", "rejected"),
+    supabase.from("positions").select("id, name, scope").order("name"),
   ]);
   const lastMap = new Map((last ?? []).map((r) => [r.profile_id, r.last_at]));
   const today = new Date().toISOString().slice(0, 10);
@@ -112,6 +118,8 @@ export async function getUsersData(meId: string): Promise<UserRow[]> {
     assigned: (team ?? [])
       .filter((t) => t.profile_id === p.id && t.assignments && !DONE.includes(t.assignments.status))
       .map((t) => programShort(t.assignments?.submissions?.programs?.name ?? "")),
+    positionId: p.position_id,
+    position: p.positions?.name ?? null,
   }));
   for (const i of inv ?? []) {
     if (emails.has(i.webmail.toLowerCase())) continue;
@@ -128,9 +136,11 @@ export async function getUsersData(meId: string): Promise<UserRow[]> {
       me: false,
       sys: false,
       assigned: [],
+      positionId: null,
+      position: null,
     });
   }
-  return rows;
+  return { users: rows, positions: positions ?? [] };
 }
 
 export type RepsData = {
@@ -166,8 +176,8 @@ export async function getRepsData(): Promise<RepsData> {
 
 export type ProgsData = {
   colleges: { id: string; code: string; name: string }[];
-  campuses: { id: string; name: string }[];
-  programs: { id: string; name: string; collegeId: string | null; college: string; campus: string; hasRep: boolean }[];
+  campuses: { id: string; name: string; main: boolean }[];
+  programs: { id: string; name: string; collegeId: string | null; college: string; campus: string; alsoAt: string[]; hasRep: boolean }[];
 };
 
 export async function getProgsData(): Promise<ProgsData> {
@@ -179,15 +189,22 @@ export async function getProgsData(): Promise<ProgsData> {
     supabase.from("program_reps").select("program_id"),
   ]);
   const has = new Set((links ?? []).map((l) => l.program_id));
+  const key = (n: string) => n.trim().toLowerCase().replace(/\s+/g, " ");
+  const offered = new Map<string, { id: string; campus: string }[]>();
+  for (const p of programs ?? []) {
+    const k = key(p.name);
+    offered.set(k, [...(offered.get(k) ?? []), { id: p.id, campus: p.campuses?.name ?? "—" }]);
+  }
   return {
     colleges: colleges ?? [],
-    campuses: (campuses ?? []).map((c) => ({ id: c.id, name: c.name })),
+    campuses: (campuses ?? []).map((c) => ({ id: c.id, name: c.name, main: c.is_main })),
     programs: (programs ?? []).map((p) => ({
       id: p.id,
       name: p.name,
       collegeId: p.college_id,
       college: p.colleges?.code ?? "NA",
       campus: p.campuses?.name ?? "—",
+      alsoAt: (offered.get(key(p.name)) ?? []).filter((o) => o.id !== p.id).map((o) => o.campus),
       hasRep: has.has(p.id),
     })),
   };

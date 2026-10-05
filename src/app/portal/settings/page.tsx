@@ -27,7 +27,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       case "setup":
         return <SetupTab data={await getSetupData()} />;
       case "users":
-        return <UsersTab users={await getUsersData(user.id)} />;
+        return <UsersTab {...await getUsersData(user.id)} />;
       case "reps":
         return <RepsTab data={await getRepsData()} sel={sp.rep ?? null} />;
       case "progs":

@@ -10,6 +10,9 @@ import Crumbs, { type Crumb } from "../../kit/Crumbs";
 import FileDrop from "../../kit/FileDrop";
 import FileGrid from "../../kit/FileGrid";
 import FolderIcon from "../../kit/FolderIcon";
+import FolderTable from "../../kit/FolderTable";
+import FolderTile from "../../kit/FolderTile";
+import type { MenuItem } from "../../kit/ItemMenu";
 import FullScreenViewer from "../../kit/FullScreenViewer";
 import Modal from "../../kit/Modal";
 import Pill from "../../kit/Pill";
@@ -17,7 +20,7 @@ import RecentlyDeleted from "../../kit/RecentlyDeleted";
 import Result from "../../kit/Result";
 import SearchBox from "../../kit/SearchBox";
 import useAct from "../../kit/useAct";
-import { FTYPES, type RepoFile, type RepoLoc, type RepoType, type Repository } from "@/lib/repository-model";
+import { FTYPES, type RepoFile, type RepoLoc, type RepoType, type RepoUnit, type Repository } from "@/lib/repository-model";
 import { uploadDirect } from "@/lib/upload-client";
 import { createCopcFolder, deleteCopcFile, deleteCopcFolder, renameCopcFile, renameCopcFolder, restoreCopcFile, uploadCopcFile } from "@/lib/repository-actions";
 import { daysTo, levelName } from "@/lib/qac-model";
@@ -47,6 +50,19 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
     setQ("");
     router.push(`/portal/aaccup-copc${sp.size ? `?${sp}` : ""}`);
   };
+
+  const unitMenu = (u: RepoUnit): { items: MenuItem[]; note?: string } => ({
+    items: [
+      { label: "Rename", disabled: !u.customId, onClick: () => setModal({ k: "renameFolder", id: u.customId!, name: u.name }) },
+      { label: "Delete", danger: true, disabled: !u.customId, onClick: () => setModal({ k: "deleteFolder", id: u.customId!, name: u.name }) },
+    ],
+    note: u.customId ? undefined : "College and campus folders are built in and can’t be renamed or deleted.",
+  });
+  const fileMenu = (f: RepoFile): MenuItem[] => [
+    { label: "View", onClick: () => setModal({ k: "view", f }) },
+    { label: "Rename", onClick: () => setModal({ k: "rename", f }) },
+    { label: "Delete", danger: true, onClick: () => setModal({ k: "delete", f }) },
+  ];
 
   const count = (unit: string, type?: RepoType) => repo.files.filter((f) => f.unit === unit && (!type || f.type === type)).length;
   const T = nav.type ? FTYPES.find((t) => t.key === nav.type)! : null;
@@ -154,7 +170,7 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
       .filter((f) => !ql || `${f.title} ${f.program} ${f.uploadedAt.slice(0, 4)}`.toLowerCase().includes(ql))
       .sort((a, b) => (sort === "name" ? a.title.localeCompare(b.title) : b.uploadedAt.localeCompare(a.uploadedAt)));
     body = L.length && fv === "grid" ? (
-      <FileGrid items={L.map((x) => ({ id: x.id, name: x.title, sub: shortDate(x.uploadedAt) }))} onOpen={(id) => setModal({ k: "view", f: L.find((x) => x.id === id)! })} />
+      <FileGrid items={L.map((x) => ({ id: x.id, name: x.title, sub: shortDate(x.uploadedAt), menu: fileMenu(x) }))} onOpen={(id) => setModal({ k: "view", f: L.find((x) => x.id === id)! })} />
     ) : L.length ? (
       <div className="tscroll">
         <table>
@@ -257,17 +273,18 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
       <div className="fgrid">
         {units.map((u) => {
           const n = count(u.key);
+          const { items, note } = unitMenu(u);
           return (
-            <div key={u.key} className="fold" role="link" onClick={() => go({ unit: u.key })}>
+            <FolderTile key={u.key} onOpen={() => go({ unit: u.key })} items={items} note={note}>
               {u.college ? <FolderIcon college={u.college} /> : <FolderIcon seal />}
               <div className="n">{u.name}</div>
               <small>{n ? `${n} file${n > 1 ? "s" : ""}` : "Empty"}</small>
-            </div>
+            </FolderTile>
           );
         })}
       </div>
     ) : (
-      <FolderTable rows={units.map((u) => ({ key: u.key, name: u.name, n: count(u.key), open: () => go({ unit: u.key }) }))} />
+      <FolderTable rows={units.map((u) => ({ key: u.key, name: u.name, n: count(u.key), open: () => go({ unit: u.key }), ...unitMenu(u) }))} />
     );
   }
 
@@ -321,9 +338,9 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
         />
       )}
       {modal?.k === "renameFolder" && (
-        <RenameFolderModal id={modal.id} name={modal.name} onClose={() => setModal(null)} onDone={(name) => go({ unit: name })} />
+        <RenameFolderModal id={modal.id} name={modal.name} onClose={() => setModal(null)} onDone={(name) => nav.unit && go({ unit: name })} />
       )}
-      {modal?.k === "deleteFolder" && <DeleteFolderModal id={modal.id} name={modal.name} onClose={() => setModal(null)} onDone={() => go({ unit: null, type: null })} />}
+      {modal?.k === "deleteFolder" && <DeleteFolderModal id={modal.id} name={modal.name} onClose={() => setModal(null)} onDone={() => nav.unit && go({ unit: null, type: null })} />}
       {modal?.k === "rename" && <RenameModal f={modal.f} onClose={() => setModal(null)} />}
       {modal?.k === "delete" && <DeleteModal f={modal.f} onClose={() => setModal(null)} />}
       {modal?.k === "view" && T && (
@@ -337,29 +354,6 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
         />
       )}
     </>
-  );
-}
-
-function FolderTable({ rows }: { rows: { key: string; name: string; n: number; open: () => void }[] }) {
-  return (
-    <table>
-      <tbody>
-        <tr>
-          <th>Folder</th>
-          <th>Files</th>
-          <th />
-        </tr>
-        {rows.map((r) => (
-          <tr key={r.key} className="click" onClick={r.open}>
-            <td>📁 {r.name}</td>
-            <td>{r.n}</td>
-            <td style={{ textAlign: "right" }}>
-              <span className="lnk">Open ›</span>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
   );
 }
 

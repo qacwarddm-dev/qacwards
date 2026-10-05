@@ -13,7 +13,7 @@ import SearchBox from "../../../kit/SearchBox";
 import SegTabs from "../../../kit/SegTabs";
 import SumRows from "../../../kit/SumRows";
 import useAct from "../../../kit/useAct";
-import type { ProgsData, RepsData, UserRow } from "@/lib/settings";
+import type { PositionOption, ProgsData, RepsData, UserRow, UsersData } from "@/lib/settings";
 import type { UserRole } from "@/lib/database.types";
 import { attachRepToProgram, detachRepFromProgram, reassignProgramCollege, setUserActive, setUserRole } from "@/lib/admin";
 import { addProgram, deleteInvitation, deleteProgram, deleteUser, editUser, endSessions, inviteUser, resendInvite, sendPasswordReset } from "@/lib/settings-actions";
@@ -22,7 +22,7 @@ import { initialsOf } from "@/lib/program-names";
 const ROLES: UserRole[] = ["qac_admin", "qac_personnel", "internal_accreditor", "program_representative"];
 type UF = "all" | UserRole | "inactive";
 
-export function UsersTab({ users }: { users: UserRow[] }) {
+export function UsersTab({ users, positions }: UsersData) {
   const [f, setF] = useState<UF>("all");
   const [q, setQ] = useState("");
   const [modal, setModal] = useState<null | { k: "invite" } | { k: "role"; u: UserRow; to: UserRole } | { k: "deact" | "edit" | "del"; u: UserRow }>(null);
@@ -85,6 +85,7 @@ export function UsersTab({ users }: { users: UserRow[] }) {
                       ))}
                     </select>
                   )}
+                  {u.position && <small style={{ display: "block", marginTop: 4 }}>{u.position}</small>}
                   {u.ia && u.role !== "internal_accreditor" && (
                     <small style={{ display: "block", marginTop: 4 }}>
                       ＋ second role: <RoleChip role="internal_accreditor" />
@@ -149,7 +150,7 @@ export function UsersTab({ users }: { users: UserRow[] }) {
         ℹ The <b>System account</b> (mailer@) sends emails. It’s a locked service account.
       </div>
       {modal?.k === "invite" && <Invite onClose={() => setModal(null)} />}
-      {modal?.k === "edit" && <EditUser u={modal.u} onClose={() => setModal(null)} />}
+      {modal?.k === "edit" && <EditUser u={modal.u} positions={positions} onClose={() => setModal(null)} />}
       {modal?.k === "role" && (
         <Modal
           title={`Change role of ${modal.u.name}?`}
@@ -348,10 +349,23 @@ function Invite({ onClose }: { onClose: () => void }) {
   );
 }
 
-function EditUser({ u, onClose }: { u: UserRow; onClose: () => void }) {
+const SCOPES: Record<string, PositionOption["scope"][]> = {
+  qac_admin: ["qac"],
+  qac_personnel: ["qac"],
+  program_representative: ["program"],
+  internal_accreditor: ["program", "qac"],
+};
+
+function EditUser({ u, positions, onClose }: { u: UserRow; positions: PositionOption[]; onClose: () => void }) {
   const [surname, setSurname] = useState(u.surname);
   const [given, setGiven] = useState(u.given);
   const [ia, setIa] = useState(u.ia);
+  const [pos, setPos] = useState(u.positionId ?? "");
+  const scopes = SCOPES[u.role] ?? ["program", "qac"];
+  const groups = [
+    { label: "Academic Program", scope: "program" as const },
+    { label: "QAC", scope: "qac" as const },
+  ].map((g) => ({ ...g, items: positions.filter((p) => p.scope === g.scope && (scopes.includes(g.scope) || p.id === u.positionId)) }));
   const { busy, run } = useAct();
   return (
     <Modal
@@ -362,7 +376,7 @@ function EditUser({ u, onClose }: { u: UserRow; onClose: () => void }) {
           <Btn variant="gh" onClick={onClose}>
             Cancel
           </Btn>
-          <Btn disabled={busy} onClick={() => run(() => editUser(u.id, { surname, given, ia }), "User updated", onClose)}>
+          <Btn disabled={busy} onClick={() => run(() => editUser(u.id, { surname, given, ia, positionId: pos || null }), "User updated", onClose)}>
             Save
           </Btn>
         </>
@@ -382,6 +396,24 @@ function EditUser({ u, onClose }: { u: UserRow; onClose: () => void }) {
         PUP webmail
       </label>
       <input className="inp" value={u.email} disabled />
+      <label className="fl" style={{ marginTop: 10 }}>
+        Position
+      </label>
+      <select className="inp" value={pos} onChange={(e) => setPos(e.target.value)}>
+        <option value="">No position set</option>
+        {groups.map(
+          (g) =>
+            g.items.length > 0 && (
+              <optgroup key={g.scope} label={g.label}>
+                {g.items.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </optgroup>
+            ),
+        )}
+      </select>
       {u.role !== "internal_accreditor" && (
         <>
           <label className="fl" style={{ marginTop: 10 }}>
@@ -595,7 +627,10 @@ export function ProgsTab({ data, initialFilter }: { data: ProgsData; initialFilt
                     {L.map((p) => (
                       <tr key={p.id}>
                         <td>{p.name}</td>
-                        <td>{p.campus}</td>
+                        <td>
+                          {p.campus}
+                          {p.alsoAt.length > 0 && <small>Also at {p.alsoAt.join(", ")}</small>}
+                        </td>
                         <td>{p.hasRep ? "Assigned" : <Pill tone="ret">None</Pill>}</td>
                         <td>
                           <select className="inp" style={{ width: "auto" }} value={p.collegeId ?? ""} onChange={(e) => ask(p.id, e.target.value)}>
@@ -655,6 +690,7 @@ export function ProgsTab({ data, initialFilter }: { data: ProgsData; initialFilt
                         <b>{p.name}</b>
                         <small>
                           {p.campus}
+                          {p.alsoAt.length > 0 && <> · also at {p.alsoAt.join(", ")}</>}
                           {!p.hasRep && (
                             <>
                               {" "}
@@ -755,7 +791,7 @@ export function ProgsTab({ data, initialFilter }: { data: ProgsData; initialFilt
 function AddProgram({ data, onClose }: { data: ProgsData; onClose: () => void }) {
   const [n, setN] = useState("");
   const [c, setC] = useState(data.colleges[0]?.id ?? "");
-  const [m, setM] = useState(data.campuses[0]?.id ?? "");
+  const [m, setM] = useState<string[]>(data.campuses.filter((x) => x.main).map((x) => x.id));
   const { busy, run } = useAct();
   return (
     <Modal
@@ -766,7 +802,7 @@ function AddProgram({ data, onClose }: { data: ProgsData; onClose: () => void })
           <Btn variant="gh" onClick={onClose}>
             Cancel
           </Btn>
-          <Btn disabled={busy} onClick={() => run(() => addProgram(n, c, m), "Program added", onClose)}>
+          <Btn disabled={busy} onClick={() => run(() => addProgram(n, c, m), m.length > 1 ? `Program added to ${m.length} campuses` : "Program added", onClose)}>
             Add
           </Btn>
         </>
@@ -786,16 +822,20 @@ function AddProgram({ data, onClose }: { data: ProgsData; onClose: () => void })
             ))}
           </select>
         </div>
-        <div>
-          <label className="fl">Campus</label>
-          <select className="inp" value={m} onChange={(e) => setM(e.target.value)}>
-            {data.campuses.map((x) => (
-              <option key={x.id} value={x.id}>
-                {x.name}
-              </option>
-            ))}
-          </select>
-        </div>
+      </div>
+      <label className="fl" style={{ marginTop: 10 }}>
+        Offered at *
+      </label>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(170px,1fr))", gap: "6px 12px", maxHeight: 190, overflowY: "auto" }}>
+        {data.campuses.map((x) => (
+          <label key={x.id} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13, cursor: "pointer" }}>
+            <input type="checkbox" checked={m.includes(x.id)} onChange={(e) => setM(e.target.checked ? [...m, x.id] : m.filter((id) => id !== x.id))} />
+            {x.name}
+          </label>
+        ))}
+      </div>
+      <div className="sub" style={{ fontSize: 11.5, marginTop: 8 }}>
+        The college applies to the main campus. Each other campus gets its own copy of the program.
       </div>
     </Modal>
   );

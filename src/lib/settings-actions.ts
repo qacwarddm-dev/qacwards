@@ -296,13 +296,17 @@ export async function resendInvite(id: string): Promise<ActionResult> {
   return { ok: true };
 }
 
-export async function editUser(id: string, input: { surname: string; given: string; ia: boolean }): Promise<ActionResult> {
+export async function editUser(id: string, input: { surname: string; given: string; ia: boolean; positionId: string | null }): Promise<ActionResult> {
   if (!(await admin())) return DENIED;
   if (!input.surname.trim() || !input.given.trim()) return { ok: false, error: "Enter the name" };
   const supabase = await createClient();
+  if (input.positionId) {
+    const { data: pos } = await supabase.from("positions").select("id").eq("id", input.positionId).maybeSingle();
+    if (!pos) return { ok: false, error: "Choose a valid position" };
+  }
   const { data, error } = await supabase
     .from("profiles")
-    .update({ surname: input.surname.trim(), given_name: input.given.trim(), is_internal_accreditor: input.ia })
+    .update({ surname: input.surname.trim(), given_name: input.given.trim(), is_internal_accreditor: input.ia, position_id: input.positionId })
     .eq("id", id)
     .select("id");
   if (error) return { ok: false, error: error.message };
@@ -330,15 +334,17 @@ export async function endSessions(target: { session?: string; user?: string }): 
   return { ok: true, data: data ?? 0 };
 }
 
-export async function addProgram(name: string, collegeId: string, campusId: string): Promise<ActionResult> {
+export async function addProgram(name: string, collegeId: string, campusIds: string[]): Promise<ActionResult> {
   if (!(await admin())) return DENIED;
-  const n = name.trim();
+  const n = name.trim().replace(/\s+/g, " ");
   if (!n) return { ok: false, error: "Enter the program name" };
+  if (!campusIds.length) return { ok: false, error: "Choose at least one campus" };
   const supabase = await createClient();
-  const { data: dup } = await supabase.from("programs").select("id").eq("campus_id", campusId).ilike("name", n).limit(1);
-  if (dup?.length) return { ok: false, error: "That program already exists on this campus" };
-  const { error } = await supabase.from("programs").insert({ name: n, college_id: collegeId || null, campus_id: campusId });
-  if (error) return { ok: false, error: error.code === "23505" ? "A deleted program with that name is on this campus. Restore it from Recently Deleted." : error.message };
+  const { data: campuses } = await supabase.from("campuses").select("id, is_main").in("id", campusIds);
+  const { data: dup } = await supabase.from("programs").select("campus_id").in("campus_id", campusIds).ilike("name", n);
+  if (dup?.length) return { ok: false, error: "That program already exists on one of these campuses" };
+  const { error } = await supabase.from("programs").insert((campuses ?? []).map((c) => ({ name: n, college_id: c.is_main ? collegeId || null : null, campus_id: c.id })));
+  if (error) return { ok: false, error: error.code === "23505" ? "A deleted program with that name is on one of these campuses. Restore it from Recently Deleted." : error.message };
   refresh();
   return { ok: true };
 }

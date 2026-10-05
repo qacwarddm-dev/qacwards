@@ -1,18 +1,21 @@
 "use client";
 
-export type FileTileItem = { id: string; name: string; sub?: string };
+import FolderTile from "./FolderTile";
+import type { MenuItem } from "./ItemMenu";
+
+export type FileTileItem = { id: string; name: string; sub?: string; menu?: MenuItem[] };
 
 export default function FileGrid({ items, onOpen }: { items: FileTileItem[]; onOpen: (id: string) => void }) {
   return (
     <div className="fgrid">
       {items.map((f) => (
-        <div key={f.id} className="fold ftile" role="button" tabIndex={0} onClick={() => onOpen(f.id)} onKeyDown={(e) => e.key === "Enter" && onOpen(f.id)}>
+        <FolderTile key={f.id} file onOpen={() => onOpen(f.id)} items={f.menu}>
           <div className="fpg">
             <span className="pdfi">PDF</span>
           </div>
           <div className="n">{f.name}</div>
           {f.sub && <small>{f.sub}</small>}
-        </div>
+        </FolderTile>
       ))}
     </div>
   );
