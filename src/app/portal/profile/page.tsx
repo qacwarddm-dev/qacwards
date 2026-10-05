@@ -23,8 +23,8 @@ export default async function ProfilePage() {
   if (user.role === "program_representative") return <RepProfile p={p} initials={initials} avatarUrl={avatarUrl} />;
 
   if (user.role === "internal_accreditor") {
-    const [areas, mine] = await Promise.all([getExpertiseAreas(), getExpertiseFor(user.id)]);
-    return <IaProfile p={p} initials={initials} avatarUrl={avatarUrl} areas={areas} mine={mine} hasSignature={Boolean(user.signaturePath)} />;
+    const [areas, mine, signatureUrl] = await Promise.all([getExpertiseAreas(), getExpertiseFor(user.id), getSignatureUrl(user.id, user.signaturePath)]);
+    return <IaProfile p={p} initials={initials} avatarUrl={avatarUrl} areas={areas} mine={mine} signatureUrl={signatureUrl} />;
   }
 
   const supabase = await createClient();

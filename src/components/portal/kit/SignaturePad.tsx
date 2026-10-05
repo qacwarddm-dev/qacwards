@@ -140,7 +140,8 @@ export function useSaveSignature() {
 }
 
 /** Internal Accreditor e-signature: Draw / Type / Upload tabs over one canvas. */
-export default function SignatureTabs({ hasSaved }: { hasSaved: boolean }) {
+export default function SignatureTabs({ savedUrl }: { savedUrl: string | null }) {
+  const hasSaved = Boolean(savedUrl);
   const { canvas: padCanvas, width: padWidth, height: padHeight, ...pad } = useSignaturePad(520, 150);
   const { save, busy } = useSaveSignature();
   const [mode, setMode] = useState<Mode>("draw");
@@ -149,6 +150,10 @@ export default function SignatureTabs({ hasSaved }: { hasSaved: boolean }) {
   const file = useRef<HTMLInputElement>(null);
   return (
     <>
+      <div className="sigc" style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", marginBottom: 8, letterSpacing: ".04em" }}>SAVED SIGNATURE</div>
+        {savedUrl ? <img src={savedUrl} alt="Your saved signature" /> : <span className="sub">No signature saved yet</span>}
+      </div>
       <div className="inner">
         <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
           {(["draw", "type", "upload"] as const).map((m) => (

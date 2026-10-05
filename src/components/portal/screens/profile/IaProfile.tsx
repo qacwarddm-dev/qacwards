@@ -17,14 +17,14 @@ export default function IaProfile({
   avatarUrl,
   areas,
   mine,
-  hasSignature,
+  signatureUrl,
 }: {
   p: ProfileView;
   initials: string;
   avatarUrl: string | null;
   areas: { id: string; name: string }[];
   mine: string[];
-  hasSignature: boolean;
+  signatureUrl: string | null;
 }) {
   const photo = usePhoto(p.id);
   const [exp, setExp] = useState<string[]>(mine);
@@ -167,7 +167,7 @@ export default function IaProfile({
         <div className="card">
           <div className="sh">E-SIGNATURE</div>
           <div style={{ fontSize: 12.5, color: "var(--muted)", marginBottom: 12, lineHeight: 1.5 }}>Placed on your evaluation reports when you sign and submit.</div>
-          <SignatureTabs hasSaved={hasSignature} />
+          <SignatureTabs savedUrl={signatureUrl} />
         </div>
       </div>
       {photo.confirmModal}
