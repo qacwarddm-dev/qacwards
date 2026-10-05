@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 export default async function EvaluationPage({
   searchParams,
 }: {
-  searchParams: Promise<{ a?: string; lv?: string; st?: string; ph?: string; ar?: string }>;
+  searchParams: Promise<{ a?: string; lv?: string; ar?: string }>;
 }) {
   const user = await requireCurrentUser();
   const sp = await searchParams;
@@ -20,8 +20,6 @@ export default async function EvaluationPage({
   const selected = sp.a ? (assignments.find((a) => a.id === sp.a) ?? null) : null;
   const view: IaView = {
     lv: sp.lv,
-    st: sp.st === "pre" || sp.st === "req" ? sp.st : undefined,
-    ph: sp.ph ? Number(sp.ph) : undefined,
     ar: sp.ar,
   };
   return (

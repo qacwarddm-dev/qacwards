@@ -1,5 +1,4 @@
 import {
-  allPhaseSlots,
   areaMean,
   countSlots,
   includedAreas,
@@ -49,24 +48,20 @@ export const MIN_DOCS_PCT = 10;
 
 export function iaStats(a: IaAssignment) {
   const r = a.review;
-  if (!r) return { docsPct: 0, evalN: 0, evalPct: 0, pending: 0, returned: 0, ready: false, areaTotal: 0, phaseCounts: countSlots([]), areaCounts: countSlots([]), started: false };
-  const phases = allPhaseSlots(r);
+  if (!r) return { docsPct: 0, evalN: 0, evalPct: 0, pending: 0, returned: 0, ready: false, areaTotal: 0, areaCounts: countSlots([]), started: false };
   const areas = includedAreas(r);
-  const all = countSlots([...phases, ...areas]);
+  const all = countSlots(areas);
   const evalN = areas.filter((s) => s.state === "approved" && ratedCount(a.ratings[s.refId]) === 3).length;
-  const phaseAp = phases.filter((s) => s.state === "approved").length;
-  const total = phases.length + areas.length;
-  const started = Object.keys(a.ratings).length > 0 || [...phases, ...areas].some((s) => s.state === "approved" || s.state === "returned");
+  const started = Object.keys(a.ratings).length > 0 || areas.some((s) => s.state === "approved" || s.state === "returned");
   return {
     docsPct: all.pct,
     evalN,
-    evalPct: total ? Math.round(((phaseAp + evalN) / total) * 100) : 0,
+    evalPct: areas.length ? Math.round((evalN / areas.length) * 100) : 0,
     pending: all.pe,
     returned: all.re,
     ready: areas.every((s) => s.state === "approved" && ratedCount(a.ratings[s.refId]) === 3),
     areaTotal: areas.length,
-    phaseCounts: countSlots(phases),
-    areaCounts: countSlots(areas),
+    areaCounts: all,
     started,
   };
 }

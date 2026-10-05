@@ -24,6 +24,10 @@ const MAX_ATTEMPTS = 5;
  *  past a serverless timeout — the next drain picks up the rest. */
 const BATCH = 25;
 
+/** Lease taken on a row before sending, so two overlapping drains cannot both
+ *  mail it. A drain that dies mid-send frees the row when the lease lapses. */
+const CLAIM_LEASE_MS = 5 * 60_000;
+
 function backoffMinutes(attempts: number): number {
   return Math.min(2 ** attempts, 30);
 }
@@ -42,7 +46,7 @@ export async function drainEmailOutbox(
 
   const { data: rows, error } = await client
     .from("email_outbox")
-    .select("id, to_email, subject, body, attempts")
+    .select("id, to_email, subject, body, attempts, next_attempt_at")
     .eq("status", "pending")
     .lte("next_attempt_at", nowIso)
     .order("created_at")
@@ -54,7 +58,19 @@ export async function drainEmailOutbox(
   let failed = 0;
   let retrying = 0;
 
+  let claimed = 0;
+
   for (const row of rows ?? []) {
+    const { data: won } = await client
+      .from("email_outbox")
+      .update({ next_attempt_at: new Date(Date.now() + CLAIM_LEASE_MS).toISOString() })
+      .eq("id", row.id)
+      .eq("status", "pending")
+      .eq("next_attempt_at", row.next_attempt_at)
+      .select("id");
+    if (!won?.length) continue;
+    claimed += 1;
+
     const result = await sendMail(row.to_email, row.subject, row.body);
 
     if (result.ok) {
@@ -90,5 +106,5 @@ export async function drainEmailOutbox(
     else retrying += 1;
   }
 
-  return { claimed: rows?.length ?? 0, sent, retrying, failed };
+  return { claimed, sent, retrying, failed };
 }

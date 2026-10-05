@@ -1,3 +1,5 @@
+import { after } from "next/server";
+import { flushEmailOutbox } from "@/lib/email-flush";
 import { createClient } from "@/lib/supabase/server";
 
 export type PortalNotification = {
@@ -54,6 +56,7 @@ export type BellData = {
 
 export async function getNotifications(limit = 20): Promise<BellData> {
   const supabase = await createClient();
+  after(flushEmailOutbox);
 
   const [{ data }, { count }] = await Promise.all([
     supabase

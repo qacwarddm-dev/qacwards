@@ -148,7 +148,11 @@ export default function UploadFlow({
   const tpl: TemplateFile = own ?? general;
   const lastReturn = [...slot.history].reverse().find((h) => h.tone === "rev");
   const title = t.mode === "resubmit" ? "Resubmit document" : t.mode === "replace" ? "Replace file" : "Upload document";
-  const draftName = t.mode === "draft" ? slot.draftFile : null;
+  const canAutosave = t.mode === "new" || t.mode === "draft";
+  const [saved, setSaved] = useState<{ id: string; name: string; from: File | null } | null>(
+    t.mode === "draft" && slot.draftId && slot.draftFile ? { id: slot.draftId, name: slot.draftFile, from: null } : null,
+  );
+  const [saving, setSaving] = useState(false);
 
   async function submissionId() {
     if (t.submissionId) return t.submissionId;
@@ -160,38 +164,41 @@ export default function UploadFlow({
     return r.submissionId;
   }
 
-  function form(sid: string, draft: boolean) {
+  function form(sid: string) {
     const f = new FormData();
     f.set("file", main!.file);
-    if (extra && !draft) f.set("additional", extra.file);
+    if (extra) f.set("additional", extra.file);
     f.set("submissionId", sid);
     f.set(slot.kind === "phase" ? "phaseDocumentId" : "requirementAreaId", slot.refId);
     if (slot.docId && (t.mode === "resubmit" || t.mode === "replace")) f.set("supersedesId", slot.docId);
     f.set("title", main!.file.name);
-    if (draft) f.set("isDraft", "1");
     if (note.trim()) f.set("note", note.trim());
     return f;
   }
 
-  async function saveDraft() {
-    if (!main || main.error) {
-      setMissing(true);
-      return;
-    }
+  async function autosave(file: File) {
+    setSaving(true);
     const sid = await submissionId();
-    if (!sid) return;
-    const r = await post(form(sid, true), () => {}, () => {});
-    if (!r.ok) return toast.say(String(r.body.error ?? "Could not save the draft."), true);
-    onClose();
-    toast.say("Draft saved. It isn’t submitted yet.");
+    if (!sid) return setSaving(false);
+    const f = new FormData();
+    f.set("file", file);
+    f.set("submissionId", sid);
+    f.set(slot.kind === "phase" ? "phaseDocumentId" : "requirementAreaId", slot.refId);
+    f.set("title", file.name);
+    f.set("isDraft", "1");
+    const r = await post(f, () => {}, () => {});
+    setSaving(false);
+    if (!r.ok) return toast.say(String(r.body.error ?? "Could not save the file."), true);
+    setSaved({ id: String(r.body.id), name: file.name, from: file });
     router.refresh();
   }
 
   async function upload() {
-    if (!main && draftName && slot.draftId) {
-      const r = await submitDraft(slot.draftId, note);
+    const reuse = saved && !extra && (!main || saved.from === main.file);
+    if (reuse) {
+      const r = await submitDraft(saved.id, note);
       if (!r.ok) return toast.say(r.error, true);
-      setDone([draftName]);
+      setDone([saved.name]);
       setStage("success");
       router.refresh();
       return;
@@ -204,7 +211,7 @@ export default function UploadFlow({
     setRows(files.map((f) => ({ name: f.name, size: size(f.size), pct: 0, state: "up" })));
     setStage("uploading");
     const r = await post(
-      form(sid, false),
+      form(sid),
       (p) => setRows((rs) => rs.map((x) => ({ ...x, pct: p }))),
       () => setRows((rs) => rs.map((x) => ({ ...x, pct: 100, state: "check" }))),
     );
@@ -229,13 +236,14 @@ export default function UploadFlow({
     if (k === "main") {
       setMain(p);
       setMissing(false);
+      if (canAutosave && !p.error) void autosave(f);
     } else setExtra(p);
   };
 
   const fslot = (k: "main" | "extra") => {
     const p = k === "main" ? main : extra;
     const label = k === "main" ? "File" : "Additional document";
-    const shown = p ? p.file.name : k === "main" && draftName ? draftName : null;
+    const shown = p ? p.file.name : k === "main" && saved ? saved.name : null;
     const err = p?.error ?? (k === "main" && missing ? "Choose a file to upload" : null);
     const docx = shown?.toLowerCase().endsWith(".docx");
     return (
@@ -251,7 +259,7 @@ export default function UploadFlow({
             {shown ? (
               <>
                 <b>{shown}</b>
-                <small>{p ? size(p.file.size) : "Saved draft"}</small>
+                <small>{k === "main" && saving ? "Saving…" : p ? size(p.file.size) + (k === "main" && saved?.from === p.file ? " · Saved" : "") : "Saved"}</small>
               </>
             ) : (
               <span style={{ color: "var(--muted)" }}>No file chosen</span>
@@ -360,12 +368,7 @@ export default function UploadFlow({
           <Btn variant="gh" onClick={onClose}>
             Cancel
           </Btn>
-          {(t.mode === "new" || t.mode === "draft") && (
-            <Btn variant="o" onClick={saveDraft}>
-              Save draft
-            </Btn>
-          )}
-          <Btn onClick={upload}>{t.mode === "resubmit" ? "Resubmit" : "Upload"}</Btn>
+          <Btn disabled={saving} onClick={upload}>{t.mode === "resubmit" ? "Resubmit" : "Upload"}</Btn>
         </>
       }
     >

@@ -113,8 +113,6 @@
   "120": "claude-code-handoff/hooks/live-handoff.sh",
   "121": "claude-code-handoff/hooks/post-edit-hook.sh",
   "122": "claude-code-handoff/hooks/pre-compact.sh",
-  "123": "Navbar.tsx",
-  "124": "rep-portal.ts",
   "128": ".claude/hooks/pre-compact-handoff.sh",
   "129": ".claude/hooks/session-start.sh",
   "130": "extraction-spec.md",

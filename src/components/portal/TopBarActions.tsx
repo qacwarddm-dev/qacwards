@@ -10,7 +10,7 @@ import { useToast } from "./kit/ToastProvider";
 import type { PortalNotification } from "@/lib/notifications";
 import type { PortalUser } from "./portal-nav";
 import { createClient } from "@/lib/supabase/browser";
-import { markAllNotificationsRead, markNotificationRead } from "@/lib/notification-actions";
+import { markAllNotificationsRead, markNotificationRead, refreshBell } from "@/lib/notification-actions";
 
 const KIND: Record<string, [string, string]> = {
   assignment_issued: ["👥", "#e8eefb"],
@@ -23,6 +23,8 @@ const KIND: Record<string, [string, string]> = {
   award_expiring: ["⚠", "#fdecec"],
   account: ["🪪", "#fdecec"],
 };
+
+const POLL_MS = 30_000;
 
 const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -45,7 +47,7 @@ export function openCommandPalette() {
 export default function TopBarActions({
   user,
   initials,
-  items,
+  items: initial,
   search,
 }: {
   user: PortalUser;
@@ -53,11 +55,36 @@ export default function TopBarActions({
   items: PortalNotification[];
   search: boolean;
 }) {
+  const [items, setItems] = useState(initial);
   const [open, setOpen] = useState<"nd" | "menu" | null>(null);
   const [tab, setTab] = useState<"all" | "unread">("all");
   const [, start] = useBusy();
   const router = useNav();
   const toast = useToast();
+  useEffect(() => setItems(initial), [initial]);
+
+  useEffect(() => {
+    let busy = false;
+    const poll = async () => {
+      if (busy || document.visibilityState !== "visible") return;
+      busy = true;
+      try {
+        setItems((await refreshBell()).items);
+      } catch {
+      } finally {
+        busy = false;
+      }
+    };
+    const timer = setInterval(poll, POLL_MS);
+    document.addEventListener("visibilitychange", poll);
+    window.addEventListener("focus", poll);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", poll);
+      window.removeEventListener("focus", poll);
+    };
+  }, []);
+
   const unread = items.filter((n) => n.unread).length;
 
   useEffect(() => {

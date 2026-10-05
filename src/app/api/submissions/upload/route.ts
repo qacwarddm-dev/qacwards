@@ -178,7 +178,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: insertError.message }, { status: 403 });
   }
 
+  const slotColumn = body.phaseDocumentId ? "phase_document_id" : "requirement_area_id";
+  const slotValue = (body.phaseDocumentId ?? body.requirementAreaId)!;
+  const staleDrafts = async () => {
+    const { data: drafts } = await supabase
+      .from("submission_documents")
+      .select("id, storage_path")
+      .eq("submission_id", body.submissionId)
+      .eq(slotColumn, slotValue)
+      .eq("is_draft", true)
+      .neq("id", inserted.id);
+    if (drafts?.length) {
+      await supabase.from("submission_documents").delete().in("id", drafts.map((d) => d.id));
+      await supabase.storage.from(BUCKETS.submissions).remove(drafts.map((d) => d.storage_path));
+    }
+  };
+
   if (body.isDraft) {
+    await staleDrafts();
     return NextResponse.json({ id: inserted.id, docUuid, pageCount, draft: true });
   }
 
@@ -189,18 +206,7 @@ export async function POST(request: NextRequest) {
       .eq("id", body.supersedesId);
   }
 
-  // A real upload replaces any draft saved for the same slot.
-  const slotColumn = body.phaseDocumentId ? "phase_document_id" : "requirement_area_id";
-  const { data: drafts } = await supabase
-    .from("submission_documents")
-    .select("id, storage_path")
-    .eq("submission_id", body.submissionId)
-    .eq(slotColumn, (body.phaseDocumentId ?? body.requirementAreaId)!)
-    .eq("is_draft", true);
-  if (drafts?.length) {
-    await supabase.from("submission_documents").delete().in("id", drafts.map((d) => d.id));
-    await supabase.storage.from(BUCKETS.submissions).remove(drafts.map((d) => d.storage_path));
-  }
+  await staleDrafts();
 
   // First upload moves a submission off not_started. Only that transition, and
   // only in that direction — everything else belongs to the workflow, not here.

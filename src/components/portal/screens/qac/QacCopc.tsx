@@ -8,6 +8,7 @@ import CertStatusSelect, { CSTAT, certLevel } from "../../kit/CertStatusSelect";
 import { CardHead } from "../../kit/Card";
 import Crumbs, { type Crumb } from "../../kit/Crumbs";
 import FileDrop from "../../kit/FileDrop";
+import FileGrid from "../../kit/FileGrid";
 import FolderIcon from "../../kit/FolderIcon";
 import FullScreenViewer from "../../kit/FullScreenViewer";
 import Modal from "../../kit/Modal";
@@ -30,7 +31,10 @@ type Nav = { loc: RepoLoc | null; unit: string | null; type: RepoType | null };
 export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: Nav; today: string }) {
   const router = useNav();
   const [q, setQ] = useState("");
-  const [fv, setFv] = useState<"grid" | "list">("grid");
+  const [folderMode, setFolderMode] = useState<"grid" | "list">("grid");
+  const [fileMode, setFileMode] = useState<"grid" | "list">("list");
+  const fv = nav.type ? fileMode : folderMode;
+  const setFv = nav.type ? setFileMode : setFolderMode;
   const [sort, setSort] = useState<"name" | "date">("name");
   const [modal, setModal] = useState<null | { k: "folder" } | { k: "upload" } | { k: "rename" | "delete" | "view"; f: RepoFile } | { k: "renameFolder" | "deleteFolder"; id: string; name: string }>(null);
 
@@ -149,7 +153,9 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
       .filter((f) => f.unit === nav.unit && f.type === T.key)
       .filter((f) => !ql || `${f.title} ${f.program} ${f.uploadedAt.slice(0, 4)}`.toLowerCase().includes(ql))
       .sort((a, b) => (sort === "name" ? a.title.localeCompare(b.title) : b.uploadedAt.localeCompare(a.uploadedAt)));
-    body = L.length ? (
+    body = L.length && fv === "grid" ? (
+      <FileGrid items={L.map((x) => ({ id: x.id, name: x.title, sub: shortDate(x.uploadedAt) }))} onOpen={(id) => setModal({ k: "view", f: L.find((x) => x.id === id)! })} />
+    ) : L.length ? (
       <div className="tscroll">
         <table>
           <thead>

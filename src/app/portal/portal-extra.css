@@ -24,3 +24,11 @@
 .qp .mb16{margin-bottom:16px}
 .qp .calw .dayp{max-height:560px;overflow-y:auto}
 .qp .pcard .pdel{margin-left:auto}
+.qp .stepsr{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px;counter-reset:sr}
+.qp .stepsr li{display:flex;gap:12px;align-items:flex-start;counter-increment:sr}
+.qp .stepsr li::before{content:counter(sr);flex:none;width:26px;height:26px;border-radius:50%;background:var(--maroon);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.qp .stepsr b{display:block;font-size:13.5px}
+.qp .stepsr span{display:block;font-size:12.5px;color:var(--muted);margin-top:2px}
+.qp .ftile .fpg{width:72px;height:92px;margin:0 auto;border:1px solid var(--line);border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;transition:transform .15s}
+.qp .ftile:hover .fpg{transform:translateY(-3px)}
+.qp .ftile .n{word-break:break-word}

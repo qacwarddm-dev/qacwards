@@ -70,15 +70,18 @@ export async function checkNdaScan(bytes: Uint8Array, fileId: string): Promise<N
     return { ok: false, error: "This file belongs to a different NDA File ID." };
   }
 
-  const { PDFParse } = await import("pdf-parse");
-  const parser = new PDFParse({ data: bytes.slice() });
   let text = "";
   try {
-    text = (await parser.getText()).text ?? "";
+    const { PDFParse } = await import("pdf-parse");
+    const parser = new PDFParse({ data: bytes.slice() });
+    try {
+      const read = parser.getText({ first: 3 }).then((r) => r.text ?? "");
+      text = await Promise.race([read, new Promise<string>((res) => setTimeout(() => res(""), 6000))]);
+    } finally {
+      await parser.destroy().catch(() => {});
+    }
   } catch {
     text = "";
-  } finally {
-    await parser.destroy().catch(() => {});
   }
 
   const textIds = [...text.matchAll(/QAC-NDA-[0-9A-Z]{4}-[0-9A-Z]{4}/g)].map((m) => m[0]);

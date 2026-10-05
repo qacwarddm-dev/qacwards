@@ -26,6 +26,15 @@ const MAX_NDA_BYTES = 10 * 1024 * 1024;
 const NOTARIAL_NUMBER = /^[0-9]{1,6}$|^[IVXLCDM]{1,10}$/i;
 
 export async function uploadNda(formData: FormData): Promise<ActionResult> {
+  try {
+    return await saveNda(formData);
+  } catch (e) {
+    console.error("uploadNda failed", e);
+    return { ok: false, error: "We couldn’t process that file. Make sure it is a PDF scan under 10 MB and try again." };
+  }
+}
+
+async function saveNda(formData: FormData): Promise<ActionResult> {
   const supabase = await createClient();
 
   const {

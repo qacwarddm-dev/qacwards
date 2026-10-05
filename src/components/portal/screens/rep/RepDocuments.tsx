@@ -6,12 +6,14 @@ import useBusy from "../../kit/useBusy";
 import BackLink from "../../kit/BackLink";
 import Btn from "../../kit/Btn";
 import Empty from "../../kit/Empty";
+import FileGrid from "../../kit/FileGrid";
 import FileViewModal from "../../kit/FileViewModal";
 import FolderIcon from "../../kit/FolderIcon";
 import Icon from "../../kit/Icon";
 import Pill from "../../kit/Pill";
 import SegTabs from "../../kit/SegTabs";
 import { MiniRing } from "../../kit/Spinner";
+import StepsReminder from "../../kit/StepsReminder";
 import StatTile, { StatGrid } from "../../kit/StatTile";
 import { useToast } from "../../kit/ToastProvider";
 import { TemplatePreview } from "../../kit/UploadFlow";
@@ -182,6 +184,7 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
   const [view, setView] = useState<{ title: string; src: string | null; own?: boolean } | null>(null);
   const [pending, start] = useBusy();
   const [opening, setOpening] = useState(false);
+  const [reminder, setReminder] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const toast = useToast();
   const router = useRouter();
@@ -218,10 +221,14 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
       const path = `${data.user.id}/nda-${crypto.randomUUID()}.pdf`;
       fd.set("path", path);
       fd.set("fileName", file!.name);
-      const up = await uploadDirect("ndas", path, file!, "application/pdf");
-      if (!up.ok) return toast.say(up.error, true);
-      const r = await uploadNda(fd);
-      if (!r.ok) return toast.say(r.error, true);
+      try {
+        const up = await uploadDirect("ndas", path, file!, "application/pdf");
+        if (!up.ok) return toast.say(up.error, true);
+        const r = await uploadNda(fd);
+        if (!r.ok) return toast.say(r.error, true);
+      } catch {
+        return toast.say("The upload failed. Check your connection and try again.", true);
+      }
       toast.say("NDA submitted for verification");
       router.refresh();
     });
@@ -341,7 +348,16 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
         <div className="ndsep" />
         <div className="nds">
           <span className="lb">STEP 1</span>
-          <a className={`nbtn o${downloaded ? " done" : ""}`} href="/api/documents/nda-template" onClick={() => setTimeout(() => setDownloaded(true), 50)}>
+          <a
+            className={`nbtn o${downloaded ? " done" : ""}`}
+            href="/api/documents/nda-template"
+            onClick={() =>
+              setTimeout(() => {
+                setDownloaded(true);
+                setReminder(true);
+              }, 50)
+            }
+          >
             {downloaded ? (
               "✓ Downloaded"
             ) : (
@@ -351,7 +367,7 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
             )}
           </a>
           {downloaded && (
-            <a className="mini-l" href="/api/documents/nda-template">
+            <a className="mini-l" href="/api/documents/nda-template" onClick={() => setTimeout(() => setReminder(true), 50)}>
               Download again
             </a>
           )}
@@ -391,6 +407,19 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
           <input ref={input} type="file" accept="application/pdf,.pdf" hidden onChange={(e) => pick(e.target.files?.[0])} />
         </div>
       </div>
+      {reminder && (
+        <StepsReminder
+          title="NDA downloaded"
+          sub="Complete these steps before you upload"
+          onClose={() => setReminder(false)}
+          steps={[
+            { title: "Print and sign", text: "Print the form and sign it where indicated." },
+            { title: "Have it notarized", text: "Bring the signed form to a notary public and have it notarized." },
+            { title: "Scan the notarized copy", text: "Scan the whole document and save it as a PDF (max 10 MB)." },
+            { title: "Upload it here", text: "Click Upload Signed Copy, enter the NDA File ID and notarial details, then submit." },
+          ]}
+        />
+      )}
       {file && (
         <div className="form">
           <div style={{ fontSize: 12, color: "var(--muted)" }}>Enter the NDA File ID printed at the top of the form and the notarial details stamped by the notary public.</div>
@@ -458,7 +487,8 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
 
 function Reports({ data, me }: { data: RepDocumentsData; me: string }) {
   const [q, setQ] = useState("");
-  const [fv, setFv] = useState<"grid" | "list">("grid");
+  const [folderMode, setFolderMode] = useState<"grid" | "list">("grid");
+  const [fileMode, setFileMode] = useState<"grid" | "list">("list");
   const [sort, setSort] = useState<"name" | "date">("name");
   const [dir, setDir] = useState<"asc" | "desc">("asc");
   const [menu, setMenu] = useState(false);
@@ -473,6 +503,14 @@ function Reports({ data, me }: { data: RepDocumentsData; me: string }) {
     return L;
   }, [data.folders, ql, sort, dir]);
   const cur = data.folders.find((f) => f.id === folder);
+  const fv = cur ? fileMode : folderMode;
+  const setFv = cur ? setFileMode : setFolderMode;
+  const files = useMemo(() => {
+    const L = (cur?.files ?? []).filter((x) => !ql || `${x.name} ${x.iso.slice(0, 4)}`.toLowerCase().includes(ql));
+    L.sort((a, b) => (sort === "name" ? a.name.localeCompare(b.name) : a.iso.localeCompare(b.iso)));
+    if (dir === "desc") L.reverse();
+    return L;
+  }, [cur, ql, sort, dir]);
 
   return (
     <>
@@ -525,7 +563,9 @@ function Reports({ data, me }: { data: RepDocumentsData; me: string }) {
             </div>
             <BackLink to="Reports" onClick={() => setFolder(null)} />
           </div>
-          {cur.files.filter((x) => !ql || `${x.name} ${x.iso.slice(0, 4)}`.toLowerCase().includes(ql)).length ? (
+          {files.length && fv === "grid" ? (
+            <FileGrid items={files.map((x) => ({ id: x.id, name: x.name, sub: x.date }))} onOpen={(id) => setView({ title: files.find((x) => x.id === id)!.name, id })} />
+          ) : files.length ? (
             <table>
               <tbody>
                 <tr>
@@ -535,9 +575,7 @@ function Reports({ data, me }: { data: RepDocumentsData; me: string }) {
                   <th>Size</th>
                   <th />
                 </tr>
-                {cur.files
-                  .filter((x) => !ql || `${x.name} ${x.iso.slice(0, 4)}`.toLowerCase().includes(ql))
-                  .map((x) => (
+                {files.map((x) => (
                     <tr key={x.id} className="click" onClick={() => setView({ title: x.name, id: x.id })}>
                       <td>
                         <span className="pdfi">PDF</span> {x.name}

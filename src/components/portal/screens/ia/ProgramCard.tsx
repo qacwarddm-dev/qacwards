@@ -12,7 +12,7 @@ export default function ProgramCard({ a }: { a: IaAssignment }) {
       <div className="pn">
         <b>{a.mid}</b>
         <small className="pcamp">
-          📍 {a.campus} campus · {a.college}
+          📍 {a.campus} · {a.college}
         </small>
         <small>
           {a.levelName} · <Pill tone={signed ? "pg" : "py"}>{signed ? "Submitted" : st.t}</Pill> · Visit {a.visitLabel}

@@ -34,7 +34,7 @@ const REP_STEPS: Step[] = [
 const REP_FAQ: Faq[] = [
   ["Documents", "Can I download the templates?", <>No. Templates in <b>Documents → Templates</b> are view only. To create the document, open <b>Accreditation → Upload</b>; the blank PUP template is provided there.</>],
   ["Upload", "Why was my file rejected?", "The system only accepts PDF files up to 25 MB. Word files and PDFs that are corrupt or password-protected are rejected. Documents don’t have to use the PUP template, so your program’s own template is fine."],
-  ["Upload", "Can I save and finish later?", <>Yes. Use <b>Save draft</b> in the upload window. Drafts are not submitted until you click Upload.</>],
+  ["Upload", "Can I save and finish later?", <>Yes. A file is saved automatically as soon as you choose it, and other representatives of your program can see it. It is not submitted until you click Upload.</>],
   ["Feedback", "What does “Needs revision” mean?", <>An internal accreditor asked for changes. Open <b>Feedback → From Accreditors</b> to read the comment, then <b>Resubmit</b> the revised file.</>],
   ["Readiness", "How is the readiness % computed?", "Documents uploaded and not returned (approved + for review) divided by all required documents for that level."],
   ["Evaluations", "Where are the evaluation forms?", <>After each visit they pop up on your Dashboard. You can also find them anytime under <b>Feedback → Your evaluations</b>.</>],

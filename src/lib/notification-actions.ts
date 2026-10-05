@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getNotifications, type BellData } from "@/lib/notifications";
 
 /**
  * The only two writes a user makes to their own bell.
@@ -43,4 +44,8 @@ export async function markAllNotificationsRead(): Promise<ActionResult> {
 
   revalidatePath("/portal", "layout");
   return { ok: true };
+}
+
+export async function refreshBell(): Promise<BellData> {
+  return getNotifications(30);
 }
