@@ -1,6 +1,7 @@
 export { default as AccreditorChips } from "./AccreditorChips";
 export { default as ArchiveBrowser } from "./ArchiveBrowser";
 export { default as ArchiveCompare } from "./ArchiveCompare";
+export { default as ArchiveCycles } from "./ArchiveCycles";
 export { default as ArchiveDetail } from "./ArchiveDetail";
 export { default as ArchiveList } from "./ArchiveList";
 export { default as ActLink } from "./ActLink";

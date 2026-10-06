@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { areaLabel, personName, programShort, shortDate } from "@/lib/program-names";
 import { levelName } from "@/lib/qac-model";
-import type { ArchiveDetail, ArchiveEntry, ArchiveFile, ArchiveIssue } from "@/lib/archive-model";
+import type { ArchiveCycle, ArchiveDetail, ArchiveEntry, ArchiveFile, ArchiveIssue } from "@/lib/archive-model";
 
 export * from "@/lib/archive-model";
 
@@ -90,7 +90,7 @@ export async function getArchive(): Promise<ArchiveEntry[]> {
       `assignment_id, outcome, compliance_status, score, evaluated_at,
        assignments!inner(id, created_at, site_visit_date, submission_id,
          assignment_accreditors(response, profiles(surname, given_name)),
-         submissions!inner(id, program_id, level_id,
+         submissions!inner(id, program_id, level_id, cycle_id,
            accreditation_cycles(name),
            programs(name, campuses(name), colleges(code, name)),
            accreditation_levels(code)))`,
@@ -120,6 +120,7 @@ export async function getArchive(): Promise<ArchiveEntry[]> {
       levelCode: code,
       level: levelName(code),
       cycle: s.accreditation_cycles?.name ?? "—",
+      cycleId: s.cycle_id,
       visit: a.site_visit_date ? shortDate(a.site_visit_date) : null,
       visitDay: a.site_visit_date,
       accreditors: (a.assignment_accreditors ?? []).filter((m) => m.response === "accepted" && m.profiles).map((m) => personName(m.profiles)),
@@ -171,6 +172,27 @@ async function attachFiles(supabase: Supabase, entries: ArchiveEntry[], levelIds
     }
   }
   for (const e of entries) e.files.sort((a, b) => (a.kind === b.kind ? 0 : a.kind === "Certificate" ? -1 : 1));
+}
+
+export async function getArchiveCycles(entries: ArchiveEntry[]): Promise<ArchiveCycle[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("accreditation_cycles")
+    .select("id, name, start_date, end_date, closed_at, profiles:closed_by(surname, given_name)")
+    .eq("status", "closed")
+    .order("end_date", { ascending: false });
+  const rows = data ?? [];
+  const sizes = await Promise.all(rows.map((c) => supabase.from("submissions").select("id", { count: "exact", head: true }).eq("cycle_id", c.id)));
+  return rows.map((c, i) => ({
+    id: c.id,
+    name: c.name,
+    start: c.start_date,
+    end: c.end_date,
+    closedAt: c.closed_at,
+    closedBy: c.profiles ? personName(c.profiles) : null,
+    programs: sizes[i].count ?? 0,
+    archived: entries.filter((e) => e.cycleId === c.id).length,
+  }));
 }
 
 export async function getArchiveDetail(assignmentId: string): Promise<ArchiveDetail | null> {

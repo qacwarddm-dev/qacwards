@@ -7,8 +7,8 @@ import Card, { CardHead } from "../../../kit/Card";
 import Empty from "../../../kit/Empty";
 import Modal from "../../../kit/Modal";
 import Pill from "../../../kit/Pill";
-import SumRows from "../../../kit/SumRows";
 import useAct from "../../../kit/useAct";
+import useNav from "../../../kit/nav";
 import type { CyclesData, SetupData } from "@/lib/settings";
 import type { Rules } from "@/lib/settings-model";
 import { addArea, addPhaseDoc, closeCycle, extendCycle, openCycle, removeArea, removePhaseDoc, saveSetting } from "@/lib/settings-actions";
@@ -18,8 +18,9 @@ const days = (iso: string, today: string) => Math.round((new Date(iso).getTime()
 
 export function CyclesTab({ data }: { data: CyclesData }) {
   const open = data.cycles.find((c) => c.status === "open");
-  const [modal, setModal] = useState<null | "new" | "close" | "extend" | { archive: CyclesData["cycles"][number] }>(null);
+  const [modal, setModal] = useState<null | "new" | "close" | "extend">(null);
   const { toast } = useAct();
+  const nav = useNav();
   const pct = open ? Math.max(0, Math.min(100, Math.round(((new Date(data.today).getTime() - new Date(open.start).getTime()) / (new Date(open.end).getTime() - new Date(open.start).getTime())) * 100))) : 0;
   return (
     <Card>
@@ -98,7 +99,7 @@ export function CyclesTab({ data }: { data: CyclesData }) {
                   {c.closedBy && <small>{c.closedBy}</small>}
                 </td>
                 <td style={{ textAlign: "right" }}>
-                  <Btn variant="gh" sm onClick={() => setModal({ archive: c })}>
+                  <Btn variant="gh" sm onClick={() => nav.push(`/portal/archive?cycle=${c.id}`)}>
                     View archive
                   </Btn>
                 </td>
@@ -113,34 +114,25 @@ export function CyclesTab({ data }: { data: CyclesData }) {
           )}
         </tbody>
       </table>
-      {modal === "new" && <NewCycle onClose={() => setModal(null)} />}
+      {modal === "new" && <NewCycle existing={data.cycles.map((c) => c.name)} onClose={() => setModal(null)} />}
       {modal === "close" && open && <CloseCycle id={open.id} name={open.name} inproc={data.inproc} onClose={() => setModal(null)} />}
       {modal === "extend" && open && <ExtendCycle id={open.id} name={open.name} end={open.end} onClose={() => setModal(null)} />}
-      {modal && typeof modal === "object" && (
-        <Modal title={modal.archive.name} sub="Read-only archive" onClose={() => setModal(null)} footer={<Btn onClick={() => setModal(null)}>Close</Btn>}>
-          <SumRows
-            rows={[
-              ["Window", `${shortDate(modal.archive.start)} – ${shortDate(modal.archive.end)}`],
-              ["Closed", modal.archive.closedAt ? shortDate(modal.archive.closedAt) : "—"],
-              ["Closed by", modal.archive.closedBy ?? "—"],
-            ]}
-          />
-          <p className="sub" style={{ marginTop: 10, fontSize: 12 }}>
-            Submissions from this cycle stay visible in Accreditation and Reports as read-only history.
-          </p>
-        </Modal>
-      )}
     </Card>
   );
 }
 
-function NewCycle({ onClose }: { onClose: () => void }) {
-  const y = new Date().getFullYear();
-  const [name, setName] = useState(`AY ${y}-${y + 1} Accreditation Cycle`);
+const cycleName = (y: number) => `AY ${y}-${y + 1} Accreditation Cycle`;
+
+function NewCycle({ existing, onClose }: { existing: string[]; onClose: () => void }) {
+  const taken = (n: string) => existing.some((x) => x.trim().toLowerCase() === n.trim().toLowerCase());
+  let y = new Date().getFullYear();
+  while (taken(cycleName(y))) y++;
+  const [name, setName] = useState(cycleName(y));
   const [a, setA] = useState(`${y}-08-01`);
   const [b, setB] = useState(`${y + 1}-05-31`);
   const [carry, setCarry] = useState(true);
   const { busy, run } = useAct();
+  const dup = taken(name);
   return (
     <Modal
       title="New accreditation cycle"
@@ -150,7 +142,7 @@ function NewCycle({ onClose }: { onClose: () => void }) {
           <Btn variant="gh" onClick={onClose}>
             Cancel
           </Btn>
-          <Btn disabled={busy} onClick={() => run(() => openCycle({ name, start: a, end: b, carry }), "New cycle opened", onClose)}>
+          <Btn disabled={busy || dup} onClick={() => run(() => openCycle({ name, start: a, end: b, carry }), "New cycle opened", onClose)}>
             Open cycle
           </Btn>
         </>
@@ -158,6 +150,11 @@ function NewCycle({ onClose }: { onClose: () => void }) {
     >
       <label className="fl">Name</label>
       <input className="inp" value={name} onChange={(e) => setName(e.target.value)} />
+      {dup && (
+        <p className="sub" style={{ color: "var(--red)", fontSize: 12, marginTop: 4 }}>
+          A cycle with this name already exists. Use a different name.
+        </p>
+      )}
       <div className="fg2">
         <div>
           <label className="fl">Opens</label>
@@ -190,7 +187,7 @@ function CloseCycle({ id, name, inproc, onClose }: { id: string; name: string; i
           <Btn variant="gh" onClick={onClose}>
             Cancel
           </Btn>
-          <Btn variant="d" disabled={conf !== "CLOSE" || busy} onClick={() => run(() => closeCycle(id, bk), "Cycle closed. Submissions are now read-only.", onClose)}>
+          <Btn variant="d" disabled={conf !== "CLOSE" || busy} onClick={() => run(() => closeCycle(id, bk), "Cycle closed and moved to the Accreditation Archive. Submissions are now read-only.", onClose)}>
             {busy ? "Closing…" : "Close cycle"}
           </Btn>
         </>
@@ -203,7 +200,7 @@ function CloseCycle({ id, name, inproc, onClose }: { id: string; name: string; i
         </div>
       </div>
       <label className="chk2">
-        <input type="checkbox" checked={bk} onChange={(e) => setBk(e.target.checked)} /> Create a backup first (recommended)
+        <input type="checkbox" checked={bk} onChange={(e) => setBk(e.target.checked)} /> Create a backup first (recommended). The cycle still closes if the backup fails.
       </label>
       <label className="fl" style={{ marginTop: 12 }}>
         Type <b>CLOSE</b> to confirm

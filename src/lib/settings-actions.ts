@@ -8,7 +8,7 @@ import { BUCKETS, uploadFile } from "@/lib/storage";
 import { DEFAULTS, type SettingKey } from "@/lib/settings-model";
 import type { UserRole } from "@/lib/database.types";
 
-export type ActionResult = { ok: true } | { ok: false; error: string };
+export type ActionResult = { ok: true; notice?: string } | { ok: false; error: string };
 export type DataResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
 const BACKUP_TABLES = [
@@ -91,13 +91,19 @@ export async function openCycle(input: { name: string; start: string; end: strin
   if (!name || !input.start || !input.end) return { ok: false, error: "Enter the name and both dates." };
   if (input.end < input.start) return { ok: false, error: "The closing date cannot fall before the opening date." };
   const supabase = await createClient();
+  const { data: existing } = await supabase.from("accreditation_cycles").select("name");
+  if ((existing ?? []).some((c) => c.name.trim().toLowerCase() === name.toLowerCase())) return { ok: false, error: `A cycle named “${name}” already exists. Use a different name.` };
   const { data: prev } = await supabase.from("accreditation_cycles").select("id").eq("status", "closed").order("end_date", { ascending: false }).limit(1).maybeSingle();
   const { data, error } = await supabase
     .from("accreditation_cycles")
     .insert({ name, start_date: input.start, end_date: input.end, status: "open", created_by: user.id })
     .select("id")
     .single();
-  if (error) return { ok: false, error: error.message.includes("single_open") ? "Close the open cycle first" : error.message };
+  if (error) {
+    if (error.message.includes("single_open")) return { ok: false, error: "Close the open cycle first" };
+    if (error.message.includes("accreditation_cycles_name_key")) return { ok: false, error: `A cycle named “${name}” already exists. Use a different name.` };
+    return { ok: false, error: error.message };
+  }
   if (input.carry && prev) {
     const { error: cErr } = await supabase
       .from("submissions")
@@ -113,9 +119,11 @@ export async function openCycle(input: { name: string; start: string; end: strin
 export async function closeCycle(id: string, backupFirst: boolean): Promise<ActionResult> {
   const user = await admin();
   if (!user) return DENIED;
+  let notice: string | undefined;
   if (backupFirst) {
     const b = await createBackup("Manual · before closing a cycle");
-    if (!b.ok) return { ok: false, error: `Backup failed, so the cycle was not closed: ${b.error}` };
+    if (!b.ok) notice = `The backup could not be created (${b.error}). Check Backup & Restore.`;
+    else notice = b.notice;
   }
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -126,7 +134,8 @@ export async function closeCycle(id: string, backupFirst: boolean): Promise<Acti
   if (error) return { ok: false, error: error.message };
   if (!data?.length) return { ok: false, error: "That cycle could not be closed." };
   refresh();
-  return { ok: true };
+  revalidatePath("/portal/archive");
+  return { ok: true, notice };
 }
 
 export async function extendCycle(id: string, end: string, notify: boolean): Promise<ActionResult> {
@@ -443,15 +452,28 @@ export async function createBackup(note = "Manual"): Promise<ActionResult> {
   if (!user) return DENIED;
   const supabase = await createClient();
   const started = new Date().toISOString();
+  const skipped: string[] = [];
   try {
     const out: Record<string, unknown[]> = {};
-    for (const t of BACKUP_TABLES) out[t] = await dumpTable(supabase, t);
-    const bytes = new TextEncoder().encode(JSON.stringify({ created_at: started, by: user.id, tables: out }));
+    await Promise.all(
+      BACKUP_TABLES.map(async (t) => {
+        try {
+          out[t] = await dumpTable(supabase, t);
+        } catch (e) {
+          skipped.push(e instanceof Error ? e.message : String(e));
+        }
+      }),
+    );
+    if (skipped.length === BACKUP_TABLES.length) throw new Error(skipped[0]);
+    const tables = Object.fromEntries(BACKUP_TABLES.filter((t) => t in out).map((t) => [t, out[t]]));
+    const bytes = new TextEncoder().encode(JSON.stringify({ created_at: started, by: user.id, tables, skipped }));
     const path = `${started.slice(0, 10)}/${crypto.randomUUID()}.json`;
     const up = await uploadFile(supabase, BUCKETS.backups, path, bytes, { contentType: "application/json" });
-    if (up.error) throw new Error(up.error);
-    const { error } = await supabase.from("system_backups").insert({ kind: "manual", status: "ok", note, size_bytes: bytes.byteLength, storage_path: path, created_by: user.id });
-    if (error) throw new Error(error.message);
+    if (up.error) throw new Error(`Storage: ${up.error}`);
+    const { error } = await supabase
+      .from("system_backups")
+      .insert({ kind: "manual", status: "ok", note, size_bytes: bytes.byteLength, storage_path: path, log: skipped.length ? `Skipped: ${skipped.join("; ")}` : null, created_by: user.id });
+    if (error) throw new Error(`Backup log: ${error.message}`);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     await supabase.from("system_backups").insert({ kind: "manual", status: "fail", note, log: msg, created_by: user.id });
@@ -459,7 +481,7 @@ export async function createBackup(note = "Manual"): Promise<ActionResult> {
     return { ok: false, error: msg };
   }
   refresh();
-  return { ok: true };
+  return { ok: true, notice: skipped.length ? `Backup saved, but ${skipped.length} table${skipped.length === 1 ? "" : "s"} could not be read.` : undefined };
 }
 
 export async function backupUrl(id: string): Promise<DataResult<string>> {

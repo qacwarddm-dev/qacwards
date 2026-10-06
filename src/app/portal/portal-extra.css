@@ -74,3 +74,9 @@
 @media(max-width:1100px){.qp .arch-tline{grid-template-columns:1fr 1fr}.qp .prw.arch-row{grid-template-columns:minmax(0,1fr) 120px 90px 16px}.qp .prw.arch-row>span:nth-child(3),.qp .prw.arch-row>span:nth-child(4),.qp .prw.arch-row>span:nth-child(6){display:none}}
 @media(max-width:700px){.qp .arch-tline{grid-template-columns:1fr}.qp .arch-two,.qp .arch-cmp{grid-template-columns:1fr}.qp .prw.arch-row{grid-template-columns:minmax(0,1fr) 16px}.qp .prw.arch-row>span:not(.chev){display:none}.qp .prw.arch-row>.pill{display:inline-block}}
 .qp .arch-fpair{display:inline-flex;align-items:center;gap:6px}
+.qp .prw.arch-crow{grid-template-columns:minmax(0,2fr) minmax(0,1.2fr) 90px 90px 150px;cursor:pointer}
+.qp .prw.arch-crow small{display:block;color:var(--muted);font-size:11px}
+.qp .prw.arch-crow.on{box-shadow:inset 3px 0 0 var(--maroon)}
+.qp .arch-cyc{margin-bottom:18px}
+@media(max-width:1100px){.qp .prw.arch-crow{grid-template-columns:minmax(0,1fr) 90px 90px 150px}.qp .prw.arch-crow>span:nth-child(2){display:none}}
+@media(max-width:700px){.qp .prw.arch-crow{grid-template-columns:minmax(0,1fr) 150px}.qp .prw.arch-crow>span:nth-child(3),.qp .prw.arch-crow>span:nth-child(4){display:none}}

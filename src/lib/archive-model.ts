@@ -24,6 +24,7 @@ export type ArchiveEntry = {
   levelCode: string;
   level: string;
   cycle: string;
+  cycleId: string;
   visit: string | null;
   visitDay: string | null;
   accreditors: string[];
@@ -44,6 +45,17 @@ export type ArchiveDetail = {
   ratings: { areaId: string; name: string; mean: number }[];
 };
 
+export type ArchiveCycle = {
+  id: string;
+  name: string;
+  start: string;
+  end: string;
+  closedAt: string | null;
+  closedBy: string | null;
+  programs: number;
+  archived: number;
+};
+
 export type ArchiveData = { entries: ArchiveEntry[] };
 
 export function describeMean(v: number): string {
@@ -57,9 +69,9 @@ export function bullets(text: string | null | undefined): string[] {
     .filter(Boolean);
 }
 
-export type ArchiveFilters = { q: string; year: string; campus: string; level: string; result: string; area: string };
+export type ArchiveFilters = { q: string; year: string; campus: string; level: string; result: string; area: string; cycle: string };
 
-export const NO_FILTERS: ArchiveFilters = { q: "", year: "all", campus: "all", level: "all", result: "all", area: "all" };
+export const NO_FILTERS: ArchiveFilters = { q: "", year: "all", campus: "all", level: "all", result: "all", area: "all", cycle: "all" };
 
 export function entryYear(e: ArchiveEntry): string {
   return (e.visitDay ?? e.evaluatedAt ?? e.assignedAt).slice(0, 4);
@@ -69,6 +81,7 @@ export function filterArchive(list: ArchiveEntry[], f: ArchiveFilters): ArchiveE
   const q = f.q.trim().toLowerCase();
   return list.filter(
     (e) =>
+      (f.cycle === "all" || e.cycleId === f.cycle) &&
       (f.year === "all" || entryYear(e) === f.year) &&
       (f.campus === "all" || e.campus === f.campus) &&
       (f.level === "all" || e.levelCode === f.level) &&
