@@ -24,6 +24,8 @@ const DASH: PortalNavItem = { label: "Dashboard", href: "/portal/dashboard", ico
 const EVENTS: PortalNavItem = { label: "Events", href: "/portal/events", icon: "events" };
 const HELP: PortalNavItem = { label: "Help & User Guide", href: "/portal/help", icon: "help" };
 
+const ARCHIVE: PortalNavItem = { label: "Accreditation Archive", href: "/portal/archive", icon: "arch" };
+
 const QAC_NAV: NavGroup[] = [
   {
     title: "WORK",
@@ -37,6 +39,7 @@ const QAC_NAV: NavGroup[] = [
     title: "LIBRARY",
     items: [
       { label: "AACCUP & COPC", href: "/portal/aaccup-copc", icon: "folder" },
+      ARCHIVE,
       { label: "Documents", href: "/portal/documents", icon: "docs" },
       { label: "Reports", href: "/portal/reports", icon: "report" },
       { label: "Feedback", href: "/portal/feedback", icon: "star" },
@@ -72,7 +75,7 @@ export const PORTAL_NAV: Record<PortalRole, PortalNav> = {
           { label: "Feedback", href: "/portal/feedback", icon: "chat", badge: "fb" },
         ],
       },
-      { title: "LIBRARY", items: [{ label: "Documents", href: "/portal/documents", icon: "docs" }] },
+      { title: "LIBRARY", items: [{ label: "Documents", href: "/portal/documents", icon: "docs" }, ARCHIVE] },
       { title: "SCHEDULE", items: [EVENTS] },
     ],
     help: HELP,

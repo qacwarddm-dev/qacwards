@@ -2549,6 +2549,7 @@ export type Database = {
       }
     }
     Functions: {
+      archive_detail: { Args: { p_assignment: string }; Returns: Json }
       accepted_on_submission: {
         Args: { p_submission: string }
         Returns: boolean
