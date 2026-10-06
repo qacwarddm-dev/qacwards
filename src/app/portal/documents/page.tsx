@@ -11,7 +11,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
 
   if (user.role === "program_representative") {
     const data = await getRepDocuments(user.id);
-    const t = tab === "common" || tab === "reports" || tab === "records" ? tab : "templates";
+    const t = tab === "common" || tab === "reports" ? tab : "templates";
     return <RepDocuments data={data} me={user.name} initialTab={t} />;
   }
 

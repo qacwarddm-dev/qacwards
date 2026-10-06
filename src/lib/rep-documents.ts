@@ -1,21 +1,17 @@
 import { createClient } from "@/lib/supabase/server";
 import { getMyPrograms } from "@/lib/submissions";
-import { areaLabel, fileSize, programMid, shortDate } from "@/lib/program-names";
+import { areaLabel, fileSize, shortDate } from "@/lib/program-names";
 
 export type TemplateTile = { name: string; templateId: string | null; isPdf: boolean };
 export type TemplateGroup = { key: string; name: string; chip: string; label: string; full: string; sections: { h?: string; sub?: string; items: TemplateTile[] }[] };
 
 export type RepFolderView = { id: string; name: string; org: "AACCUP" | "CHED" | "PUP"; files: { id: string; name: string; date: string; iso: string; size: string; program: string }[] };
 
-export type RecordRow = { title: string; sub: string; color: string; href?: string };
-export type ProgramRecord = { id: string; name: string; stage: string; stageSub: string; last: string; lastSub: string; next: string; nextSub: string; rows: RecordRow[] };
-
 export type RepDocumentsData = {
   templates: TemplateGroup[];
   nda: { status: "none" | "review" | "verified" | "returned"; fileId: string | null; note: string | null; path: string | null };
   common: { id: string; title: string; date: string; size: string }[];
   folders: RepFolderView[];
-  records: ProgramRecord[];
 };
 
 const ORG: Record<string, RepFolderView["org"]> = {
@@ -31,7 +27,7 @@ export async function getRepDocuments(userId: string): Promise<RepDocumentsData>
   const supabase = await createClient();
   const programs = await getMyPrograms();
   const ids = programs.map((p) => p.id);
-  const [{ data: levels }, { data: areas }, { data: templates }, { data: nda }, { data: common }, { data: folders }, { data: files }, { data: awards }, { data: subs }] =
+  const [{ data: levels }, { data: areas }, { data: templates }, { data: nda }, { data: common }, { data: folders }, { data: files }] =
     await Promise.all([
       supabase.from("accreditation_levels").select("id, code, name").order("ordinal"),
       supabase.from("requirement_areas").select("id, level_id, name, ordinal, is_optional").order("ordinal"),
@@ -41,12 +37,6 @@ export async function getRepDocuments(userId: string): Promise<RepDocumentsData>
       supabase.from("repository_folders").select("id, slug, name, ordinal").order("ordinal"),
       ids.length
         ? supabase.from("repository_files").select("id, title, folder_id, created_at, file_size, program_id, programs(name)").in("program_id", ids).eq("is_archived", false).order("created_at", { ascending: false })
-        : Promise.resolve({ data: [] as never[] }),
-      ids.length
-        ? supabase.from("program_accreditations").select("program_id, granted_on, valid_until, status, accreditation_levels!level_id(code, name)").in("program_id", ids).order("granted_on", { ascending: false })
-        : Promise.resolve({ data: [] as never[] }),
-      ids.length
-        ? supabase.from("submissions").select("id, program_id, status, accreditation_levels(code, name, ordinal), assignments(site_visit_date)").in("program_id", ids)
         : Promise.resolve({ data: [] as never[] }),
     ]);
 
@@ -82,41 +72,6 @@ export async function getRepDocuments(userId: string): Promise<RepDocumentsData>
       .map((x) => ({ id: x.id, name: x.title, iso: x.created_at, date: shortDate(x.created_at), size: fileSize(x.file_size), program: x.programs?.name ?? "" })),
   }));
 
-  const records: ProgramRecord[] = programs.map((p) => {
-    const aw = (awards ?? []).filter((a) => a.program_id === p.id);
-    const ss = (subs ?? []).filter((s) => s.program_id === p.id).sort((a, b) => (b.accreditation_levels?.ordinal ?? 0) - (a.accreditation_levels?.ordinal ?? 0));
-    const cur = ss[0];
-    const visits = ss
-      .map((s) => ({ s, d: (Array.isArray(s.assignments) ? s.assignments[0] : s.assignments)?.site_visit_date ?? null }))
-      .filter((v) => v.d)
-      .sort((a, b) => (b.d ?? "").localeCompare(a.d ?? ""));
-    const today = new Date().toISOString().slice(0, 10);
-    const past = visits.find((v) => (v.d ?? "") <= today);
-    const upcoming = [...visits].reverse().find((v) => (v.d ?? "") > today);
-    const rows: RecordRow[] = [];
-    if (upcoming) rows.push({ title: `${upcoming.s.accreditation_levels?.name} Survey Visit`, sub: `Scheduled · ${shortDate(upcoming.d)}`, color: "#eab308" });
-    for (const a of aw)
-      rows.push({
-        title: `${a.accreditation_levels?.name ?? "Accreditation"}${a.accreditation_levels?.code === "PSV" ? "" : " accreditation"}`,
-        sub: `${a.status === "active" ? "Granted" : a.status === "superseded" ? "Superseded" : a.status} · ${shortDate(a.granted_on)}${a.valid_until ? ` · valid until ${shortDate(a.valid_until)}` : ""}`,
-        color: a.status === "active" ? "#22a33a" : "#999",
-        href: "/portal/documents?tab=reports",
-      });
-    for (const f of folderViews.find((x) => x.org === "CHED" && x.name.includes("Certificate"))?.files.filter((x) => x.program === p.label) ?? [])
-      rows.push({ title: "Certificate of Program Compliance (CHED)", sub: `Issued · ${f.date}`, color: "#22a33a", href: "/portal/documents?tab=reports" });
-    return {
-      id: p.id,
-      name: programMid(p.label),
-      stage: cur?.accreditation_levels?.name ?? "Not started",
-      stageSub: cur ? cur.status.replace(/_/g, " ") : "No submission yet",
-      last: past ? shortDate(past.d) : "—",
-      lastSub: past ? `${past.s.accreditation_levels?.name}` : "No visit yet",
-      next: upcoming ? shortDate(upcoming.d) : "—",
-      nextSub: upcoming ? `${upcoming.s.accreditation_levels?.name} Survey Visit` : "Not scheduled",
-      rows,
-    };
-  });
-
   return {
     templates: tplGroups,
     nda: {
@@ -127,6 +82,5 @@ export async function getRepDocuments(userId: string): Promise<RepDocumentsData>
     },
     common: (common ?? []).map((c) => ({ id: c.id, title: c.title, date: shortDate(c.updated_at ?? c.created_at), size: fileSize(c.file_size) })),
     folders: folderViews,
-    records,
   };
 }

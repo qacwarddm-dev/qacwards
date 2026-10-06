@@ -14,7 +14,6 @@ import Pill from "../../kit/Pill";
 import SegTabs from "../../kit/SegTabs";
 import { MiniRing } from "../../kit/Spinner";
 import StepsReminder from "../../kit/StepsReminder";
-import StatTile, { StatGrid } from "../../kit/StatTile";
 import { useToast } from "../../kit/ToastProvider";
 import { TemplatePreview } from "../../kit/UploadFlow";
 import type { RepDocumentsData, TemplateGroup } from "@/lib/rep-documents";
@@ -22,7 +21,7 @@ import { countCommonView, getOwnNdaUrl, uploadNda } from "@/lib/document-actions
 import { createClient } from "@/lib/supabase/browser";
 import { uploadDirect } from "@/lib/upload-client";
 
-type Tab = "templates" | "common" | "reports" | "records";
+type Tab = "templates" | "common" | "reports";
 const dl = (source: string, id: string, download?: boolean) => `/api/documents/download?source=${source}&id=${id}${download ? "&download=1" : ""}`;
 
 export default function RepDocuments({ data, me, initialTab }: { data: RepDocumentsData; me: string; initialTab?: Tab }) {
@@ -36,13 +35,11 @@ export default function RepDocuments({ data, me, initialTab }: { data: RepDocume
           { key: "templates", label: "Templates" },
           { key: "common", label: "Common Documents" },
           { key: "reports", label: "AACCUP & COPC Reports" },
-          { key: "records", label: "Accreditation Records" },
         ]}
       />
       {tab === "templates" && <Templates groups={data.templates} me={me} />}
       {tab === "common" && <Common data={data} me={me} />}
       {tab === "reports" && <Reports data={data} me={me} />}
-      {tab === "records" && <Records data={data} onFolder={() => setTab("reports")} />}
     </div>
   );
 }
@@ -639,59 +636,6 @@ function Reports({ data, me }: { data: RepDocumentsData; me: string }) {
       )}
       <div style={{ marginTop: 14, fontSize: 11.5, color: "var(--muted)" }}>🔒 View only. Files from the QA Center can’t be downloaded, renamed or deleted.</div>
       {view && <FileViewModal title={view.title} src={dl("repository", view.id)} viewer={me} onClose={() => setView(null)} />}
-    </>
-  );
-}
-
-function Records({ data, onFolder }: { data: RepDocumentsData; onFolder: () => void }) {
-  const [p, setP] = useState(data.records[0]?.id ?? "");
-  const r = data.records.find((x) => x.id === p);
-  return (
-    <>
-      <div className="ch">
-        <div>
-          <h2>Accreditation Records</h2>
-          <div className="sub">History of each program’s accreditation</div>
-        </div>
-        <select className="inp" style={{ width: "auto" }} value={p} onChange={(e) => setP(e.target.value)}>
-          {data.records.map((x) => (
-            <option key={x.id} value={x.id}>
-              {x.name}
-            </option>
-          ))}
-        </select>
-      </div>
-      {!r || !r.rows.length ? (
-        <Empty icon="🏁" title="No accreditation history yet">
-          {r?.name ?? "This program"} starts with the Preliminary Survey Visit.
-        </Empty>
-      ) : (
-        <>
-          <StatGrid cols={3}>
-            <StatTile label="Current stage" value={r.stage} small sub={r.stageSub} />
-            <StatTile label="Last visit" value={r.last} small sub={r.lastSub} />
-            <StatTile label="Next visit" value={r.next} small sub={r.nextSub} />
-          </StatGrid>
-          <div className="box" style={{ padding: "18px 22px" }}>
-            {r.rows.map((x) => (
-              <div key={x.title + x.sub} style={{ display: "flex", gap: 14, padding: "10px 0", borderBottom: "1px solid var(--line)" }}>
-                <span style={{ width: 12, height: 12, borderRadius: "50%", background: x.color, marginTop: 4, flexShrink: 0 }} />
-                <div style={{ flex: 1 }}>
-                  <b>{x.title}</b>
-                  <div className="sub" style={{ margin: "2px 0 0" }}>
-                    {x.sub}
-                  </div>
-                </div>
-                {x.href && (
-                  <a className="lnk" role="button" onClick={onFolder}>
-                    View ›
-                  </a>
-                )}
-              </div>
-            ))}
-          </div>
-        </>
-      )}
     </>
   );
 }
