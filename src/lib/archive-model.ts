@@ -11,7 +11,7 @@ export type ArchiveIssue = {
   finalDocId: string;
 };
 
-export type ArchiveFile = { id: string; kind: "Certificate" | "Summary of Findings"; title: string };
+export type ArchiveFile = { id: string; kind: "Certificate" | "Summary of Findings"; title: string; createdAt: string; size: number | null };
 
 export type ArchiveEntry = {
   id: string;
@@ -35,6 +35,8 @@ export type ArchiveEntry = {
   to: string | null;
   assignedAt: string;
   documentsAcceptedAt: string | null;
+  areasAccepted: number;
+  areasTotal: number;
   evaluatedAt: string | null;
   issues: ArchiveIssue[];
   files: ArchiveFile[];
@@ -54,21 +56,30 @@ export type ArchiveCycle = {
   closedBy: string | null;
   programs: number;
   archived: number;
+  files: number;
 };
 
 export type ArchiveData = { entries: ArchiveEntry[] };
 
-export type CycleDocState = "approved" | "returned" | "pending";
+export type CycleFileGroup = "ph" | "ar" | "ev";
 
-export type CycleDoc = {
+export const CYCLE_GROUPS: Record<CycleFileGroup, string> = { ph: "Pre-Accreditation Phases", ar: "Accreditation Areas", ev: "Evaluation & result" };
+
+export type CycleFileState = "accepted" | "returned" | "pending" | "acknowledged" | "recorded";
+
+export type CycleFile = {
   id: string;
-  title: string;
-  area: string;
+  source: "submission" | "repository" | "report";
+  group: CycleFileGroup;
+  sub: string;
+  name: string;
   version: number;
-  uploadedAt: string;
   by: string;
-  state: CycleDocState;
+  at: string;
+  size: number | null;
+  state: CycleFileState;
   note: string | null;
+  returnedV1: { id: string; note: string } | null;
 };
 
 export type CycleProgram = {
@@ -76,35 +87,24 @@ export type CycleProgram = {
   program: string;
   short: string;
   college: string;
+  collegeName: string;
   campus: string;
   level: string;
-  attempt: number;
-  status: string;
-  submittedAt: string | null;
-  visit: string | null;
+  levelCode: string;
   accreditors: string[];
   result: "passed" | "deferred" | null;
   archiveId: string | null;
-  docs: CycleDoc[];
+  movedTo: string | null;
+  files: CycleFile[];
 };
 
-export type CycleActivityKind = "submission" | "document" | "review" | "assignment" | "visit" | "result" | "event";
+export type CycleContents = { programs: CycleProgram[] };
 
-export type CycleActivity = {
-  id: string;
-  at: string;
-  kind: CycleActivityKind;
-  program: string | null;
-  text: string;
-  note: string | null;
-};
+export const cycleResultTone = (p: CycleProgram): "ok" | "ret" | "miss" => (p.result === "passed" ? "ok" : p.result === "deferred" ? "ret" : "miss");
 
-export type CycleContents = {
-  programs: CycleProgram[];
-  activity: CycleActivity[];
-  documents: number;
-  events: number;
-};
+export function cycleResultLabel(p: CycleProgram): string {
+  return p.result === "passed" ? "Passed" : p.result === "deferred" ? "Deferred" : "Not finished";
+}
 
 export const SUBMISSION_STATUS: Record<string, string> = {
   not_started: "Not started",

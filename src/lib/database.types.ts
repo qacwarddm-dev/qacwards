@@ -1866,6 +1866,42 @@ export type Database = {
           },
         ]
       }
+      submission_cycle_history: {
+        Row: {
+          cycle_id: string
+          moved_at: string
+          status: Database["public"]["Enums"]["submission_status"]
+          submission_id: string
+        }
+        Insert: {
+          cycle_id: string
+          moved_at?: string
+          status: Database["public"]["Enums"]["submission_status"]
+          submission_id: string
+        }
+        Update: {
+          cycle_id?: string
+          moved_at?: string
+          status?: Database["public"]["Enums"]["submission_status"]
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_cycle_history_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "accreditation_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submission_cycle_history_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       submission_documents: {
         Row: {
           doc_uuid: string
@@ -2392,6 +2428,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      cycle_documents: {
+        Row: {
+          cycle_id: string | null
+          document_id: string | null
+          submission_id: string | null
+        }
+        Relationships: []
+      }
+      cycle_members: {
+        Row: {
+          cycle_id: string | null
+          moved_to: string | null
+          program_id: string | null
+          status_at_close: string | null
+          submission_id: string | null
+        }
+        Relationships: []
       }
       program_awards: {
         Row: {

@@ -79,7 +79,7 @@ export default function QacReports({
 
   return (
     <>
-      {(watch.soon.length > 0 || watch.expired.length > 0 || watch.valid > 0) && (
+      {(watch.soon.length > 0 || watch.expired.length > 0 || watch.valid.length > 0) && (
         <ValidityWatch watch={watch} today={today} onGenerate={(preset) => setForm({ type: "expired", preset })} />
       )}
       <Card>

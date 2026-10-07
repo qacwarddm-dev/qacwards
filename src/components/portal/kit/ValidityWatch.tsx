@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { LVS } from "@/lib/qac-model";
 import { shortDate } from "@/lib/program-names";
-import { PAGE, campusCounts, campusLabel, filterWatch, timeAgo, type Watch, type WatchTab } from "@/lib/validity-model";
+import { PAGE, campusCounts, campusLabel, filterWatch, timeAgo, timeLeft, type Watch, type WatchTab } from "@/lib/validity-model";
 import Btn from "./Btn";
 import Card, { CardHead } from "./Card";
 import Empty from "./Empty";
@@ -19,14 +19,14 @@ export default function ValidityWatch({ watch, today, onGenerate }: { watch: Wat
   const [q, setQ] = useState("");
   const [all, setAll] = useState(false);
 
-  const base = tab === "soon" ? watch.soon : watch.expired;
+  const rowsOf = (t: WatchTab) => (t === "soon" ? watch.soon : t === "exp" ? watch.expired : watch.valid);
+  const base = rowsOf(tab);
   const campuses = campusCounts(base);
   const list = filterWatch(base, { camp, lv, q });
   const shown = all ? list : list.slice(0, PAGE);
 
   const pick = (t: WatchTab) => {
-    const next = t === "soon" ? watch.soon : watch.expired;
-    if (camp !== "all" && !next.some((r) => r.campus === camp)) setCamp("all");
+    if (camp !== "all" && !rowsOf(t).some((r) => r.campus === camp)) setCamp("all");
     setTab(t);
     setAll(false);
   };
@@ -46,11 +46,11 @@ export default function ValidityWatch({ watch, today, onGenerate }: { watch: Wat
             <span>Already expired</span>
             <small>No valid accreditation</small>
           </button>
-          <div className="vwatch-tile grn">
-            <b>{watch.valid}</b>
+          <button type="button" className={`vwatch-tile grn${tab === "ok" ? " on" : ""}`} aria-pressed={tab === "ok"} onClick={() => pick("ok")}>
+            <b>{watch.valid.length}</b>
             <span>Valid</span>
             <small>More than 6 months left</small>
-          </div>
+          </button>
         </div>
         <div className="vwatch-tools">
           <SearchBox variant="r-sm" value={q} onChange={setQ} placeholder="Search program or campus" />
@@ -91,7 +91,7 @@ export default function ValidityWatch({ watch, today, onGenerate }: { watch: Wat
                     <th>Campus</th>
                     <th>Level</th>
                     <th>Valid until</th>
-                    <th>{tab === "soon" ? "Time left" : "Expired"}</th>
+                    <th>{tab === "exp" ? "Expired" : "Time left"}</th>
                     <th />
                   </tr>
                 </thead>
@@ -105,12 +105,14 @@ export default function ValidityWatch({ watch, today, onGenerate }: { watch: Wat
                       <td>{r.levelName}</td>
                       <td style={{ whiteSpace: "nowrap" }}>{shortDate(r.to)}</td>
                       <td>
-                        <Pill tone={r.days <= 60 ? "ret" : "pend"}>{r.days < 0 ? timeAgo(r.days) : `${r.days} days left`}</Pill>
+                        {tab === "ok" ? <Pill tone="ok">{timeLeft(r.days)}</Pill> : <Pill tone={r.days <= 60 ? "ret" : "pend"}>{r.days < 0 ? timeAgo(r.days) : `${r.days} days left`}</Pill>}
                       </td>
                       <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                        <Btn variant={r.days < 0 ? "s" : "o"} sm href={`/portal/assignment?new=1&from=${r.id}`}>
-                          {r.days < 0 ? "Start re-survey" : "Schedule re-survey"}
-                        </Btn>
+                        {tab !== "ok" && (
+                          <Btn variant={r.days < 0 ? "s" : "o"} sm href={`/portal/assignment?new=1&from=${r.id}`}>
+                            {r.days < 0 ? "Start re-survey" : "Schedule re-survey"}
+                          </Btn>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -130,7 +132,7 @@ export default function ValidityWatch({ watch, today, onGenerate }: { watch: Wat
             </div>
           </>
         ) : (
-          <Empty>{base.length ? "No programs match your filters." : tab === "soon" ? "No accreditation expires in the next 6 months." : "No accreditation has expired."}</Empty>
+          <Empty>{base.length ? "No programs match your filters." : tab === "soon" ? "No accreditation expires in the next 6 months." : tab === "exp" ? "No accreditation has expired." : "No program has more than 6 months of validity left."}</Empty>
         )}
       </div>
     </Card>

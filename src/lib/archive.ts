@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
-import { areaLabel, personName, programShort, shortDate } from "@/lib/program-names";
+import { areaLabel, personName, phaseLabel, programShort, shortDate } from "@/lib/program-names";
 import { levelName } from "@/lib/qac-model";
-import { SUBMISSION_STATUS, type ArchiveCycle, type ArchiveDetail, type ArchiveEntry, type ArchiveFile, type ArchiveIssue, type CycleActivity, type CycleContents, type CycleDoc, type CycleProgram } from "@/lib/archive-model";
+import { type ArchiveCycle, type ArchiveDetail, type ArchiveEntry, type ArchiveFile, type ArchiveIssue, type CycleContents, type CycleFile, type CycleFileState, type CycleProgram } from "@/lib/archive-model";
 
 export * from "@/lib/archive-model";
 
@@ -20,8 +20,9 @@ type Doc = {
   supersedes_id: string | null;
   is_current: boolean;
   uploaded_at: string;
-  requirement_areas: { name: string } | null;
-  phase_documents: { name: string } | null;
+  file_size: number;
+  requirement_areas: { name: string; ordinal: number } | null;
+  phase_documents: { name: string; ordinal: number; phases: { name: string; ordinal: number } | null } | null;
   uploader: { surname: string; given_name: string } | null;
   document_reviews: Review[];
 };
@@ -34,7 +35,7 @@ async function loadDocs(supabase: Supabase, submissionIds: string[]): Promise<Do
       supabase
         .from("submission_documents")
         .select(
-          "id, submission_id, requirement_area_id, title, upload_note, version, supersedes_id, is_current, uploaded_at, requirement_areas(name), phase_documents(name), uploader:uploaded_by(surname, given_name), document_reviews(decision, note, created_at, reviewer:reviewer_id(surname, given_name))",
+          "id, submission_id, requirement_area_id, title, upload_note, version, supersedes_id, is_current, uploaded_at, file_size, requirement_areas(name, ordinal), phase_documents(name, ordinal, phases(name, ordinal)), uploader:uploaded_by(surname, given_name), document_reviews(decision, note, created_at, reviewer:reviewer_id(surname, given_name))",
         )
         .in("submission_id", ids)
         .eq("is_draft", false)
@@ -51,14 +52,16 @@ function approvedAt(reviews: Review[]): string | null {
   return last?.decision === "approved" ? last.created_at : null;
 }
 
-function issuesOf(docs: Doc[]): { issues: ArchiveIssue[]; acceptedAt: string | null } {
+function issuesOf(docs: Doc[]): { issues: ArchiveIssue[]; acceptedAt: string | null; acceptedAreas: Set<string> } {
   const byId = new Map(docs.map((d) => [d.id, d]));
   const issues: ArchiveIssue[] = [];
+  const acceptedAreas = new Set<string>();
   let acceptedAt: string | null = null;
   for (const d of docs) {
     if (!d.is_current) continue;
     const ok = approvedAt(d.document_reviews);
     if (ok && (!acceptedAt || ok > acceptedAt)) acceptedAt = ok;
+    if (ok && d.requirement_area_id) acceptedAreas.add(d.requirement_area_id);
     if (!d.supersedes_id || !d.requirement_area_id) continue;
     let returned: Review | null = null;
     let first: Doc | undefined;
@@ -81,12 +84,12 @@ function issuesOf(docs: Doc[]): { issues: ArchiveIssue[]; acceptedAt: string | n
     });
   }
   issues.sort((x, y) => x.area.localeCompare(y.area));
-  return { issues, acceptedAt };
+  return { issues, acceptedAt, acceptedAreas };
 }
 
-export async function getArchive(): Promise<ArchiveEntry[]> {
+export async function getArchive(only?: string): Promise<ArchiveEntry[]> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const query = supabase
     .from("evaluations")
     .select(
       `assignment_id, outcome, compliance_status, score, evaluated_at,
@@ -99,6 +102,7 @@ export async function getArchive(): Promise<ArchiveEntry[]> {
     )
     .not("outcome", "is", null)
     .order("evaluated_at", { ascending: false });
+  const { data } = await (only ? query.eq("assignments.submission_id", only) : query);
 
   const rows = (data ?? []).flatMap((e) => (e.assignments?.submissions ? [{ e, a: e.assignments, s: e.assignments.submissions }] : []));
   if (!rows.length) return [];
@@ -107,8 +111,12 @@ export async function getArchive(): Promise<ArchiveEntry[]> {
   const docsBySub = new Map<string, Doc[]>();
   for (const d of docs) docsBySub.set(d.submission_id, [...(docsBySub.get(d.submission_id) ?? []), d]);
 
+  const { data: areaRows } = await supabase.from("requirement_areas").select("id, level_id, is_optional");
+  const areasByLevel = new Map<string, { id: string; optional: boolean }[]>();
+  for (const a of areaRows ?? []) areasByLevel.set(a.level_id, [...(areasByLevel.get(a.level_id) ?? []), { id: a.id, optional: a.is_optional }]);
+
   const entries: ArchiveEntry[] = rows.map(({ e, a, s }) => {
-    const { issues, acceptedAt } = issuesOf(docsBySub.get(s.id) ?? []);
+    const { issues, acceptedAt, acceptedAreas } = issuesOf(docsBySub.get(s.id) ?? []);
     const code = s.accreditation_levels?.code ?? "";
     const passed = e.outcome === "passed";
     return {
@@ -133,6 +141,8 @@ export async function getArchive(): Promise<ArchiveEntry[]> {
       to: null,
       assignedAt: a.created_at,
       documentsAcceptedAt: acceptedAt,
+      areasAccepted: acceptedAreas.size,
+      areasTotal: (areasByLevel.get(s.level_id) ?? []).filter((x) => !x.optional || acceptedAreas.has(x.id)).length,
       evaluatedAt: e.evaluated_at,
       issues,
       files: [],
@@ -149,11 +159,11 @@ async function attachFiles(supabase: Supabase, entries: ArchiveEntry[], levelIds
   if (!kindOf.size) return;
   const levelOf = new Map(entries.map((e, i) => [e.id, levelIds[i]]));
   const programIds = [...new Set(entries.map((e) => e.programId))];
-  const files: { id: string; title: string; program_id: string; level_id: string | null; folder_id: string; created_at: string; valid_from: string | null; valid_until: string | null }[] = [];
+  const files: { id: string; title: string; program_id: string; level_id: string | null; folder_id: string; created_at: string; file_size: number | null; valid_from: string | null; valid_until: string | null }[] = [];
   for (let i = 0; i < programIds.length; i += 100) {
     const { data } = await supabase
       .from("repository_files")
-      .select("id, title, program_id, level_id, folder_id, created_at, valid_from, valid_until")
+      .select("id, title, program_id, level_id, folder_id, created_at, file_size, valid_from, valid_until")
       .in("program_id", programIds.slice(i, i + 100))
       .in("folder_id", [...kindOf.keys()])
       .eq("is_archived", false)
@@ -166,7 +176,7 @@ async function attachFiles(supabase: Supabase, entries: ArchiveEntry[], levelIds
     const target = [...mine].reverse().find((e) => e.assignedAt <= f.created_at) ?? mine[0];
     const kind = kindOf.get(f.folder_id);
     if (!kind) continue;
-    const file: ArchiveFile = { id: f.id, kind, title: f.title };
+    const file: ArchiveFile = { id: f.id, kind, title: f.title, createdAt: f.created_at, size: f.file_size };
     target.files.push(file);
     if (kind === "Certificate" && target.passed && f.valid_until) {
       target.from = f.valid_from;
@@ -184,7 +194,17 @@ export async function getArchiveCycles(entries: ArchiveEntry[]): Promise<Archive
     .eq("status", "closed")
     .order("end_date", { ascending: false });
   const rows = data ?? [];
-  const sizes = await Promise.all(rows.map((c) => supabase.from("submissions").select("id", { count: "exact", head: true }).eq("cycle_id", c.id)));
+  const sizes = await Promise.all(
+    rows.map(async (c) => {
+      const mine = entries.filter((e) => e.cycleId === c.id);
+      const [members, docs, reports] = await Promise.all([
+        supabase.from("cycle_members").select("submission_id", { count: "exact", head: true }).eq("cycle_id", c.id),
+        supabase.from("cycle_documents").select("document_id", { count: "exact", head: true }).eq("cycle_id", c.id),
+        mine.length ? supabase.from("accreditor_reports").select("assignment_id", { count: "exact", head: true }).eq("status", "acknowledged").in("assignment_id", mine.map((e) => e.id)) : null,
+      ]);
+      return { programs: members.count ?? 0, files: (docs.count ?? 0) + (reports?.count ?? 0) + mine.reduce((n, e) => n + e.files.length, 0) };
+    }),
+  );
   return rows.map((c, i) => ({
     id: c.id,
     name: c.name,
@@ -192,8 +212,9 @@ export async function getArchiveCycles(entries: ArchiveEntry[]): Promise<Archive
     end: c.end_date,
     closedAt: c.closed_at,
     closedBy: c.profiles ? personName(c.profiles) : null,
-    programs: sizes[i].count ?? 0,
+    programs: sizes[i].programs,
     archived: entries.filter((e) => e.cycleId === c.id).length,
+    files: sizes[i].files,
   }));
 }
 
@@ -205,95 +226,154 @@ export async function getArchiveDetail(assignmentId: string): Promise<ArchiveDet
 
 const one = <T>(v: T | T[] | null | undefined): T | null => (Array.isArray(v) ? (v[0] ?? null) : (v ?? null));
 
-function docState(reviews: Review[]): { state: CycleDoc["state"]; note: string | null } {
+const PAGE_ROWS = 1000;
+
+async function cycleDocumentIds(supabase: Supabase, cycleId: string, only?: string): Promise<Set<string>> {
+  const ids = new Set<string>();
+  for (let from = 0; ; from += PAGE_ROWS) {
+    const base = supabase.from("cycle_documents").select("document_id").eq("cycle_id", cycleId).order("document_id").range(from, from + PAGE_ROWS - 1);
+    const { data } = await (only ? base.eq("submission_id", only) : base);
+    for (const r of data ?? []) if (r.document_id) ids.add(r.document_id);
+    if ((data?.length ?? 0) < PAGE_ROWS) return ids;
+  }
+}
+
+function fileState(reviews: Review[]): { state: CycleFileState; note: string | null } {
   const last = newest(reviews)[0];
-  if (last?.decision === "approved") return { state: "approved", note: null };
+  if (last?.decision === "approved") return { state: "accepted", note: null };
   if (last?.decision === "returned") return { state: "returned", note: last.note };
   return { state: "pending", note: null };
 }
 
-export async function getCycleContents(cycleId: string, entries: ArchiveEntry[]): Promise<CycleContents> {
+export async function getCycleContents(cycle: { id: string; closedAt: string | null }, entries: ArchiveEntry[], only?: string): Promise<CycleContents> {
   const supabase = await createClient();
-  const [{ data: subs }, { data: events }] = await Promise.all([
-    supabase
-      .from("submissions")
-      .select(
-        `id, attempt, status, submitted_at,
-         accreditation_levels(code),
-         programs(name, campuses(name), colleges(code)),
-         assignments(id, created_at, site_visit_date,
-           assignment_accreditors(response, profiles(surname, given_name)),
-           evaluations(outcome, evaluated_at))`,
-      )
-      .eq("cycle_id", cycleId)
-      .order("created_at"),
-    supabase.from("events").select("id, title, start_time").eq("cycle_id", cycleId).is("cancelled_at", null).order("start_time", { ascending: false }).limit(200),
-  ]);
+  const closed = cycle.closedAt;
+  const membersQuery = supabase.from("cycle_members").select("submission_id, moved_to").eq("cycle_id", cycle.id).limit(PAGE_ROWS);
+  const { data: members } = await (only ? membersQuery.eq("submission_id", only) : membersQuery);
+  const movedTo = new Map((members ?? []).flatMap((m) => (m.submission_id ? [[m.submission_id, m.moved_to] as const] : [])));
+  const ids = [...movedTo.keys()];
+  if (!ids.length) return { programs: [] };
 
-  const rows = subs ?? [];
-  const docs = rows.length ? await loadDocs(supabase, rows.map((r) => r.id)) : [];
+  const subChunks: string[][] = [];
+  for (let i = 0; i < ids.length; i += 100) subChunks.push(ids.slice(i, i + 100));
+  const [subPages, docIds, docs, names] = await Promise.all([
+    Promise.all(
+      subChunks.map((chunk) =>
+        supabase
+          .from("submissions")
+          .select("id, accreditation_levels(code), programs(name, campuses(name), colleges(code, name)), assignments(id, assignment_accreditors(response, profiles(surname, given_name)))")
+          .in("id", chunk),
+      ),
+    ),
+    cycleDocumentIds(supabase, cycle.id, only),
+    loadDocs(supabase, ids),
+    supabase.from("accreditation_cycles").select("id, name").in("id", [...new Set([...movedTo.values()].filter((v): v is string => Boolean(v)))]),
+  ]);
+  const cycleName = new Map((names.data ?? []).map((c) => [c.id, c.name]));
+  const subs = subPages.flatMap((p) => p.data ?? []);
+
   const docsBySub = new Map<string, Doc[]>();
   for (const d of docs) docsBySub.set(d.submission_id, [...(docsBySub.get(d.submission_id) ?? []), d]);
 
-  const activity: CycleActivity[] = [];
-  const shortOf = new Map<string, string>();
+  const archived = new Map(entries.filter((e) => e.cycleId === cycle.id).map((e) => [e.id, e]));
+  const archivedAsg = [...archived.keys()];
+  const { data: reports } = archivedAsg.length
+    ? await supabase.from("accreditor_reports").select("assignment_id, accreditor_id, reviewed_at, signed_at, profiles:accreditor_id(surname, given_name)").eq("status", "acknowledged").in("assignment_id", archivedAsg)
+    : { data: [] };
 
-  const programs: CycleProgram[] = rows.map((s) => {
-    const short = programShort(s.programs?.name ?? "");
-    shortOf.set(s.id, short);
+  const programs: CycleProgram[] = subs.map((s) => {
     const asg = one(s.assignments);
-    const ev = asg ? one(asg.evaluations) : null;
-    const level = levelName(s.accreditation_levels?.code ?? "");
-    const accreditors = (asg?.assignment_accreditors ?? []).filter((m) => m.response === "accepted" && m.profiles).map((m) => personName(m.profiles));
-    const result = ev?.outcome ? (ev.outcome === "passed" ? "passed" : "deferred") : null;
-
-    if (s.submitted_at) activity.push({ id: `s${s.id}`, at: s.submitted_at, kind: "submission", program: short, text: `Filed the ${level} submission${s.attempt > 1 ? ` (attempt ${s.attempt})` : ""}`, note: null });
-    if (asg) {
-      activity.push({ id: `a${asg.id}`, at: asg.created_at, kind: "assignment", program: short, text: accreditors.length ? `Accreditors assigned: ${accreditors.join(" and ")}` : "Accreditors assigned", note: null });
-      if (asg.site_visit_date) activity.push({ id: `v${asg.id}`, at: `${asg.site_visit_date}T00:00:00+08:00`, kind: "visit", program: short, text: "Survey visit", note: null });
-    }
-    if (ev?.outcome && ev.evaluated_at) activity.push({ id: `r${s.id}`, at: ev.evaluated_at, kind: "result", program: short, text: result === "passed" ? `Passed ${level}` : `Deferred ${level} · re-survey needed`, note: null });
-
+    const entry = asg ? (archived.get(asg.id) ?? null) : null;
     const mine = docsBySub.get(s.id) ?? [];
+    const byId = new Map(mine.map((d) => [d.id, d]));
+    const inCycle = mine.filter((d) => docIds.has(d.id));
+
+    const sorted = inCycle
+      .map((d) => {
+        const reviews = closed ? d.document_reviews.filter((r) => r.created_at <= closed) : d.document_reviews;
+        let returned: { id: string; note: string } | null = null;
+        let first: Doc = d;
+        for (let cur = d.supersedes_id ? byId.get(d.supersedes_id) : undefined; cur; cur = cur.supersedes_id ? byId.get(cur.supersedes_id) : undefined) {
+          first = cur;
+          const hit = newest(cur.document_reviews).find((r) => r.decision === "returned");
+          if (hit && !returned) returned = { id: "", note: hit.note ?? "Returned for revision" };
+        }
+        if (returned) returned.id = first.id;
+        const area = d.requirement_areas;
+        const phase = d.phase_documents;
+        const group = d.requirement_area_id ? ("ar" as const) : ("ph" as const);
+        const sub = area ? areaLabel(area.name) : phase?.phases ? phaseLabel(phase.phases.ordinal, phase.phases.name) : "Other documents";
+        const order = area ? area.ordinal : (phase?.phases?.ordinal ?? 99) * 1000 + (phase?.ordinal ?? 0);
+        const file: CycleFile = {
+          id: d.id,
+          source: "submission",
+          group,
+          sub,
+          name: d.title,
+          version: d.version,
+          by: personName(d.uploader),
+          at: d.uploaded_at,
+          size: d.file_size,
+          ...fileState(reviews),
+          returnedV1: returned,
+        };
+        return { file, order };
+      })
+      .sort((x, y) => (x.file.group === y.file.group ? 0 : x.file.group === "ph" ? -1 : 1) || x.order - y.order || x.file.name.localeCompare(y.file.name))
+      .map((x) => x.file);
+
+    const results: CycleFile[] = [
+      ...(reports ?? [])
+        .filter((r) => r.assignment_id === asg?.id)
+        .map<CycleFile>((r) => ({
+          id: `${r.assignment_id}:${r.accreditor_id}`,
+          source: "report",
+          group: "ev",
+          sub: "Evaluation & result",
+          name: `Evaluation Report – ${r.profiles?.surname ?? "Accreditor"}`,
+          version: 1,
+          by: `${personName(r.profiles)} (Internal Accreditor)`,
+          at: r.reviewed_at ?? r.signed_at ?? entry?.evaluatedAt ?? "",
+          size: null,
+          state: "acknowledged",
+          note: null,
+          returnedV1: null,
+        }))
+        .sort((x, y) => x.name.localeCompare(y.name)),
+      ...(entry?.files ?? []).map<CycleFile>((f) => ({
+        id: f.id,
+        source: "repository",
+        group: "ev",
+        sub: "Evaluation & result",
+        name: f.title,
+        version: 1,
+        by: "QAC Personnel",
+        at: f.createdAt,
+        size: f.size,
+        state: "recorded",
+        note: null,
+        returnedV1: null,
+      })),
+    ];
+
+    const code = s.accreditation_levels?.code ?? "";
     return {
       id: s.id,
       program: s.programs?.name ?? "—",
-      short,
+      short: programShort(s.programs?.name ?? ""),
       college: s.programs?.colleges?.code ?? "NA",
+      collegeName: s.programs?.colleges?.name ?? "Not Applicable (campus program)",
       campus: s.programs?.campuses?.name ?? "—",
-      level,
-      attempt: s.attempt,
-      status: SUBMISSION_STATUS[s.status] ?? s.status,
-      submittedAt: s.submitted_at,
-      visit: asg?.site_visit_date ?? null,
-      accreditors,
-      result,
-      archiveId: asg && entries.some((e) => e.id === asg.id) ? asg.id : null,
-      docs: mine
-        .filter((d) => d.is_current)
-        .map((d) => ({
-          id: d.id,
-          title: d.title,
-          area: areaLabel(d.requirement_areas?.name ?? d.phase_documents?.name ?? "—"),
-          version: d.version,
-          uploadedAt: d.uploaded_at,
-          by: personName(d.uploader),
-          ...docState(d.document_reviews),
-        }))
-        .sort((a, b) => a.area.localeCompare(b.area) || a.title.localeCompare(b.title)),
+      level: levelName(code),
+      levelCode: code,
+      accreditors: (asg?.assignment_accreditors ?? []).filter((m) => m.response === "accepted" && m.profiles).map((m) => personName(m.profiles)),
+      result: entry ? (entry.passed ? "passed" : "deferred") : null,
+      archiveId: entry ? entry.id : null,
+      movedTo: cycleName.get(movedTo.get(s.id) ?? "") ?? null,
+      files: [...sorted, ...results],
     };
   });
 
-  for (const d of docs) {
-    const short = shortOf.get(d.submission_id) ?? null;
-    activity.push({ id: `d${d.id}`, at: d.uploaded_at, kind: "document", program: short, text: `${personName(d.uploader)} uploaded ${d.title}${d.version > 1 ? ` (v${d.version})` : ""}`, note: d.upload_note?.trim() || null });
-    for (const r of d.document_reviews) {
-      if (r.decision !== "approved" && r.decision !== "returned") continue;
-      activity.push({ id: `w${d.id}${r.created_at}`, at: r.created_at, kind: "review", program: short, text: `${r.reviewer ? personName(r.reviewer) : "QAC"} ${r.decision} ${d.title}`, note: r.decision === "returned" ? r.note : null });
-    }
-  }
-  for (const e of events ?? []) activity.push({ id: `e${e.id}`, at: e.start_time, kind: "event", program: null, text: e.title, note: null });
-
-  activity.sort((a, b) => b.at.localeCompare(a.at));
-  return { programs, activity: activity.slice(0, 300), documents: programs.reduce((n, p) => n + p.docs.length, 0), events: events?.length ?? 0 };
+  programs.sort((a, b) => Number(Boolean(b.archiveId)) - Number(Boolean(a.archiveId)) || a.program.localeCompare(b.program));
+  return { programs };
 }

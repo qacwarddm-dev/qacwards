@@ -2,7 +2,7 @@ import { SOON_DAYS, daysTo, type QacProgram } from "@/lib/qac-model";
 
 export const PAGE = 8;
 
-export type WatchTab = "soon" | "exp";
+export type WatchTab = "soon" | "exp" | "ok";
 
 export type WatchRow = {
   id: string;
@@ -17,7 +17,7 @@ export type WatchRow = {
 
 export type WatchFilters = { camp: string; lv: string; q: string };
 
-export type Watch = { soon: WatchRow[]; expired: WatchRow[]; valid: number };
+export type Watch = { soon: WatchRow[]; expired: WatchRow[]; valid: WatchRow[] };
 
 export function validityWatch(programs: QacProgram[], today: string): Watch {
   const rows = programs
@@ -26,7 +26,7 @@ export function validityWatch(programs: QacProgram[], today: string): Watch {
   return {
     soon: rows.filter((r) => r.days >= 0 && r.days <= SOON_DAYS).sort((a, b) => a.to.localeCompare(b.to)),
     expired: rows.filter((r) => r.days < 0).sort((a, b) => b.to.localeCompare(a.to)),
-    valid: rows.filter((r) => r.days > SOON_DAYS).length,
+    valid: rows.filter((r) => r.days > SOON_DAYS).sort((a, b) => a.to.localeCompare(b.to)),
   };
 }
 
@@ -47,6 +47,13 @@ export function timeAgo(days: number) {
   const m = Math.round(n / 30.4);
   if (m < 24) return `${m} months ago`;
   return `${(n / 365).toFixed(1).replace(".0", "")} years ago`;
+}
+
+export function timeLeft(days: number) {
+  if (days < 60) return `${days} days left`;
+  const m = Math.floor(days / 30.4);
+  if (m < 24) return `${m} months left`;
+  return `${(days / 365).toFixed(1).replace(".0", "")} years left`;
 }
 
 export const campusLabel = (campus: string) => campus.split(",")[0];
