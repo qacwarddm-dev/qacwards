@@ -96,7 +96,7 @@ export async function getArchive(only?: string): Promise<ArchiveEntry[]> {
        assignments!inner(id, created_at, site_visit_date, submission_id,
          assignment_accreditors(response, profiles(surname, given_name)),
          submissions!inner(id, program_id, level_id, cycle_id,
-           accreditation_cycles(name),
+           accreditation_cycles!submissions_cycle_id_fkey(name),
            programs(name, campuses(name), colleges(code, name)),
            accreditation_levels(code)))`,
     )

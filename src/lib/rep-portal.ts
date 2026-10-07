@@ -21,7 +21,7 @@ export async function getRepPrograms(): Promise<RepProgram[]> {
     supabase.from("accreditation_levels").select("id, code, name, ordinal").order("ordinal"),
     supabase
       .from("submissions")
-      .select("id, program_id, level_id, status, attempt, accreditation_cycles(status, end_date)")
+      .select("id, program_id, level_id, status, attempt, accreditation_cycles!submissions_cycle_id_fkey(status, end_date)")
       .in("program_id", programs.map((p) => p.id))
       .order("attempt", { ascending: false }),
     supabase

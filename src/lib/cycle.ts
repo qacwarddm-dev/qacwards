@@ -13,7 +13,7 @@ export function cycleClosedMessage(c: CycleWindow | null | undefined) {
 }
 
 export async function submissionWindow(supabase: Db, submissionId: string): Promise<{ ok: true } | { ok: false; error: string }> {
-  const { data } = await supabase.from("submissions").select("accreditation_cycles(status, end_date)").eq("id", submissionId).maybeSingle();
+  const { data } = await supabase.from("submissions").select("accreditation_cycles!submissions_cycle_id_fkey(status, end_date)").eq("id", submissionId).maybeSingle();
   const c = data?.accreditation_cycles;
   if (c && !acceptsWork(c)) return { ok: false, error: cycleClosedMessage(c) };
   return { ok: true };
