@@ -12,7 +12,7 @@ import Pill, { ReviewChip } from "../../kit/Pill";
 import StatTile, { StatGrid } from "../../kit/StatTile";
 import { useToast } from "../../kit/ToastProvider";
 import { MON, TC, cdTxt, daysUntil, evEnd, parseDay, type CalEvent } from "../../kit/calendar";
-import { LVS, daysTo, phaseCounts, qacStatus, readiness, type QacProgram } from "@/lib/qac-model";
+import { LVS, SOON_DAYS, daysTo, phaseCounts, qacStatus, readiness, type QacProgram } from "@/lib/qac-model";
 import type { NdaItem, SystemStatus } from "@/lib/qac-portal";
 import { sendReminder } from "@/lib/qac-actions";
 
@@ -74,7 +74,7 @@ export default function QacDashboard({
           }),
       });
   }
-  const exp = programs.filter((p) => !p.inproc && p.to && daysTo(p.to, today) <= 183).length;
+  const exp = programs.filter((p) => !p.inproc && p.to && daysTo(p.to, today) <= SOON_DAYS).length;
   if (exp) T.push({ ic: "⚠", bg: "#fdecec", c: "#b42323", t: `${exp} accreditation${exp > 1 ? "s" : ""} expired or expiring within 6 months`, s: "Generate the validity report and notify the colleges", b: "Report", href: "/portal/reports?new=expired" });
 
   const t0 = parseDay(today);

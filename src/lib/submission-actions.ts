@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { BUCKETS, signedUrl } from "@/lib/storage";
+import { openWindow, submissionWindow } from "@/lib/cycle";
 
 /**
  * Writes behind `/portal/submission`.
@@ -30,15 +31,8 @@ export async function ensureSubmission(
 ): Promise<{ ok: true; submissionId: string } | { ok: false; error: string }> {
   const supabase = await createClient();
 
-  const { data: cycle } = await supabase
-    .from("accreditation_cycles")
-    .select("id")
-    .eq("status", "open")
-    .maybeSingle();
-
-  if (!cycle) {
-    return { ok: false, error: "No accreditation cycle is open yet." };
-  }
+  const cycle = await openWindow(supabase);
+  if (!cycle.ok) return cycle;
 
   const { data: existing } = await supabase
     .from("submissions")
@@ -110,6 +104,9 @@ export async function setLevelChoices(
 ): Promise<ActionResult> {
   const supabase = await createClient();
 
+  const window = await submissionWindow(supabase, submissionId);
+  if (!window.ok) return window;
+
   const { data: level } = await supabase
     .from("accreditation_levels")
     .select("required_choices")
@@ -152,6 +149,9 @@ export async function setLevelChoices(
 export async function submitForEvaluation(submissionId: string): Promise<ActionResult> {
   const supabase = await createClient();
 
+  const window = await submissionWindow(supabase, submissionId);
+  if (!window.ok) return window;
+
   const { data: readiness } = await supabase
     .from("submission_readiness")
     .select("readiness_percent, uploaded_count, required_count")
@@ -189,9 +189,10 @@ export async function submitForEvaluation(submissionId: string): Promise<ActionR
       ? { status: "under_evaluation" as const }
       : { status: "submitted" as const, submitted_at: new Date().toISOString() };
 
-  const { error } = await supabase.from("submissions").update(update).eq("id", submissionId);
+  const { data: changed, error } = await supabase.from("submissions").update(update).eq("id", submissionId).select("id");
 
   if (error) return { ok: false, error: error.message };
+  if (!changed?.length) return { ok: false, error: "This submission can no longer be changed." };
 
   revalidatePath("/portal/submission");
   revalidatePath("/portal/evaluation");
@@ -229,6 +230,8 @@ export async function submitDraft(draftId: string, note?: string): Promise<Actio
     .eq("is_draft", true)
     .maybeSingle();
   if (!draft) return { ok: false, error: "That draft could not be found." };
+  const window = await submissionWindow(supabase, draft.submission_id);
+  if (!window.ok) return window;
   const column = draft.phase_document_id ? "phase_document_id" : "requirement_area_id";
   const { data: current } = await supabase
     .from("submission_documents")

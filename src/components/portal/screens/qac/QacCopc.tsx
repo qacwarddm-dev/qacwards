@@ -23,7 +23,7 @@ import useAct from "../../kit/useAct";
 import { FTYPES, type RepoFile, type RepoLoc, type RepoType, type RepoUnit, type Repository } from "@/lib/repository-model";
 import { uploadDirect } from "@/lib/upload-client";
 import { createCopcFolder, deleteCopcFile, deleteCopcFolder, renameCopcFile, renameCopcFolder, restoreCopcFile, uploadCopcFile } from "@/lib/repository-actions";
-import { daysTo, levelName } from "@/lib/qac-model";
+import { SOON_DAYS, daysTo, levelName } from "@/lib/qac-model";
 import { shortDate } from "@/lib/program-names";
 
 const LOCN: Record<RepoLoc, string> = { main: "Main Campus", camp: "Campuses" };
@@ -201,7 +201,7 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
                         <>
                           {shortDate(x.to)}
                           <small>
-                            <Pill tone={dd! < 0 ? "ret" : dd! <= 183 ? "pend" : "ok"}>{dd! < 0 ? "Expired" : dd! <= 183 ? `${dd} days left` : "Valid"}</Pill>
+                            <Pill tone={dd! < 0 ? "ret" : dd! <= SOON_DAYS ? "pend" : "ok"}>{dd! < 0 ? "Expired" : dd! <= SOON_DAYS ? `${dd} days left` : "Valid"}</Pill>
                           </small>
                         </>
                       ) : (

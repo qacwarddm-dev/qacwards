@@ -215,7 +215,7 @@ function LockNote({ level, sub, preview, closed }: { level: string; sub: string;
       <div className="lockb">
         🔒{" "}
         <div>
-          <b>This accreditation cycle is closed.</b> Your {level} documents are kept as read-only history; uploads, replacements and resubmissions are turned off.
+          <b>The accreditation cycle has ended.</b> Submissions are closed. Your {level} documents are kept as read-only history; uploads, replacements and resubmissions are turned off.
         </div>
       </div>
     );
@@ -530,6 +530,8 @@ function LevelCard({ ctx, visitDone }: { ctx: Ctx; visitDone?: string }) {
               "✅ Everything is approved and the visit is done."
             ) : submitted ? (
               "📨 Submitted. The internal accreditors are evaluating it, then the QA Center reviews their evaluation."
+            ) : level.closed ? (
+              `🔒 The accreditation cycle has ended, so ${level.name} can no longer be submitted.`
             ) : s.miss || s.re ? (
               <>
                 To submit {level.name}:{" "}
@@ -548,7 +550,7 @@ function LevelCard({ ctx, visitDone }: { ctx: Ctx; visitDone?: string }) {
             ) : submitted ? (
               <Btn disabled>Submitted ✓</Btn>
             ) : (
-              <Btn disabled={Boolean(s.miss || s.re || ctx.locked || !r || missingChoices(r))} title={s.miss || s.re ? "Upload and fix all documents first" : undefined} onClick={() => setConfirm(true)}>
+              <Btn disabled={Boolean(s.miss || s.re || ctx.locked || !r || missingChoices(r))} title={level.closed ? "The accreditation cycle has ended" : s.miss || s.re ? "Upload and fix all documents first" : undefined} onClick={() => setConfirm(true)}>
                 Submit {level.name} for evaluation
               </Btn>
             )}

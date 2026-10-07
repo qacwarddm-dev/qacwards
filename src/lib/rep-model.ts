@@ -52,6 +52,7 @@ export function levelStatus(p: RepProgram, l: RepLevel, visit?: string | null): 
   if (p.awarded.includes(l.code)) return { t: "Visit completed", tone: "ok", sub: visit ?? "Passed" };
   if (l.status === "submitted" || l.status === "under_evaluation" || l.status === "evaluated")
     return { t: "Submitted · For evaluation", tone: "blue", sub: "Accreditors are evaluating" };
+  if (l.closed) return { t: "Cycle ended", tone: "ret", sub: "Submissions are closed" };
   const c: Counts = levelCounts(l);
   if (!l.review || (c.pct === 0 && !c.re)) return { t: "Not started", tone: "miss", sub: `${c.req || "All"} documents to upload` };
   if (c.miss === 0 && !c.re) return { t: "Ready to submit", tone: "ok", sub: "All documents uploaded" };

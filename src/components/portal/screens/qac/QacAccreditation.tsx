@@ -12,7 +12,7 @@ import Pill from "../../kit/Pill";
 import SearchBox from "../../kit/SearchBox";
 import SegTabs from "../../kit/SegTabs";
 import SumRows from "../../kit/SumRows";
-import { LVS, daysTo, qacStatus, readiness, type QacProgram } from "@/lib/qac-model";
+import { LVS, SOON_DAYS, daysTo, qacStatus, readiness, type QacProgram } from "@/lib/qac-model";
 import { shortDate } from "@/lib/program-names";
 
 type Tab = "proc" | "acc" | "all";
@@ -126,7 +126,7 @@ export default function QacAccreditation({ programs, today, monthLabel }: { prog
                   ) : (
                     <RBar
                       pct={p.to ? Math.max(0, Math.min(100, 100 - d / 10)) : 100}
-                      color={d < 0 ? "var(--red)" : d <= 183 ? "var(--gold)" : "var(--green)"}
+                      color={d < 0 ? "var(--red)" : d <= SOON_DAYS ? "var(--gold)" : "var(--green)"}
                       label={<span style={{ fontSize: 11 }}>{!p.to ? "—" : d < 0 ? "expired" : `${d}d`}</span>}
                     />
                   )}
@@ -148,7 +148,7 @@ export default function QacAccreditation({ programs, today, monthLabel }: { prog
 function AccreditedModal({ p, today, onClose }: { p: QacProgram; today: string; onClose: () => void }) {
   const d = daysTo(p.to, today);
   const s = qacStatus(p, today);
-  const soon = p.to && d <= 183;
+  const soon = p.to && d <= SOON_DAYS;
   return (
     <Modal
       title={p.name}

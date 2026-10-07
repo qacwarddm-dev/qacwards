@@ -59,7 +59,7 @@ export default function RepDashboard({
     .sort((a, b) => (b.d.uploadedAt ?? "").localeCompare(a.d.uploadedAt ?? ""))
     .slice(0, 5);
 
-  const revise = current.flatMap(({ p, l }) =>
+  const revise = current.filter(({ l }) => !l.closed).flatMap(({ p, l }) =>
     l.review
       ? [...allPhaseSlots(l.review), ...includedAreas(l.review)]
           .filter((s) => s.state === "returned")
@@ -115,7 +115,7 @@ export default function RepDashboard({
           </p>
         </div>
         <div className="hb">
-          {main && <Btn href={mainHref}>Continue {main.l.name} ›</Btn>}
+          {main && <Btn href={mainHref}>{main.l.closed ? "View" : "Continue"} {main.l.name} ›</Btn>}
           <Btn variant="plain" className="ghost" href="/portal/events">
             View calendar
           </Btn>
@@ -189,7 +189,7 @@ export default function RepDashboard({
                   kicker: `Next deadline · ${MON[ndDate.getMonth()]} ${ndDate.getDate()}`,
                   title: nd.title.replace("Deadline: ", ""),
                   text: `${programShort(main.p.name)} ${main.l.name} is ${mc?.pct ?? 0}% ready · ${mc?.miss ?? 0} documents to upload${mc?.re ? `, ${mc.re} to revise` : ""}.`,
-                  action: { label: "Continue uploading ›", href: mainHref },
+                  action: { label: main.l.closed ? "View ›" : "Continue uploading ›", href: mainHref },
                 }
               : null
           }
@@ -219,7 +219,7 @@ export default function RepDashboard({
           <div className="ch">
             <h2>To do</h2>
             <span className="sub" style={{ margin: 0 }}>
-              {left.length + revise.length + (mc?.miss ? 1 : 0)} items
+              {left.length + revise.length + (mc?.miss && !main?.l.closed ? 1 : 0)} items
             </span>
           </div>
           {left.map((t) => (
@@ -250,7 +250,7 @@ export default function RepDashboard({
               </Btn>
             </div>
           ))}
-          {main && mc && mc.miss > 0 && (
+          {main && mc && mc.miss > 0 && !main.l.closed && (
             <div className="upl" role="link" onClick={() => router.push(mainHref)}>
               <div className="fi" style={{ background: "#f3f3f3", color: "#555" }}>
                 ⬆
@@ -266,7 +266,7 @@ export default function RepDashboard({
               </Btn>
             </div>
           )}
-          {!left.length && !revise.length && !(mc && mc.miss) && <div className="empty">Nothing to do right now 🎉</div>}
+          {!left.length && !revise.length && !(mc && mc.miss && !main?.l.closed) && <div className="empty">Nothing to do right now 🎉</div>}
         </Card>
       </div>
       {ev.modals}

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { BUCKETS, uploadFile } from "@/lib/storage";
 import { MAX_UPLOAD_BYTES, inspectPdf, mergePdfs, stampUuid } from "@/lib/pdf";
+import { submissionWindow } from "@/lib/cycle";
 
 /**
  * Upload one document into a submission.
@@ -99,10 +100,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { data: owner } = await supabase.from("submissions").select("accreditation_cycles(status)").eq("id", body.submissionId).maybeSingle();
-  if (owner && owner.accreditation_cycles?.status !== "open") {
-    return NextResponse.json({ error: "This accreditation cycle is closed. Its documents are read-only." }, { status: 409 });
-  }
+  const window = await submissionWindow(supabase, body.submissionId);
+  if (!window.ok) return NextResponse.json({ error: window.error }, { status: 409 });
 
   let original = new Uint8Array(await file.arrayBuffer());
 

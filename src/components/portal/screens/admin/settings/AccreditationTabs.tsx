@@ -21,6 +21,8 @@ export function CyclesTab({ data }: { data: CyclesData }) {
   const [modal, setModal] = useState<null | "new" | "close" | "extend">(null);
   const { toast } = useAct();
   const nav = useNav();
+  const left = open ? days(open.end, data.today) : 0;
+  const ended = Boolean(open) && left < 0;
   const pct = open ? Math.max(0, Math.min(100, Math.round(((new Date(data.today).getTime() - new Date(open.start).getTime()) / (new Date(open.end).getTime() - new Date(open.start).getTime())) * 100))) : 0;
   return (
     <Card>
@@ -34,13 +36,16 @@ export function CyclesTab({ data }: { data: CyclesData }) {
         }
       />
       {open ? (
-        <div className="cyc">
+        <div className={`cyc${ended ? " end" : ""}`}>
           <div>
-            <Pill tone="ok">● Open</Pill>
+            <Pill tone={ended ? "ret" : "ok"}>{ended ? "● Ended · submissions closed" : "● Open"}</Pill>
             <h3>{open.name}</h3>
             <p>
-              {shortDate(open.start)} – {shortDate(open.end)} · {days(open.end, data.today)} days left
+              {shortDate(open.start)} – {shortDate(open.end)} · {ended ? `ended ${-left} day${left === -1 ? "" : "s"} ago` : `${left} days left`}
             </p>
+            {ended && (
+              <p className="sub">Program reps can no longer upload or submit. Extend the window to reopen submissions, or close the cycle to archive it.</p>
+            )}
             <div style={{ maxWidth: 360 }}>
               <RBar pct={pct} color="var(--maroon)" />
             </div>

@@ -8,9 +8,10 @@ import Card, { CardHead } from "../../kit/Card";
 import Letterhead from "../../kit/Letterhead";
 import Modal from "../../kit/Modal";
 import SearchBox from "../../kit/SearchBox";
+import ValidityWatch, { type WatchPreset } from "../../kit/ValidityWatch";
 import { printPaper } from "../../kit/printPaper";
 import { useToast } from "../../kit/ToastProvider";
-import { LVS, daysTo, type QacProgram } from "@/lib/qac-model";
+import { LVS, type QacProgram } from "@/lib/qac-model";
 import {
   RTYPES,
   csvName,
@@ -26,6 +27,7 @@ import {
 import { deleteReport, saveReport } from "@/lib/report-actions";
 import { downloadReportPdf } from "@/lib/report-pdf";
 import { shortDate } from "@/lib/program-names";
+import { validityWatch } from "@/lib/validity-model";
 
 type Draft = { type: ReportType; filters: ReportFilters; title: string; scope: string; by: string; date: string; id?: string };
 
@@ -52,12 +54,10 @@ export default function QacReports({
   const [q, setQ] = useState("");
   const [year, setYear] = useState("all");
   const [type, setType] = useState("all");
-  const [form, setForm] = useState<ReportType | null>(initialNew);
+  const [form, setForm] = useState<{ type: ReportType; preset?: WatchPreset } | null>(initialNew ? { type: initialNew } : null);
   const [preview, setPreview] = useState<Draft | null>(null);
 
-  const acc = programs.filter((p) => !p.inproc && p.to);
-  const expired = acc.filter((p) => daysTo(p.to, today) < 0);
-  const soon = acc.filter((p) => daysTo(p.to, today) >= 0 && daysTo(p.to, today) <= 183);
+  const watch = useMemo(() => validityWatch(programs, today), [programs, today]);
   const years = [...new Set([today.slice(0, 4), ...saved.map((r) => r.date.slice(0, 4))])].sort().reverse();
 
   const ql = q.toLowerCase();
@@ -79,27 +79,14 @@ export default function QacReports({
 
   return (
     <>
-      {(expired.length > 0 || soon.length > 0) && (
-        <div className="alertb">
-          <div className="i">⚠</div>
-          <div>
-            <b>
-              {expired.length} expired · {soon.length} expiring within 6 months
-            </b>
-            <p>
-              {[...expired, ...soon]
-                .map((p) => `${p.short} (${p.campus.split(",")[0]}) · ${p.levelName} · ${daysTo(p.to, today) < 0 ? `expired ${shortDate(p.to!)}` : `ends ${shortDate(p.to!)}`}`)
-                .join("  •  ")}
-            </p>
-          </div>
-          <Btn onClick={() => setForm("expired")}>Generate report</Btn>
-        </div>
+      {(watch.soon.length > 0 || watch.expired.length > 0 || watch.valid > 0) && (
+        <ValidityWatch watch={watch} today={today} onGenerate={(preset) => setForm({ type: "expired", preset })} />
       )}
       <Card>
         <CardHead title="Generate a report" sub="Choose a report type" />
         <div className="rtypes">
           {(Object.entries(RTYPES) as [ReportType, [string, string, string]][]).map(([k, t]) => (
-            <div key={k} className="rty" role="button" tabIndex={0} onClick={() => setForm(k)} onKeyDown={(e) => e.key === "Enter" && setForm(k)}>
+            <div key={k} className="rty" role="button" tabIndex={0} onClick={() => setForm({ type: k })} onKeyDown={(e) => e.key === "Enter" && setForm({ type: k })}>
               <span className="i">{t[2]}</span>
               <div>
                 <b>{t[0]}</b>
@@ -185,7 +172,8 @@ export default function QacReports({
       </Card>
       {form && (
         <NewReportModal
-          type={form}
+          type={form.type}
+          preset={form.preset}
           campuses={[...new Set(catalog.map((p) => p.campus))].sort()}
           colleges={colleges}
           today={today}
@@ -216,6 +204,7 @@ export default function QacReports({
 
 function NewReportModal({
   type,
+  preset,
   campuses,
   colleges,
   today,
@@ -223,6 +212,7 @@ function NewReportModal({
   onPreview,
 }: {
   type: ReportType;
+  preset?: WatchPreset;
   campuses: string[];
   colleges: [string, string][];
   today: string;
@@ -230,7 +220,7 @@ function NewReportModal({
   onPreview: (t: ReportType, f: ReportFilters) => void;
 }) {
   const [t, setT] = useState(type);
-  const [f, setF] = useState<ReportFilters>({ camp: "all", col: "all", lv: "all", asOf: today });
+  const [f, setF] = useState<ReportFilters>({ camp: preset?.camp ?? "all", col: "all", lv: preset?.lv ?? "all", asOf: today });
   const set = (k: keyof ReportFilters) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.value });
   return (
     <Modal

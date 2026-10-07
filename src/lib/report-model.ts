@@ -1,5 +1,5 @@
 import { allPhaseSlots, countSlots } from "@/lib/review-model";
-import { LVS, daysTo, levelName, qacStatus, type QacProgram } from "@/lib/qac-model";
+import { LVS, SOON_DAYS, daysTo, levelName, qacStatus, type QacProgram } from "@/lib/qac-model";
 import { shortDate } from "@/lib/program-names";
 
 export type ReportType = "copc" | "valid" | "expired" | "level" | "eval" | "ext";
@@ -30,7 +30,7 @@ export function reportData(type: ReportType, f: ReportFilters, programs: QacProg
   const L = programs.filter((p) => ok(p) && (f.lv === "all" || p.levelCode === f.lv));
   const acc = L.filter((p) => !p.inproc && p.to);
   const d = (p: QacProgram) => daysTo(p.to, today);
-  const st = (p: QacProgram) => (d(p) < 0 ? "Expired" : d(p) <= 183 ? "Expiring" : "Valid");
+  const st = (p: QacProgram) => (d(p) < 0 ? "Expired" : d(p) <= SOON_DAYS ? "Expiring" : "Valid");
   const byTo = (a: QacProgram, b: QacProgram) => (a.to ?? "").localeCompare(b.to ?? "");
   switch (type) {
     case "copc": {
@@ -48,7 +48,7 @@ export function reportData(type: ReportType, f: ReportFilters, programs: QacProg
         sum: `${acc.filter((p) => st(p) === "Valid").length} valid · ${acc.filter((p) => st(p) === "Expiring").length} expiring · ${acc.filter((p) => st(p) === "Expired").length} expired`,
       };
     case "expired": {
-      const E = acc.filter((p) => d(p) <= 183).sort(byTo);
+      const E = acc.filter((p) => d(p) <= SOON_DAYS).sort(byTo);
       return {
         h: ["Program", "Campus", "Level", "Valid until", "Days left", "Status", "Action"],
         rows: E.map((p) => [p.name, p.campus, p.levelName, shortDate(p.to!), d(p), st(p), d(p) < 0 ? "Schedule re-survey now" : "Start re-survey"]),

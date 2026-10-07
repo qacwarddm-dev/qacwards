@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { getMyPrograms } from "@/lib/submissions";
 import { allPhaseSlots, countSlots, emptyReview, getReferenceStructure, getSubmissionReviews, includedAreas, missingChoices } from "@/lib/reviews";
-import { programMid, programShort } from "@/lib/program-names";
+import { manilaDay, programMid, programShort } from "@/lib/program-names";
+import { acceptsWork } from "@/lib/cycle";
 import type { RepProgram } from "@/lib/rep-model";
 import type { TemplateFile } from "@/components/portal/kit/UploadFlow";
 export * from "@/lib/rep-model";
@@ -16,11 +17,11 @@ export async function getRepPrograms(): Promise<RepProgram[]> {
   const programs = await getMyPrograms();
   if (!programs.length) return [];
   const supabase = await createClient();
-  const [{ data: levels }, { data: subs }, { data: awards }] = await Promise.all([
+  const [{ data: levels }, { data: subs }, { data: awards }, { data: openCycle }] = await Promise.all([
     supabase.from("accreditation_levels").select("id, code, name, ordinal").order("ordinal"),
     supabase
       .from("submissions")
-      .select("id, program_id, level_id, status, attempt, accreditation_cycles(status)")
+      .select("id, program_id, level_id, status, attempt, accreditation_cycles(status, end_date)")
       .in("program_id", programs.map((p) => p.id))
       .order("attempt", { ascending: false }),
     supabase
@@ -28,11 +29,14 @@ export async function getRepPrograms(): Promise<RepProgram[]> {
       .select("program_id, status, accreditation_levels!level_id(code)")
       .in("program_id", programs.map((p) => p.id))
       .in("status", ["active", "superseded"]),
+    supabase.from("accreditation_cycles").select("status, end_date").eq("status", "open").maybeSingle(),
   ]);
+  const today = manilaDay();
+  const live = acceptsWork(openCycle, today);
   const latest = new Map<string, { id: string; status: string; closed: boolean }>();
   for (const s of subs ?? []) {
     const k = `${s.program_id}|${s.level_id}`;
-    if (!latest.has(k)) latest.set(k, { id: s.id, status: s.status, closed: s.accreditation_cycles?.status !== "open" });
+    if (!latest.has(k)) latest.set(k, { id: s.id, status: s.status, closed: !acceptsWork(s.accreditation_cycles, today) });
   }
   const [reviews, ref] = await Promise.all([getSubmissionReviews([...latest.values()].map((s) => s.id)), getReferenceStructure()]);
   return programs.map((p) => {
@@ -57,7 +61,7 @@ export async function getRepPrograms(): Promise<RepProgram[]> {
           ordinal: l.ordinal,
           submissionId: s?.id ?? null,
           status: s?.status ?? null,
-          closed: s?.closed ?? false,
+          closed: s?.closed ?? !live,
           review: s
             ? (reviews.find((r) => r.submissionId === s.id) ?? null)
             : emptyReview(ref, { id: l.id, code: l.code, name: l.name, required_choices: ref.levels.find((x) => x.id === l.id)?.required_choices ?? null }, {

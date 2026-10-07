@@ -55,6 +55,8 @@ export const LVS: [string, string, string][] = [
   ["IV", "LEVEL IV", "Level IV"],
 ];
 
+export const SOON_DAYS = 183;
+
 export const levelName = (code: string) => LVS.find((l) => l[0] === code)?.[2] ?? code;
 
 export function daysTo(iso: string | null, today: string) {
@@ -72,7 +74,7 @@ export type Tone = "ok" | "pend" | "ret" | "miss" | "blue";
 export function qacStatus(p: QacProgram, today: string): { t: string; c: Tone } {
   if (!p.inproc) {
     const d = daysTo(p.to, today);
-    return !p.to ? { t: "Accredited", c: "ok" } : d < 0 ? { t: "Expired", c: "ret" } : d <= 183 ? { t: "Expiring soon", c: "pend" } : { t: "Accredited", c: "ok" };
+    return !p.to ? { t: "Accredited", c: "ok" } : d < 0 ? { t: "Expired", c: "ret" } : d <= SOON_DAYS ? { t: "Expiring soon", c: "pend" } : { t: "Accredited", c: "ok" };
   }
   if (p.result) return { t: "Visit passed", c: "ok" };
   const active = p.team.filter((m) => m.response !== "rejected");

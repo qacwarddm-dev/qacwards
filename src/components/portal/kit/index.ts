@@ -99,3 +99,5 @@ export { default as useBusy } from "./useBusy";
 export { default as useNav, startNav, useNavigating, NAV_START } from "./nav";
 export { default as useClientValue } from "./useClientValue";
 export { evalTitle, evalBadge, pendingOf, useEvaluations } from "./useEvaluations";
+export { default as ValidityWatch } from "./ValidityWatch";
+export type { WatchPreset } from "./ValidityWatch";
