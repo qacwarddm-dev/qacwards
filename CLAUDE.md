@@ -37,6 +37,18 @@ Single repo, single domain. Public and internal are split by route:
   the URL, so `(portal)/accreditations` collides with the public `/accreditations` and the dev
   server 500s. The literal segment also buys a fail-closed matcher `["/portal/:path*"]`.
 
+## System-breaking pitfalls — check before every migration and query change
+
+**Embeds go ambiguous silently.** Adding any table with FKs to two tables (junction, history, link table) makes every unhinted supabase-js embed between those two tables fail with PGRST201. Most selects here ignore `error`, so the page just sees no rows. This took the rep Accreditation page to "Not started 0%" while the accreditor side looked fine (`submission_cycle_history`, commit 0fd523b, fixed in 06e0f1c).
+- Before applying a migration that adds such a table, grep `src` for embeds between the two tables and add `!fk_name` hints (`accreditation_cycles!submissions_cycle_id_fkey(...)`).
+- Already hinted for the same reason: `accreditation_levels!level_id` on `program_accreditations` (two FKs into levels).
+- CI (`.github/workflows/ci.yml`, job `schema`) starts a throwaway local Supabase, applies every migration, then `scripts/check-embeds.mjs` asks PostgREST whether every `.from("t").select("…")` in `src` is valid. It fails the build on ambiguous embeds, missing tables and missing columns. Run `pnpm check:embeds --list` to see what it extracts; it only ever probes a local instance.
+- Selects built with `${}` are skipped by that check, so keep selects as plain string literals.
+
+**A failed lookup must not read as "ok".** `submissionWindow` in `src/lib/cycle.ts` treats a null result as allowed, so a broken query silently turned the cycle end-date lock off. When adding guards, fail closed on `error` or null data.
+
+**Portal is a literal `/portal` segment, never a `(portal)` group** (see Structure).
+
 ## Git — never run it
 
 NEVER run `git add`, `git commit`, or `git push`. I run those myself.

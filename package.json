@@ -17,7 +17,8 @@
     "supabase:reset": "supabase db reset",
     "gen:types": "supabase gen types typescript --local > src/lib/database.types.ts",
     "gen:seed": "tsc -p scripts/tsconfig.seed.json && node .seed-build/scripts/gen-seed.js",
-    "check:seed": "tsc -p scripts/tsconfig.seed.json && node .seed-build/scripts/gen-seed.js --check"
+    "check:seed": "tsc -p scripts/tsconfig.seed.json && node .seed-build/scripts/gen-seed.js --check",
+    "check:embeds": "node scripts/check-embeds.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
