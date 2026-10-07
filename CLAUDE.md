@@ -45,6 +45,8 @@ Single repo, single domain. Public and internal are split by route:
 - CI (`.github/workflows/ci.yml`, job `schema`) starts a throwaway local Supabase, applies every migration, then `scripts/check-embeds.mjs` asks PostgREST whether every `.from("t").select("…")` in `src` is valid. It fails the build on ambiguous embeds, missing tables and missing columns. Run `pnpm check:embeds --list` to see what it extracts; it only ever probes a local instance.
 - Selects built with `${}` are skipped by that check, so keep selects as plain string literals.
 
+**Migrations must replay on an empty database.** Reference rows (phases, phase documents, levels) are loaded by `supabase/seed.sql`, which runs after migrations, so a migration must never assume they exist. Use `insert … select … from <ref table>` (a no-op when empty), not a scalar `(select id …)` into a NOT NULL column. CI's `schema` job replays every migration from scratch and caught `20260919000100_moa_phase_document.sql` failing this way.
+
 **A failed lookup must not read as "ok".** `submissionWindow` in `src/lib/cycle.ts` treats a null result as allowed, so a broken query silently turned the cycle end-date lock off. When adding guards, fail closed on `error` or null data.
 
 **Portal is a literal `/portal` segment, never a `(portal)` group** (see Structure).
