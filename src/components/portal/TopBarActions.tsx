@@ -7,6 +7,7 @@ import useBusy from "./kit/useBusy";
 import Icon from "./kit/Icon";
 import Empty from "./kit/Empty";
 import { useToast } from "./kit/ToastProvider";
+import { notificationHref } from "@/lib/notification-link";
 import type { PortalNotification } from "@/lib/notifications";
 import type { PortalUser } from "./portal-nav";
 import { createClient } from "@/lib/supabase/browser";
@@ -103,11 +104,12 @@ export default function TopBarActions({
   const hasPhoto = !user.avatar.endsWith("avatar-placeholder.png");
 
   function openRow(n: PortalNotification) {
+    const href = notificationHref(user.role, n.href);
     setOpen(null);
-    if (n.href) startNav(n.href);
+    if (href) startNav(href);
     return start(async () => {
       if (n.unread) await markNotificationRead(n.id);
-      if (n.href) router.push(n.href);
+      if (href) router.push(href);
       else router.refresh();
     });
   }

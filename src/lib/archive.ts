@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { areaLabel, personName, programShort, shortDate } from "@/lib/program-names";
 import { levelName } from "@/lib/qac-model";
-import type { ArchiveCycle, ArchiveDetail, ArchiveEntry, ArchiveFile, ArchiveIssue } from "@/lib/archive-model";
+import { SUBMISSION_STATUS, type ArchiveCycle, type ArchiveDetail, type ArchiveEntry, type ArchiveFile, type ArchiveIssue, type CycleActivity, type CycleContents, type CycleDoc, type CycleProgram } from "@/lib/archive-model";
 
 export * from "@/lib/archive-model";
 
@@ -21,6 +21,8 @@ type Doc = {
   is_current: boolean;
   uploaded_at: string;
   requirement_areas: { name: string } | null;
+  phase_documents: { name: string } | null;
+  uploader: { surname: string; given_name: string } | null;
   document_reviews: Review[];
 };
 
@@ -32,7 +34,7 @@ async function loadDocs(supabase: Supabase, submissionIds: string[]): Promise<Do
       supabase
         .from("submission_documents")
         .select(
-          "id, submission_id, requirement_area_id, title, upload_note, version, supersedes_id, is_current, uploaded_at, requirement_areas(name), document_reviews(decision, note, created_at, reviewer:reviewer_id(surname, given_name))",
+          "id, submission_id, requirement_area_id, title, upload_note, version, supersedes_id, is_current, uploaded_at, requirement_areas(name), phase_documents(name), uploader:uploaded_by(surname, given_name), document_reviews(decision, note, created_at, reviewer:reviewer_id(surname, given_name))",
         )
         .in("submission_id", ids)
         .eq("is_draft", false)
@@ -199,4 +201,99 @@ export async function getArchiveDetail(assignmentId: string): Promise<ArchiveDet
   const supabase = await createClient();
   const { data } = await supabase.rpc("archive_detail", { p_assignment: assignmentId });
   return (data as ArchiveDetail | null) ?? null;
+}
+
+const one = <T>(v: T | T[] | null | undefined): T | null => (Array.isArray(v) ? (v[0] ?? null) : (v ?? null));
+
+function docState(reviews: Review[]): { state: CycleDoc["state"]; note: string | null } {
+  const last = newest(reviews)[0];
+  if (last?.decision === "approved") return { state: "approved", note: null };
+  if (last?.decision === "returned") return { state: "returned", note: last.note };
+  return { state: "pending", note: null };
+}
+
+export async function getCycleContents(cycleId: string, entries: ArchiveEntry[]): Promise<CycleContents> {
+  const supabase = await createClient();
+  const [{ data: subs }, { data: events }] = await Promise.all([
+    supabase
+      .from("submissions")
+      .select(
+        `id, attempt, status, submitted_at,
+         accreditation_levels(code),
+         programs(name, campuses(name), colleges(code)),
+         assignments(id, created_at, site_visit_date,
+           assignment_accreditors(response, profiles(surname, given_name)),
+           evaluations(outcome, evaluated_at))`,
+      )
+      .eq("cycle_id", cycleId)
+      .order("created_at"),
+    supabase.from("events").select("id, title, start_time").eq("cycle_id", cycleId).is("cancelled_at", null).order("start_time", { ascending: false }).limit(200),
+  ]);
+
+  const rows = subs ?? [];
+  const docs = rows.length ? await loadDocs(supabase, rows.map((r) => r.id)) : [];
+  const docsBySub = new Map<string, Doc[]>();
+  for (const d of docs) docsBySub.set(d.submission_id, [...(docsBySub.get(d.submission_id) ?? []), d]);
+
+  const activity: CycleActivity[] = [];
+  const shortOf = new Map<string, string>();
+
+  const programs: CycleProgram[] = rows.map((s) => {
+    const short = programShort(s.programs?.name ?? "");
+    shortOf.set(s.id, short);
+    const asg = one(s.assignments);
+    const ev = asg ? one(asg.evaluations) : null;
+    const level = levelName(s.accreditation_levels?.code ?? "");
+    const accreditors = (asg?.assignment_accreditors ?? []).filter((m) => m.response === "accepted" && m.profiles).map((m) => personName(m.profiles));
+    const result = ev?.outcome ? (ev.outcome === "passed" ? "passed" : "deferred") : null;
+
+    if (s.submitted_at) activity.push({ id: `s${s.id}`, at: s.submitted_at, kind: "submission", program: short, text: `Filed the ${level} submission${s.attempt > 1 ? ` (attempt ${s.attempt})` : ""}`, note: null });
+    if (asg) {
+      activity.push({ id: `a${asg.id}`, at: asg.created_at, kind: "assignment", program: short, text: accreditors.length ? `Accreditors assigned: ${accreditors.join(" and ")}` : "Accreditors assigned", note: null });
+      if (asg.site_visit_date) activity.push({ id: `v${asg.id}`, at: `${asg.site_visit_date}T00:00:00+08:00`, kind: "visit", program: short, text: "Survey visit", note: null });
+    }
+    if (ev?.outcome && ev.evaluated_at) activity.push({ id: `r${s.id}`, at: ev.evaluated_at, kind: "result", program: short, text: result === "passed" ? `Passed ${level}` : `Deferred ${level} · re-survey needed`, note: null });
+
+    const mine = docsBySub.get(s.id) ?? [];
+    return {
+      id: s.id,
+      program: s.programs?.name ?? "—",
+      short,
+      college: s.programs?.colleges?.code ?? "NA",
+      campus: s.programs?.campuses?.name ?? "—",
+      level,
+      attempt: s.attempt,
+      status: SUBMISSION_STATUS[s.status] ?? s.status,
+      submittedAt: s.submitted_at,
+      visit: asg?.site_visit_date ?? null,
+      accreditors,
+      result,
+      archiveId: asg && entries.some((e) => e.id === asg.id) ? asg.id : null,
+      docs: mine
+        .filter((d) => d.is_current)
+        .map((d) => ({
+          id: d.id,
+          title: d.title,
+          area: areaLabel(d.requirement_areas?.name ?? d.phase_documents?.name ?? "—"),
+          version: d.version,
+          uploadedAt: d.uploaded_at,
+          by: personName(d.uploader),
+          ...docState(d.document_reviews),
+        }))
+        .sort((a, b) => a.area.localeCompare(b.area) || a.title.localeCompare(b.title)),
+    };
+  });
+
+  for (const d of docs) {
+    const short = shortOf.get(d.submission_id) ?? null;
+    activity.push({ id: `d${d.id}`, at: d.uploaded_at, kind: "document", program: short, text: `${personName(d.uploader)} uploaded ${d.title}${d.version > 1 ? ` (v${d.version})` : ""}`, note: d.upload_note?.trim() || null });
+    for (const r of d.document_reviews) {
+      if (r.decision !== "approved" && r.decision !== "returned") continue;
+      activity.push({ id: `w${d.id}${r.created_at}`, at: r.created_at, kind: "review", program: short, text: `${r.reviewer ? personName(r.reviewer) : "QAC"} ${r.decision} ${d.title}`, note: r.decision === "returned" ? r.note : null });
+    }
+  }
+  for (const e of events ?? []) activity.push({ id: `e${e.id}`, at: e.start_time, kind: "event", program: null, text: e.title, note: null });
+
+  activity.sort((a, b) => b.at.localeCompare(a.at));
+  return { programs, activity: activity.slice(0, 300), documents: programs.reduce((n, p) => n + p.docs.length, 0), events: events?.length ?? 0 };
 }

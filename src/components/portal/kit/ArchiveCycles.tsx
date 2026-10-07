@@ -4,14 +4,13 @@ import type { ArchiveCycle } from "@/lib/archive-model";
 import { shortDate } from "@/lib/program-names";
 import Pill from "./Pill";
 
-export default function ArchiveCycles({ cycles, active, onPick }: { cycles: ArchiveCycle[]; active: string | null; onPick: (id: string | null) => void }) {
+export default function ArchiveCycles({ cycles, onPick }: { cycles: ArchiveCycle[]; onPick: (id: string) => void }) {
   return (
     <div className="plx arch-cyc">
       {cycles.map((c) => {
-        const on = active === c.id;
-        const pick = () => onPick(on ? null : c.id);
+        const pick = () => onPick(c.id);
         return (
-          <div key={c.id} className={`prw arch-crow${on ? " on" : ""}`} role="button" tabIndex={0} aria-pressed={on} onClick={pick} onKeyDown={(k) => k.key === "Enter" && pick()}>
+          <div key={c.id} className="prw arch-crow" role="button" tabIndex={0} onClick={pick} onKeyDown={(k) => k.key === "Enter" && pick()}>
             <div>
               <b>{c.name}</b>
               <small>

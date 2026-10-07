@@ -2550,6 +2550,10 @@ export type Database = {
     }
     Functions: {
       archive_detail: { Args: { p_assignment: string }; Returns: Json }
+      public_accreditation_status: {
+        Args: never
+        Returns: { level_code: string; programs: number }[]
+      }
       accepted_on_submission: {
         Args: { p_submission: string }
         Returns: boolean

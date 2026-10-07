@@ -58,6 +58,63 @@ export type ArchiveCycle = {
 
 export type ArchiveData = { entries: ArchiveEntry[] };
 
+export type CycleDocState = "approved" | "returned" | "pending";
+
+export type CycleDoc = {
+  id: string;
+  title: string;
+  area: string;
+  version: number;
+  uploadedAt: string;
+  by: string;
+  state: CycleDocState;
+  note: string | null;
+};
+
+export type CycleProgram = {
+  id: string;
+  program: string;
+  short: string;
+  college: string;
+  campus: string;
+  level: string;
+  attempt: number;
+  status: string;
+  submittedAt: string | null;
+  visit: string | null;
+  accreditors: string[];
+  result: "passed" | "deferred" | null;
+  archiveId: string | null;
+  docs: CycleDoc[];
+};
+
+export type CycleActivityKind = "submission" | "document" | "review" | "assignment" | "visit" | "result" | "event";
+
+export type CycleActivity = {
+  id: string;
+  at: string;
+  kind: CycleActivityKind;
+  program: string | null;
+  text: string;
+  note: string | null;
+};
+
+export type CycleContents = {
+  programs: CycleProgram[];
+  activity: CycleActivity[];
+  documents: number;
+  events: number;
+};
+
+export const SUBMISSION_STATUS: Record<string, string> = {
+  not_started: "Not started",
+  in_progress: "In progress",
+  submitted: "Submitted",
+  under_evaluation: "Under evaluation",
+  evaluated: "Evaluated",
+  returned: "Returned",
+};
+
 export function describeMean(v: number): string {
   return v >= 4.5 ? "Excellent" : v >= 3.5 ? "Very Satisfactory" : v >= 2.5 ? "Satisfactory" : v >= 1.5 ? "Fair" : "Poor";
 }

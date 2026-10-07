@@ -12,23 +12,20 @@ const sortKey = (e: ArchiveEntry) => e.visitDay ?? e.evaluatedAt ?? e.assignedAt
 
 export default function ArchiveList({
   entries,
-  cycle,
   onOpen,
   filterable,
   areas,
 }: {
   entries: ArchiveEntry[];
-  cycle?: string | null;
   onOpen: (id: string) => void;
   filterable?: boolean;
   areas?: string[];
 }) {
   const [f, setF] = useState<ArchiveFilters>(NO_FILTERS);
   const set = (k: keyof ArchiveFilters) => (v: string) => setF((p) => ({ ...p, [k]: v }));
-  const scoped = useMemo(() => (cycle ? entries.filter((e) => e.cycleId === cycle) : entries), [entries, cycle]);
-  const years = useMemo(() => [...new Set(scoped.map(entryYear))].sort().reverse(), [scoped]);
-  const campuses = useMemo(() => [...new Set(scoped.map((e) => e.campus))].sort(), [scoped]);
-  const list = useMemo(() => filterArchive(scoped, f).sort((a, b) => sortKey(b).localeCompare(sortKey(a))), [scoped, f]);
+  const years = useMemo(() => [...new Set(entries.map(entryYear))].sort().reverse(), [entries]);
+  const campuses = useMemo(() => [...new Set(entries.map((e) => e.campus))].sort(), [entries]);
+  const list = useMemo(() => filterArchive(entries, f).sort((a, b) => sortKey(b).localeCompare(sortKey(a))), [entries, f]);
 
   const select = (label: string, key: keyof ArchiveFilters, opts: [string, string][]) => (
     <span className="arch-fpair">
@@ -89,11 +86,7 @@ export default function ArchiveList({
         </div>
       ) : (
         <Empty>
-          {scoped.length
-            ? "No archived accreditations match your filters."
-            : cycle
-              ? "No finished accreditations were recorded in this cycle."
-              : "No finished accreditations yet. They appear here once QAC records the result of a survey visit."}
+          {entries.length ? "No archived accreditations match your filters." : "No finished accreditations yet. They appear here once QAC records the result of a survey visit."}
         </Empty>
       )}
     </>

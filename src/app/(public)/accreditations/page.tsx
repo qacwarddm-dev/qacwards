@@ -3,24 +3,13 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 import { PageHero, Section, SectionIntro } from "@/components/public";
+import { getPublicAccreditationStatus } from "@/lib/public-status";
 
 export const metadata: Metadata = {
   title: "Accreditations | PUP Quality Assurance Center",
   description:
     "Program accreditation status of the Polytechnic University of the Philippines.",
 };
-
-const AS_OF = "As of March 2026";
-
-const ACCREDITATION_LEVELS = [
-  { label: "Level IV", count: 47 },
-  { label: "Level III", count: 29 },
-  { label: "Level II", count: 41 },
-  { label: "Level I", count: 54 },
-  { label: "Candidate", count: 20 },
-];
-
-const TOTAL = ACCREDITATION_LEVELS.reduce((sum, l) => sum + l.count, 0);
 
 /**
  * Accreditations.
@@ -47,7 +36,12 @@ const TOTAL = ACCREDITATION_LEVELS.reduce((sum, l) => sum + l.count, 0);
  *   also drowned the photograph. The card is now shown untouched and the <h1>
  *   is the sentence the page is about — see the PageHero header.
  */
-export default function AccreditationsPage() {
+export default async function AccreditationsPage() {
+  const status = await getPublicAccreditationStatus();
+  const AS_OF = status?.asOf ?? "Current figures";
+  const TOTAL = status?.total ?? 0;
+  const ACCREDITATION_LEVELS = status?.levels ?? [];
+
   return (
     <div>
       <PageHero
@@ -58,7 +52,7 @@ export default function AccreditationsPage() {
         alt="Polytechnic University of the Philippines — Accreditation"
         eyebrow="Program status"
         title="Institutionalizing quality, one programme at a time."
-        lede={`A pioneer AACCUP member since 1987. Here is where all ${TOTAL} programmes in the cycle currently stand.`}
+        lede={`A pioneer AACCUP member since 1987. Here is where ${TOTAL ? `all ${TOTAL} accredited programmes` : "the programmes in the cycle"} currently stand.`}
         priority
       />
 
@@ -109,14 +103,22 @@ export default function AccreditationsPage() {
             }
             as="h2"
           />
-          <p className="t-body-strong text-maroon">
-            {TOTAL} programmes in the cycle
-          </p>
+          {status && (
+            <p className="t-body-strong text-maroon">
+              {TOTAL} programmes in the cycle
+            </p>
+          )}
         </div>
+
+        {!status && (
+          <p className="t-body mt-[var(--space-9)] text-black/70">
+            The programme counts are being updated. Please check back shortly.
+          </p>
+        )}
 
         <ul className="mt-[var(--space-9)] grid gap-[var(--space-5)] sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {ACCREDITATION_LEVELS.map((level) => {
-            const share = Math.round((level.count / TOTAL) * 100);
+            const share = TOTAL ? Math.round((level.count / TOTAL) * 100) : 0;
             return (
               <li
                 key={level.label}

@@ -177,7 +177,7 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
           <thead>
             <tr>
               <th>Name</th>
-              <th>Program</th>
+              {T.key !== "oth" && <th>Program</th>}
               {T.validity && <th>Valid until</th>}
               <th>Uploaded</th>
               <th />
@@ -191,10 +191,12 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
                   <td>
                     <span className="pdfi">PDF</span> {x.title}
                   </td>
-                  <td>
-                    {x.program}
-                    {(x.status || x.levelCode) && <small>{x.status || levelName(x.levelCode!)}</small>}
-                  </td>
+                  {T.key !== "oth" && (
+                    <td>
+                      {x.program}
+                      {(x.status || x.levelCode) && <small>{x.status || levelName(x.levelCode!)}</small>}
+                    </td>
+                  )}
                   {T.validity && (
                     <td>
                       {x.to ? (
@@ -348,7 +350,7 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
           url={fileUrl(modal.f.id)}
           downloadHref={fileUrl(modal.f.id, true)}
           file={modal.f.title}
-          meta={`${nav.unit} · ${T.name} · ${modal.f.program}${modal.f.to ? ` · valid until ${shortDate(modal.f.to)}` : ""}`}
+          meta={`${nav.unit} · ${T.name}${T.key === "oth" ? "" : ` · ${modal.f.program}`}${modal.f.to ? ` · valid until ${shortDate(modal.f.to)}` : ""}`}
           note="Program reps can view this file in their Documents → Reports"
           onClose={() => setModal(null)}
         />
@@ -518,7 +520,9 @@ function UploadModal({
   onClose: () => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
-  const [prog, setProg] = useState(programs[0]?.id ?? "");
+  const sorted = useMemo(() => [...programs].sort((a, b) => a.name.localeCompare(b.name)), [programs]);
+  const [prog, setProg] = useState(sorted[0]?.id ?? "");
+  const pickProgram = type.key !== "oth";
   const [status, setStatus] = useState(CSTAT[0][1]);
   const cert = type.key === "cert";
   const [from, setFrom] = useState(type.validity ? new Date().toISOString().slice(0, 10) : "");
@@ -530,7 +534,6 @@ function UploadModal({
     return d.toISOString().slice(0, 10);
   });
   const { busy, run, toast } = useAct();
-  const sorted = useMemo(() => [...programs].sort((a, b) => a.name.localeCompare(b.name)), [programs]);
 
   const save = () => {
     if (!file) return toast.say("Choose a PDF to upload", true);
@@ -579,38 +582,42 @@ function UploadModal({
       }
     >
       <FileDrop exts={[".pdf"]} label="Choose a PDF or drag it here" hint="PDF only · max 25 MB" file={file} onFile={setFile} />
-      <div className="fg2">
-        <div>
-          <label className="fl">Program *</label>
-          <select className="inp" value={prog} onChange={(e) => setProg(e.target.value)}>
-            {sorted.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        {type.validity && (
-          <>
-            {cert ? (
+      {(pickProgram || type.validity) && (
+        <div className="fg2">
+          {pickProgram && (
+            <div>
+              <label className="fl">Program *</label>
+              <select className="inp" value={prog} onChange={(e) => setProg(e.target.value)}>
+                {sorted.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {type.validity && (
+            <>
+              {cert ? (
+                <div>
+                  <label className="fl">Status on certificate *</label>
+                  <CertStatusSelect value={status} onChange={setStatus} />
+                </div>
+              ) : (
+                <div />
+              )}
               <div>
-                <label className="fl">Status on certificate *</label>
-                <CertStatusSelect value={status} onChange={setStatus} />
+                <label className="fl">Valid from *</label>
+                <input className="inp" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
               </div>
-            ) : (
-              <div />
-            )}
-            <div>
-              <label className="fl">Valid from *</label>
-              <input className="inp" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-            </div>
-            <div>
-              <label className="fl">Valid until {cert ? "*" : "(if any)"}</label>
-              <input className="inp" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-            </div>
-          </>
-        )}
-      </div>
+              <div>
+                <label className="fl">Valid until {cert ? "*" : "(if any)"}</label>
+                <input className="inp" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+              </div>
+            </>
+          )}
+        </div>
+      )}
       {type.validity && (
         <div className="sub" style={{ fontSize: 11.5, marginTop: 8 }}>
           📅 The validity dates power the expiry alerts on the Dashboard and in Reports.
