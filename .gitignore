@@ -87,3 +87,4 @@ assets/OTHERS/*.mp4
 
 # Local progress-reset snapshots (contain real uploads and PII)
 /data/progress-backups/
+/data/backups/
