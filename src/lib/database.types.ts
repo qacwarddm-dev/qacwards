@@ -2617,6 +2617,8 @@ export type Database = {
         Args: { p_session?: string; p_user?: string }
         Returns: number
       }
+      admin_purge_program: { Args: { p_id: string }; Returns: undefined }
+      admin_purge_user: { Args: { p_id: string }; Returns: undefined }
       admin_last_activity: {
         Args: never
         Returns: {
@@ -2742,6 +2744,7 @@ export type Database = {
         | "award_expiring"
         | "account"
         | "document_uploaded"
+        | "program_added"
       position_scope: "program" | "qac"
       submission_status:
         | "not_started"
@@ -2906,6 +2909,7 @@ export const Constants = {
         "award_expiring",
         "account",
         "document_uploaded",
+        "program_added",
       ],
       position_scope: ["program", "qac"],
       submission_status: [

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
-import { BUCKETS, uploadFile } from "@/lib/storage";
+import { BUCKETS, removeFile, uploadFile } from "@/lib/storage";
 import { DEFAULTS, type SettingKey } from "@/lib/settings-model";
 import type { UserRole } from "@/lib/database.types";
 
@@ -272,6 +272,20 @@ export async function deleteUser(id: string): Promise<ActionResult> {
   return { ok: true };
 }
 
+export async function purgeUser(id: string): Promise<ActionResult> {
+  const me = await admin();
+  if (!me) return DENIED;
+  if (me.id === id) return { ok: false, error: "You cannot delete your own account." };
+  const supabase = await createClient();
+  const { data: avatars } = await supabase.storage.from(BUCKETS.avatars).list(id);
+  const { error } = await supabase.rpc("admin_purge_user", { p_id: id });
+  if (error) return { ok: false, error: error.message };
+  for (const a of avatars ?? []) await removeFile(supabase, BUCKETS.avatars, `${id}/${a.name}`);
+  refresh();
+  revalidatePath("/portal/recently-deleted");
+  return { ok: true };
+}
+
 export async function restoreUser(id: string): Promise<ActionResult> {
   if (!(await admin())) return DENIED;
   const supabase = await createClient();
@@ -377,6 +391,16 @@ export async function restoreProgram(id: string): Promise<ActionResult> {
   const { data, error } = await supabase.from("programs").update({ deleted_at: null }).eq("id", id).not("deleted_at", "is", null).select("id");
   if (error) return { ok: false, error: error.message };
   if (!data?.length) return { ok: false, error: "That program could not be restored." };
+  refresh();
+  revalidatePath("/portal/recently-deleted");
+  return { ok: true };
+}
+
+export async function purgeProgram(id: string): Promise<ActionResult> {
+  if (!(await admin())) return DENIED;
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_purge_program", { p_id: id });
+  if (error) return { ok: false, error: error.message };
   refresh();
   revalidatePath("/portal/recently-deleted");
   return { ok: true };

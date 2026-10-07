@@ -18,6 +18,7 @@ const KIND: Record<string, [string, string]> = {
   assignment_response: ["⏳", "#f3f3f3"],
   submission_received: ["📄", "#fff6d6"],
   document_uploaded: ["📄", "#fff6d6"],
+  program_added: ["🎓", "#e8eefb"],
   document_disapproved: ["↺", "#fdecec"],
   score_released: ["📨", "#e8eefb"],
   event_scheduled: ["🗓", "#e8eefb"],

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
-import { BUCKETS, checkUploaded } from "@/lib/storage";
+import { BUCKETS, checkUploaded, removeFile } from "@/lib/storage";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -100,6 +100,19 @@ export async function restoreCopcFile(id: string): Promise<ActionResult> {
   if (error) return { ok: false, error: error.message };
   if (!data?.length) return { ok: false, error: "That file could not be restored." };
   refresh();
+  return { ok: true };
+}
+
+export async function purgeCopcFile(id: string): Promise<ActionResult> {
+  if (!(await qac())) return { ok: false, error: "Only QAC can delete files." };
+  const supabase = await createClient();
+  const { data: file } = await supabase.from("repository_files").select("storage_path").eq("id", id).eq("is_archived", true).maybeSingle();
+  if (!file) return { ok: false, error: "That file is no longer in Recently Deleted." };
+  const { error } = await supabase.from("repository_files").delete().eq("id", id);
+  if (error) return { ok: false, error: error.message };
+  await removeFile(supabase, BUCKETS.repository, file.storage_path);
+  refresh();
+  revalidatePath("/portal/recently-deleted");
   return { ok: true };
 }
 

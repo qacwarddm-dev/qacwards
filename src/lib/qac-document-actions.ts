@@ -173,6 +173,19 @@ export async function restoreCommonDoc(id: string): Promise<ActionResult> {
   return { ok: true };
 }
 
+export async function purgeCommonDoc(id: string): Promise<ActionResult> {
+  if (!(await qac())) return { ok: false, error: "Only QAC can manage common documents." };
+  const supabase = await createClient();
+  const { data: doc } = await supabase.from("common_documents").select("storage_path").eq("id", id).not("deleted_at", "is", null).maybeSingle();
+  if (!doc) return { ok: false, error: "That document is no longer in Recently Deleted." };
+  const { error } = await supabase.from("common_documents").delete().eq("id", id);
+  if (error) return { ok: false, error: error.message };
+  await supabase.storage.from(BUCKETS.commonDocs).remove([doc.storage_path]);
+  refresh();
+  revalidatePath("/portal/recently-deleted");
+  return { ok: true };
+}
+
 export async function reviewNda(profileId: string, ok: boolean, note: string): Promise<ActionResult> {
   const user = await qac();
   if (!user) return { ok: false, error: "Only QAC can verify NDAs." };
