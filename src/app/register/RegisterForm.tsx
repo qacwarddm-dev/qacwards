@@ -18,6 +18,8 @@ import {
   ACADEMIC_PROGRAM_LABEL,
   CAMPUSES,
   COLLEGES,
+  EXPERTISE_AREAS,
+  INTERNAL_ACCREDITOR_LABEL,
   MAIN_CAMPUS,
   PROGRAM_POSITIONS,
   QAC_POSITIONS,
@@ -77,6 +79,7 @@ export default function RegisterForm({ invitedWebmail = "" }: { invitedWebmail?:
   const [campus, setCampus] = useState("");
   const [college, setCollege] = useState("");
   const [position, setPosition] = useState("");
+  const [expertise, setExpertise] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -93,9 +96,11 @@ export default function RegisterForm({ invitedWebmail = "" }: { invitedWebmail?:
     setCampus(draft.campus);
     setCollege(draft.college);
     setPosition(draft.position);
+    setExpertise(draft.expertise ?? "");
   }, []);
 
   const isProgramRep = role === ACADEMIC_PROGRAM_LABEL;
+  const isAccreditor = role === INTERNAL_ACCREDITOR_LABEL;
   const showCollege = isProgramRep && campus === MAIN_CAMPUS;
   const showPosition = isProgramRep && campus !== "";
 
@@ -111,7 +116,8 @@ export default function RegisterForm({ invitedWebmail = "" }: { invitedWebmail?:
     else if (given.trim() === "") next.name = "Enter your given name.";
     if (webmail.trim() === "") next.webmail = "Enter your PUP webmail.";
     if (role === "") next.role = "Choose your system role.";
-    if (campus === "") next.campus = "Choose your campus.";
+    if (isProgramRep && campus === "") next.campus = "Choose your campus.";
+    if (isAccreditor && expertise === "") next.expertise = "Choose your field of expertise.";
     if (showCollege && college === "") next.college = "Choose your college or department.";
     if (showPosition && position === "") next.position = "Choose your PUP position.";
 
@@ -130,9 +136,10 @@ export default function RegisterForm({ invitedWebmail = "" }: { invitedWebmail?:
       middleInitial: middle,
       webmail: webmail.trim(),
       roleLabel: role,
-      campus,
-      college,
-      position,
+      campus: isProgramRep ? campus : MAIN_CAMPUS,
+      college: showCollege ? college : "",
+      position: showPosition ? position : "",
+      expertise: isAccreditor ? expertise : "",
     };
 
     // The domain rule is also a Postgres trigger on auth.users, which is the one
@@ -223,19 +230,34 @@ export default function RegisterForm({ invitedWebmail = "" }: { invitedWebmail?:
             onChange={(v) => {
               setRole(v);
               setPosition("");
+              setCollege("");
+              if (v !== ACADEMIC_PROGRAM_LABEL) setCampus("");
             }}
             placeholder="Select role"
             error={errors.role}
           />
 
-          <AuthSelect
-            label="Campus"
-            options={CAMPUSES}
-            value={campus}
-            onChange={setCampus}
-            placeholder="Select campus"
-            error={errors.campus}
-          />
+          {isProgramRep && (
+            <AuthSelect
+              label="Campus"
+              options={CAMPUSES}
+              value={campus}
+              onChange={setCampus}
+              placeholder="Select campus"
+              error={errors.campus}
+            />
+          )}
+
+          {isAccreditor && (
+            <AuthSelect
+              label="Field of Expertise"
+              options={EXPERTISE_AREAS}
+              value={expertise}
+              onChange={setExpertise}
+              placeholder="Select field of expertise"
+              error={errors.expertise}
+            />
+          )}
 
           {/* Polite live region: choosing a role and campus can insert two more
               selects here, and a form that grows under you without saying so is

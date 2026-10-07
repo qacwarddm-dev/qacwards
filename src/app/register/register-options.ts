@@ -48,6 +48,7 @@ export type SystemRoleLabel = (typeof SYSTEM_ROLES)[number]["label"];
 /** The label the campus/college/position fields key off. */
 export const ACADEMIC_PROGRAM_LABEL = "Academic Program";
 export const QAC_PERSONNEL_LABEL = "QAC Personnel";
+export const INTERNAL_ACCREDITOR_LABEL = "Internal Accreditor";
 
 /** Program Representative registering under the main campus reveals the College /
  *  Department field; every other campus hides it (owner rule, 2026-07-25). */

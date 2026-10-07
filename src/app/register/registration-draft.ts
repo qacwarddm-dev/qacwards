@@ -40,6 +40,8 @@ export type RegistrationDraft = {
   /** College display name; empty unless main campus. */
   college: string;
   position: string;
+  /** Expertise area name; Internal Accreditor only. */
+  expertise: string;
 };
 
 const KEY = "qac_registration_draft";

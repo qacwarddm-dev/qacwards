@@ -86,7 +86,8 @@ export default function VerifyWebmailForm() {
     setError(null);
     setPending(true);
 
-    const { error: verifyError } = await createClient().auth.verifyOtp({
+    const supabase = createClient();
+    const { error: verifyError } = await supabase.auth.verifyOtp({
       email: draft.webmail,
       token: otp,
       type: "email",
@@ -96,6 +97,20 @@ export default function VerifyWebmailForm() {
       setFieldError("That code is not valid or has expired.");
       setPending(false);
       return;
+    }
+
+    if (draft.expertise) {
+      const { data: user } = await supabase.auth.getUser();
+      const { data: area } = await supabase
+        .from("expertise_areas")
+        .select("id")
+        .eq("name", draft.expertise)
+        .maybeSingle();
+      if (user.user && area) {
+        await supabase
+          .from("accreditor_expertise")
+          .insert({ profile_id: user.user.id, expertise_area_id: area.id });
+      }
     }
 
     router.push(REGISTER_STEPS.password);
