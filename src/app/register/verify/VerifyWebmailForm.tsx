@@ -12,6 +12,7 @@ import {
 } from "@/components/auth";
 import { createClient } from "@/lib/supabase/browser";
 import { REGISTER_STEPS } from "../register-options";
+import { otpErrorMessage } from "../otp-error";
 import { draftToAuthMetadata, readDraft } from "../registration-draft";
 
 /**
@@ -125,10 +126,14 @@ export default function VerifyWebmailForm() {
     setError(null);
     setResent(true);
     setSecondsLeft(RESEND_SECONDS);
-    await createClient().auth.signInWithOtp({
+    const { error: resendError } = await createClient().auth.signInWithOtp({
       email: draft.webmail,
       options: { shouldCreateUser: true, data: draftToAuthMetadata(draft) },
     });
+    if (resendError) {
+      setResent(false);
+      setError(otpErrorMessage(resendError.message));
+    }
   }
 
   return (
@@ -155,10 +160,10 @@ export default function VerifyWebmailForm() {
               <>
                 Code sent to{" "}
                 <span className="font-semibold">{address}</span>. Check your inbox,
-                including spam.
+                including Junk or Spam. It can take a few minutes.
               </>
             ) : (
-              "Check your PUP webmail inbox, including spam."
+              "Check your PUP webmail inbox, including Junk or Spam."
             )}
           </AuthFormError>
 

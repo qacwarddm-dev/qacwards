@@ -28,6 +28,7 @@ import {
   SYSTEM_ROLES,
 } from "./register-options";
 import { createClient } from "@/lib/supabase/browser";
+import { otpErrorMessage } from "./otp-error";
 import { draftToAuthMetadata, readDraft, saveDraft } from "./registration-draft";
 
 /**
@@ -156,7 +157,7 @@ export default function RegisterForm({ invitedWebmail = "" }: { invitedWebmail?:
     });
 
     if (otpError) {
-      setError(otpError.message);
+      setError(otpErrorMessage(otpError.message));
       setPending(false);
       return;
     }
