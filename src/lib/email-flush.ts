@@ -21,7 +21,7 @@ export async function flushEmailOutbox(): Promise<void> {
     try {
       await drainEmailOutbox(client);
     } finally {
-      await client.auth.signOut();
+      await client.auth.signOut({ scope: "local" });
     }
   } catch (err) {
     console.error("email flush failed:", err);

@@ -1,7 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { NDA_TEMPLATE_PATH, newNdaFileId, stampNdaTemplate } from "@/lib/nda";
+import { NDA_TEMPLATE_PATH, stampNdaTemplate } from "@/lib/nda";
+import { newNdaFileId } from "@/lib/nda-id";
 import { BUCKETS } from "@/lib/storage";
 
 export const runtime = "nodejs";

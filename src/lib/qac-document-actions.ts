@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { BUCKETS, checkUploaded } from "@/lib/storage";
+import { indexDocument } from "@/lib/doc-index";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -60,28 +62,34 @@ export async function saveTemplate(fd: FormData): Promise<ActionResult> {
     if (hErr) return { ok: false, error: hErr.message };
     const { error } = await supabase
       .from("templates")
-      .update({ storage_path: path, version: cur.version + 1, change_note: note, uploaded_by: user.id, updated_at: new Date().toISOString(), is_published: publish || cur.is_published })
+      .update({ storage_path: path, content_text: null, version: cur.version + 1, change_note: note, uploaded_by: user.id, updated_at: new Date().toISOString(), is_published: publish || cur.is_published })
       .eq("id", id);
     if (error) return { ok: false, error: error.message };
+    after(() => indexDocument(supabase, "template", id));
     if (notify) await notifyReps(`Template updated: ${cur.title} (v${cur.version + 1})`, "/portal/documents");
   } else {
     if (!areaId) {
       const { data: dup } = await supabase.from("templates").select("id").eq("group_key", group).ilike("title", title).limit(1);
       if (dup?.length) return { ok: false, error: "A template for this already exists. Use Replace instead." };
     }
-    const { error } = await supabase.from("templates").insert({
-      title,
-      storage_path: path,
-      requirement_area_id: areaId,
-      level_id: levelId,
-      group_key: group,
-      is_published: publish,
-      uploaded_by: user.id,
-    });
+    const { data: created, error } = await supabase
+      .from("templates")
+      .insert({
+        title,
+        storage_path: path,
+        requirement_area_id: areaId,
+        level_id: levelId,
+        group_key: group,
+        is_published: publish,
+        uploaded_by: user.id,
+      })
+      .select("id")
+      .single();
     if (error) {
       await supabase.storage.from(BUCKETS.templates).remove([path]);
       return { ok: false, error: error.message };
     }
+    after(() => indexDocument(supabase, "template", created.id));
     if (notify && publish) await notifyReps(`New template: ${title}`, "/portal/documents");
   }
   refresh();
@@ -102,9 +110,10 @@ export async function restoreTemplateVersion(versionId: string): Promise<ActionR
   if (hErr) return { ok: false, error: hErr.message };
   const { error } = await supabase
     .from("templates")
-    .update({ storage_path: v.storage_path, version: cur.version + 1, change_note: `Restored v${v.version}`, uploaded_by: user.id, updated_at: new Date().toISOString() })
+    .update({ storage_path: v.storage_path, content_text: null, version: cur.version + 1, change_note: `Restored v${v.version}`, uploaded_by: user.id, updated_at: new Date().toISOString() })
     .eq("id", v.template_id);
   if (error) return { ok: false, error: error.message };
+  after(() => indexDocument(supabase, "template", v.template_id));
   refresh();
   return { ok: true };
 }
@@ -135,18 +144,20 @@ export async function saveCommonDoc(fd: FormData): Promise<ActionResult> {
   const up = await checkUploaded(supabase, BUCKETS.commonDocs, { path, prefix: "", name: fileName, exts: [".pdf"], max: MAX });
   if ("error" in up) return { ok: false, error: up.error };
 
-  const row = { title, category, visible_to: visibleTo, college_codes: collegeCodes, storage_path: path, file_size: up.size, uploaded_by: user.id, updated_at: new Date().toISOString() };
+  const row = { title, category, visible_to: visibleTo, college_codes: collegeCodes, storage_path: path, content_text: null, file_size: up.size, uploaded_by: user.id, updated_at: new Date().toISOString() };
   if (id) {
     const { data: old } = await supabase.from("common_documents").select("storage_path").eq("id", id).maybeSingle();
     const { error } = await supabase.from("common_documents").update(row).eq("id", id);
     if (error) return { ok: false, error: error.message };
     if (old) await supabase.storage.from(BUCKETS.commonDocs).remove([old.storage_path]);
+    after(() => indexDocument(supabase, "common", id));
   } else {
-    const { error } = await supabase.from("common_documents").insert(row);
+    const { data: created, error } = await supabase.from("common_documents").insert(row).select("id").single();
     if (error) {
       await supabase.storage.from(BUCKETS.commonDocs).remove([path]);
       return { ok: false, error: error.message };
     }
+    after(() => indexDocument(supabase, "common", created.id));
   }
   if (fd.get("notify") === "1") await notifyReps(`${id ? "Updated" : "New"} common document: ${title}`, "/portal/documents?tab=common", collegeCodes);
   refresh();

@@ -125,7 +125,15 @@ export default function CommandPalette({ user }: { user: PortalUser }) {
                 <div key={r.key}>
                   {head}
                   <div className={`pr2${i === sel ? " k" : ""}`} onClick={() => go(i)}>
-                    {r.group === "Documents" ? "📄" : r.group === "Events" ? "🗓" : "↗"} <span>{r.title}</span>
+                    {r.group === "Documents" ? "📄" : r.group === "Events" ? "🗓" : "↗"}{" "}
+                    <span>
+                      {r.title}
+                      {r.snippet && (
+                        <em className="pr2s">
+                          {r.snippet.split(/[«»]/).map((part, j) => (j % 2 ? <b key={j}>{part}</b> : part))}
+                        </em>
+                      )}
+                    </span>
                     <small>{r.sub}</small>
                   </div>
                 </div>

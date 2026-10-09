@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { BUCKETS, checkUploaded } from "@/lib/storage";
-import { checkNdaScan, normalizeNdaFileId } from "@/lib/nda";
+import { checkNdaScan } from "@/lib/nda";
+import { normalizeNdaFileId } from "@/lib/nda-id";
 import { inspectPdf } from "@/lib/pdf";
 
 /**
@@ -114,6 +115,16 @@ async function saveNda(formData: FormData): Promise<ActionResult> {
 
   revalidatePath("/portal/documents");
   return { ok: true };
+}
+
+export async function myNdaFileIds(): Promise<string[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data } = await supabase.from("nda_issuances").select("file_id").eq("profile_id", user.id).order("issued_at", { ascending: false }).limit(20);
+  return (data ?? []).map((r) => r.file_id);
 }
 
 export async function getOwnNdaUrl(): Promise<string | null> {

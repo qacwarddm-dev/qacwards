@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { BUCKETS, removeFile, uploadFile } from "@/lib/storage";
 import { DEFAULTS, type SettingKey } from "@/lib/settings-model";
+import { sendMail } from "@/lib/email";
 import type { UserRole } from "@/lib/database.types";
 
 export type ActionResult = { ok: true; notice?: string } | { ok: false; error: string };
@@ -211,14 +212,17 @@ const ROLE_NAME: Record<string, string> = {
   program_representative: "Academic Program",
 };
 
-async function queueInvite(email: string, given: string, role: string) {
-  const supabase = await createClient();
+async function sendInvite(email: string, given: string, role: string): Promise<string | null> {
+  const subject = "[QAC-WARDS] You’re invited to QAC-WARDS";
   const link = `${await origin()}/register?email=${encodeURIComponent(email)}`;
-  return supabase.rpc("admin_queue_email", {
-    p_to: email,
-    p_subject: "[QAC-WARDS] You’re invited to QAC-WARDS",
-    p_body: `Good day, ${given}.\n\nThe PUP Quality Assurance Center invited you to QAC-WARDS as ${ROLE_NAME[role] ?? role}.\n\nCreate your account with this email here:\n${link}\n\n— Quality Assurance Center`,
-  });
+  const body = `Good day, ${given}.\n\nThe PUP Quality Assurance Center invited you to QAC-WARDS as ${ROLE_NAME[role] ?? role}.\n\nCreate your account with this email here:\n${link}\n\n— Quality Assurance Center`;
+  const sent = await sendMail(email, subject, body);
+  if (sent.ok) return null;
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_queue_email", { p_to: email, p_subject: subject, p_body: body });
+  return error
+    ? `the email did not send (${sent.error}) and could not be queued (${error.message})`
+    : `the email did not send (${sent.error}). It was queued to retry`;
 }
 
 export async function inviteUser(input: { surname: string; given: string; email: string; role: UserRole; ia: boolean }): Promise<ActionResult> {
@@ -239,10 +243,9 @@ export async function inviteUser(input: { surname: string; given: string; email:
     invited_by: user.id,
   });
   if (error) return { ok: false, error: error.code === "23505" ? "That webmail was already invited" : error.message };
-  const q = await queueInvite(email, input.given.trim(), input.role);
-  if (q.error) return { ok: false, error: `Invitation saved, but the email could not be queued: ${q.error.message}` };
+  const failed = await sendInvite(email, input.given.trim(), input.role);
   refresh();
-  return { ok: true };
+  return failed ? { ok: false, error: `Invitation saved, but ${failed}.` } : { ok: true };
 }
 
 const DONE_ASSIGNMENT = ["evaluated", "score_returned", "declined"];
@@ -312,11 +315,10 @@ export async function resendInvite(id: string): Promise<ActionResult> {
   const supabase = await createClient();
   const { data: i } = await supabase.from("user_invitations").select("webmail, given_name, role, sent_count").eq("id", id).maybeSingle();
   if (!i) return { ok: false, error: "That invitation no longer exists." };
-  const q = await queueInvite(i.webmail, i.given_name, i.role);
-  if (q.error) return { ok: false, error: q.error.message };
+  const failed = await sendInvite(i.webmail, i.given_name, i.role);
   await supabase.from("user_invitations").update({ sent_count: i.sent_count + 1, invited_at: new Date().toISOString() }).eq("id", id);
   refresh();
-  return { ok: true };
+  return failed ? { ok: false, error: `Invitation kept, but ${failed}.` } : { ok: true };
 }
 
 export async function editUser(id: string, input: { surname: string; given: string; ia: boolean; positionId: string | null }): Promise<ActionResult> {
@@ -465,7 +467,8 @@ async function dumpTable(supabase: Awaited<ReturnType<typeof createClient>>, tab
       .select("*")
       .range(from, from + 999);
     if (error) throw new Error(`${table}: ${error.message}`);
-    rows.push(...(data ?? []));
+    // search_tsv is generated from content_text; storing both doubles the file.
+    rows.push(...(data ?? []).map(({ search_tsv: _, ...row }: Record<string, unknown>) => row));
     if (!data || data.length < 1000) break;
   }
   return rows;

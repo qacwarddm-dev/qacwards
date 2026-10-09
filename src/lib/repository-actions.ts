@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { BUCKETS, checkUploaded, removeFile } from "@/lib/storage";
+import { indexDocument } from "@/lib/doc-index";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -45,23 +47,28 @@ export async function uploadCopcFile(formData: FormData): Promise<ActionResult> 
     levelId = data?.id ?? null;
   }
 
-  const { error } = await supabase.from("repository_files").insert({
-    program_id: programId,
-    folder_id: folderId,
-    unit_id: unitId,
-    title: fileName,
-    storage_path: path,
-    file_size: stored.size,
-    uploaded_by: user.id,
-    valid_from: from,
-    valid_until: to,
-    cert_status: status,
-    level_id: levelId,
-  });
+  const { data: created, error } = await supabase
+    .from("repository_files")
+    .insert({
+      program_id: programId,
+      folder_id: folderId,
+      unit_id: unitId,
+      title: fileName,
+      storage_path: path,
+      file_size: stored.size,
+      uploaded_by: user.id,
+      valid_from: from,
+      valid_until: to,
+      cert_status: status,
+      level_id: levelId,
+    })
+    .select("id")
+    .single();
   if (error) {
     await supabase.storage.from(BUCKETS.repository).remove([path]);
     return { ok: false, error: error.message };
   }
+  after(() => indexDocument(supabase, "repository", created.id));
 
   const { data: reps } = await supabase.from("program_reps").select("profile_id").eq("program_id", programId);
   await Promise.all(

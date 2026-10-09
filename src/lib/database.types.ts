@@ -539,6 +539,7 @@ export type Database = {
       }
       common_documents: {
         Row: {
+          content_text: string | null
           deleted_at: string | null
           category: string
           college_codes: string[]
@@ -553,6 +554,7 @@ export type Database = {
           visible_to: string
         }
         Insert: {
+          content_text?: string | null
           deleted_at?: string | null
           category?: string
           college_codes?: string[]
@@ -567,6 +569,7 @@ export type Database = {
           visible_to?: string
         }
         Update: {
+          content_text?: string | null
           deleted_at?: string | null
           category?: string
           college_codes?: string[]
@@ -1544,6 +1547,7 @@ export type Database = {
       }
       repository_files: {
         Row: {
+          content_text: string | null
           archived_at: string | null
           cert_status: string | null
           created_at: string
@@ -1562,6 +1566,7 @@ export type Database = {
           valid_until: string | null
         }
         Insert: {
+          content_text?: string | null
           archived_at?: string | null
           cert_status?: string | null
           created_at?: string
@@ -1580,6 +1585,7 @@ export type Database = {
           valid_until?: string | null
         }
         Update: {
+          content_text?: string | null
           archived_at?: string | null
           cert_status?: string | null
           created_at?: string
@@ -1904,6 +1910,7 @@ export type Database = {
       }
       submission_documents: {
         Row: {
+          content_text: string | null
           doc_uuid: string
           file_size: number
           id: string
@@ -1922,6 +1929,7 @@ export type Database = {
           version: number
         }
         Insert: {
+          content_text?: string | null
           doc_uuid?: string
           file_size: number
           id?: string
@@ -1940,6 +1948,7 @@ export type Database = {
           version?: number
         }
         Update: {
+          content_text?: string | null
           doc_uuid?: string
           file_size?: number
           id?: string
@@ -2223,6 +2232,7 @@ export type Database = {
       }
       templates: {
         Row: {
+          content_text: string | null
           change_note: string | null
           created_at: string
           group_key: string | null
@@ -2238,6 +2248,7 @@ export type Database = {
           version: number
         }
         Insert: {
+          content_text?: string | null
           change_note?: string | null
           created_at?: string
           group_key?: string | null
@@ -2253,6 +2264,7 @@ export type Database = {
           version?: number
         }
         Update: {
+          content_text?: string | null
           change_note?: string | null
           created_at?: string
           group_key?: string | null
@@ -2714,12 +2726,29 @@ export type Database = {
         Args: { p_assignment: string; p_note: string }
         Returns: undefined
       }
+      search_documents: {
+        Args: { p_limit?: number; p_query: string }
+        Returns: {
+          id: string
+          kind: string
+          level: string | null
+          program: string | null
+          rank: number
+          ref_id: string | null
+          snippet: string | null
+          title: string
+        }[]
+      }
       send_reminder: {
         Args: { p_link?: string; p_profile: string; p_title: string }
         Returns: undefined
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      set_document_text: {
+        Args: { p_id: string; p_kind: string; p_text: string }
+        Returns: undefined
+      }
       sign_accreditor_report: {
         Args: {
           p_assignment: string

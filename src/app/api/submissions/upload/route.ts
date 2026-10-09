@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { BUCKETS, uploadFile } from "@/lib/storage";
 import { MAX_UPLOAD_BYTES, inspectPdf, mergePdfs, stampUuid } from "@/lib/pdf";
 import { submissionWindow } from "@/lib/cycle";
+import { extractText } from "@/lib/doc-text";
 
 /**
  * Upload one document into a submission.
@@ -126,6 +127,9 @@ export async function POST(request: NextRequest) {
   // to be inside the bytes before they are stored — the row cannot tell us what
   // it will be after the fact.
   const docUuid = crypto.randomUUID();
+  // Read alongside the stamp and upload. A timeout leaves the row unread and the
+  // nightly indexer finishes it; reps cannot write the text back after the insert.
+  const contentText = extractText(original, "upload.pdf", 8_000);
 
   let stamped: Uint8Array;
   try {
@@ -166,6 +170,7 @@ export async function POST(request: NextRequest) {
       is_draft: body.isDraft,
       is_current: !body.isDraft,
       upload_note: body.note,
+      content_text: await contentText,
     })
     .select("id")
     .single();

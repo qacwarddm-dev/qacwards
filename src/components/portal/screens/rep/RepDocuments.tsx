@@ -17,7 +17,8 @@ import StepsReminder from "../../kit/StepsReminder";
 import { useToast } from "../../kit/ToastProvider";
 import { TemplatePreview } from "../../kit/UploadFlow";
 import type { RepDocumentsData, TemplateGroup } from "@/lib/rep-documents";
-import { countCommonView, getOwnNdaUrl, uploadNda } from "@/lib/document-actions";
+import { countCommonView, getOwnNdaUrl, myNdaFileIds, uploadNda } from "@/lib/document-actions";
+import type { NdaFields } from "@/lib/nda-scan";
 import { createClient } from "@/lib/supabase/browser";
 import { uploadDirect } from "@/lib/upload-client";
 
@@ -175,8 +176,11 @@ function NdaTracker({ step }: { step: number }) {
 function Common({ data, me }: { data: RepDocumentsData; me: string }) {
   const [downloaded, setDownloaded] = useState(false);
   const [file, setFile] = useState<File | null>(null);
-  const [f, setF] = useState({ id: "", atty: "", doc: "", page: "", book: "", series: "" });
+  const [f, setF] = useState<NdaFields>({ id: "", atty: "", doc: "", page: "", book: "", series: "" });
   const [bad, setBad] = useState<Record<string, boolean>>({});
+  const [scan, setScan] = useState<{ pct: number; filled?: number } | null>(null);
+  const scanRun = useRef(0);
+  const autoFilled = useRef(new Set<keyof NdaFields>());
   const [drag, setDrag] = useState(false);
   const [view, setView] = useState<{ title: string; src: string | null; own?: boolean } | null>(null);
   const [pending, start] = useBusy();
@@ -195,7 +199,33 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
     if (x.size > 10 * 1024 * 1024) return toast.say("File is larger than 10 MB. Please compress the scan.", true);
     setDownloaded(true);
     setFile(x);
-    toast.say("File attached. Fill in the notarial details.");
+    void readScan(x);
+  }
+
+  async function readScan(x: File) {
+    const run = ++scanRun.current;
+    setScan({ pct: 0 });
+    let got: Partial<NdaFields> = {};
+    try {
+      const [{ scanNda }, issued] = await Promise.all([import("@/lib/nda-scan"), myNdaFileIds()]);
+      got = await scanNda(x, issued, (pct) => run === scanRun.current && setScan({ pct }));
+    } catch (e) {
+      console.error("NDA scan failed", e);
+    }
+    if (run !== scanRun.current) return;
+    setF((cur) => {
+      const next = { ...cur };
+      for (const k of Object.keys(next) as (keyof NdaFields)[]) {
+        // A field the user typed into is theirs; one we filled from the previous file is not.
+        if (cur[k].trim() && !autoFilled.current.has(k)) continue;
+        next[k] = got[k] ?? "";
+        if (next[k]) autoFilled.current.add(k);
+        else autoFilled.current.delete(k);
+      }
+      return next;
+    });
+    setBad({});
+    setScan({ pct: 100, filled: Object.values(got).filter(Boolean).length });
   }
 
   function submit() {
@@ -413,13 +443,23 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
             { title: "Print and sign", text: "Print the form and sign it where indicated." },
             { title: "Have it notarized", text: "Bring the signed form to a notary public and have it notarized." },
             { title: "Scan the notarized copy", text: "Scan the whole document and save it as a PDF (max 10 MB)." },
-            { title: "Upload it here", text: "Click Upload Signed Copy, enter the NDA File ID and notarial details, then submit." },
+            { title: "Upload it here", text: "Click Upload Signed Copy. The NDA File ID and notarial details are read from your scan; check them, then submit." },
           ]}
         />
       )}
       {file && (
         <div className="form">
-          <div style={{ fontSize: 12, color: "var(--muted)" }}>Enter the NDA File ID printed at the top of the form and the notarial details stamped by the notary public.</div>
+          <div style={{ fontSize: 12, color: "var(--muted)", display: "flex", alignItems: "center", gap: 6 }}>
+            {scan && scan.filled === undefined ? (
+              <>
+                <MiniRing /> Reading the File ID and notarial details from your scan… {scan.pct}%
+              </>
+            ) : scan?.filled ? (
+              `Filled ${scan.filled} of 6 fields from your scan. Check each one against the signed form before you submit.`
+            ) : (
+              "We couldn’t read the details from this scan. Enter the NDA File ID printed at the top of the form and the notarial details stamped by the notary public."
+            )}
+          </div>
           {(
             [
               ["id", "NDA File ID", "QAC-NDA-XXXX-XXXX", "Format: QAC-NDA-XXXX-XXXX"],
@@ -435,6 +475,7 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
                 placeholder={ph}
                 value={f[k]}
                 onChange={(e) => {
+                  autoFilled.current.delete(k);
                   setF({ ...f, [k]: e.target.value });
                   setBad({ ...bad, [k]: false });
                 }}
@@ -460,6 +501,7 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
                   placeholder={ph}
                   value={f[k]}
                   onChange={(e) => {
+                    autoFilled.current.delete(k);
                     setF({ ...f, [k]: e.target.value });
                     setBad({ ...bad, [k]: false });
                   }}
@@ -472,7 +514,7 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
             <Btn variant="gh" onClick={() => setFile(null)}>
               Cancel
             </Btn>
-            <Btn disabled={pending} onClick={submit}>
+            <Btn disabled={pending || (scan !== null && scan.filled === undefined)} onClick={submit}>
               Submit NDA
             </Btn>
           </div>

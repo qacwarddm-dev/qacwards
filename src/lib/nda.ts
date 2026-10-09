@@ -1,29 +1,11 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb, type PDFPage } from "pdf-lib";
+import QRCode from "qrcode";
 
 export const NDA_TEMPLATE_PATH = path.join(process.cwd(), "templates", "qac-nda.pdf");
 
-// Crockford base32 minus I/L/O/U, so a hand-typed id can't confuse 1/I or 0/O.
-const ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
-const FILE_ID_RE = /^QAC-NDA-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$/;
 const KEYWORD_PREFIX = "qac-nda-file-id:";
-
-export function newNdaFileId(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(8));
-  const chars = Array.from(bytes, (b) => ALPHABET[b % 32]).join("");
-  return `QAC-NDA-${chars.slice(0, 4)}-${chars.slice(4)}`;
-}
-
-export function normalizeNdaFileId(raw: string): string | null {
-  const id = raw
-    .trim()
-    .toUpperCase()
-    .replace(/\s+/g, "")
-    .replace(/[IL]/g, "1")
-    .replace(/O/g, "0");
-  return FILE_ID_RE.test(id) ? id : null;
-}
 
 export async function stampNdaTemplate(fileId: string, template?: Uint8Array): Promise<Uint8Array> {
   const pdf = await PDFDocument.load(template ?? (await readFile(NDA_TEMPLATE_PATH)));
@@ -44,9 +26,37 @@ export async function stampNdaTemplate(fileId: string, template?: Uint8Array): P
       font,
       color: rgb(0.502, 0, 0), // --color-maroon #800000
     });
+    drawQr(page, fileId);
   }
 
   return pdf.save();
+}
+
+// Bottom-right, clear of the built-in form's footer logos (they end at x 548pt,
+// 76pt above the bottom edge). The upload screen reads the File ID from this.
+const QR_SIZE = 54;
+const QR_RIGHT = 36;
+const QR_BOTTOM = 18;
+
+function drawQr(page: PDFPage, fileId: string) {
+  const { modules } = QRCode.create(fileId, { errorCorrectionLevel: "M" });
+  const n = modules.size;
+  const cell = QR_SIZE / n;
+  const x0 = page.getSize().width - QR_RIGHT - QR_SIZE;
+  const quiet = cell * 2;
+  page.drawRectangle({ x: x0 - quiet, y: QR_BOTTOM - quiet, width: QR_SIZE + quiet * 2, height: QR_SIZE + quiet * 2, color: rgb(1, 1, 1) });
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; ) {
+      if (!modules.get(r, c)) {
+        c++;
+        continue;
+      }
+      let run = 1;
+      while (c + run < n && modules.get(r, c + run)) run++;
+      page.drawRectangle({ x: x0 + c * cell, y: QR_BOTTOM + (n - 1 - r) * cell, width: run * cell, height: cell, color: rgb(0, 0, 0) });
+      c += run;
+    }
+  }
 }
 
 export type NdaScanCheck = { ok: true } | { ok: false; error: string };

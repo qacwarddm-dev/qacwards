@@ -9,6 +9,8 @@ export type SearchHit = {
   title: string;
   sub: string;
   href: string;
+  /** Matched passage from inside the file, matches wrapped in « ». */
+  snippet?: string;
 };
 
 export async function searchPortal(q: string): Promise<SearchHit[]> {
@@ -16,7 +18,8 @@ export async function searchPortal(q: string): Promise<SearchHit[]> {
   const term = q.trim().replace(/[%_,()]/g, " ");
   if (!user || term.length < 2) return [];
   const supabase = await createClient();
-  const [{ data: docs }, { data: events }] = await Promise.all([
+  const [{ data: found }, { data: docs }, { data: events }] = await Promise.all([
+    supabase.rpc("search_documents", { p_query: term }),
     supabase
       .from("submission_documents")
       .select("id, title, submission_id, phase_document_id, requirement_area_id, submissions(program_id, programs(name), accreditation_levels(name))")
@@ -25,14 +28,32 @@ export async function searchPortal(q: string): Promise<SearchHit[]> {
       .limit(8),
     supabase.from("events").select("id, title, start_time").is("cancelled_at", null).ilike("title", `%${term}%`).limit(6),
   ]);
+  const qac = user.role === "qac_personnel" || user.role === "qac_admin";
   const docBase = user.role === "program_representative" ? "/portal/submission" : user.role === "internal_accreditor" ? "/portal/evaluation" : "/portal/assignment";
+  const where = (program: string | null, level: string | null) => [programShort(program ?? ""), level].filter(Boolean).join(" · ");
+
+  const byContent: SearchHit[] = [];
+  const seen = new Set<string>();
+  for (const d of found ?? []) {
+    if (d.kind !== "submission" && user.role === "internal_accreditor") continue;
+    seen.add(d.id);
+    const base = { group: "Documents" as const, title: d.title, snippet: d.snippet?.includes("«") ? d.snippet : undefined };
+    if (d.kind === "submission") byContent.push({ ...base, sub: where(d.program, d.level), href: `${docBase}?sub=${d.ref_id}` });
+    else if (d.kind === "repository") byContent.push({ ...base, sub: [where(d.program, null), "AACCUP & COPC"].filter(Boolean).join(" · "), href: qac ? "/portal/aaccup-copc" : "/portal/documents?tab=reports" });
+    else if (d.kind === "common") byContent.push({ ...base, sub: "Common Documents", href: "/portal/documents?tab=common" });
+    else byContent.push({ ...base, sub: "Template", href: "/portal/documents" });
+  }
+
   return [
-    ...(docs ?? []).map((d) => ({
-      group: "Documents" as const,
-      title: d.title,
-      sub: `${programShort(d.submissions?.programs?.name ?? "")} · ${d.submissions?.accreditation_levels?.name ?? ""}`,
-      href: `${docBase}?sub=${d.submission_id}`,
-    })),
+    ...byContent,
+    ...(docs ?? [])
+      .filter((d) => !seen.has(d.id))
+      .map((d) => ({
+        group: "Documents" as const,
+        title: d.title,
+        sub: where(d.submissions?.programs?.name ?? null, d.submissions?.accreditation_levels?.name ?? null),
+        href: `${docBase}?sub=${d.submission_id}`,
+      })),
     ...(events ?? []).map((e) => ({
       group: "Events" as const,
       title: e.title,
