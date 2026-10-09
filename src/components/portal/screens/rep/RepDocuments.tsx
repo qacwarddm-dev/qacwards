@@ -15,6 +15,7 @@ import SegTabs from "../../kit/SegTabs";
 import { MiniRing } from "../../kit/Spinner";
 import StepsReminder from "../../kit/StepsReminder";
 import { useToast } from "../../kit/ToastProvider";
+import useContentMatches from "../../kit/useContentMatches";
 import { TemplatePreview } from "../../kit/UploadFlow";
 import type { RepDocumentsData, TemplateGroup } from "@/lib/rep-documents";
 import { countCommonView, getOwnNdaUrl, myNdaFileIds, uploadNda } from "@/lib/document-actions";
@@ -526,6 +527,7 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
 
 function Reports({ data, me }: { data: RepDocumentsData; me: string }) {
   const [q, setQ] = useState("");
+  const text = useContentMatches(["repository"], q);
   const [folderMode, setFolderMode] = useState<"grid" | "list">("grid");
   const [fileMode, setFileMode] = useState<"grid" | "list">("list");
   const [sort, setSort] = useState<"name" | "date">("name");
@@ -536,20 +538,20 @@ function Reports({ data, me }: { data: RepDocumentsData; me: string }) {
   const ql = q.toLowerCase();
   const folders = useMemo(() => {
     let L = data.folders.map((f) => ({ ...f, last: f.files[0]?.iso ?? "" }));
-    if (ql) L = L.filter((f) => f.name.toLowerCase().includes(ql) || f.files.some((x) => `${x.name} ${x.iso.slice(0, 4)}`.toLowerCase().includes(ql)));
+    if (ql) L = L.filter((f) => f.name.toLowerCase().includes(ql) || f.files.some((x) => text.ids.has(x.id) || `${x.name} ${x.iso.slice(0, 4)}`.toLowerCase().includes(ql)));
     L.sort((a, b) => (sort === "name" ? a.name.localeCompare(b.name) : a.last.localeCompare(b.last)));
     if (dir === "desc") L.reverse();
     return L;
-  }, [data.folders, ql, sort, dir]);
+  }, [data.folders, ql, sort, dir, text.ids]);
   const cur = data.folders.find((f) => f.id === folder);
   const fv = cur ? fileMode : folderMode;
   const setFv = cur ? setFileMode : setFolderMode;
   const files = useMemo(() => {
-    const L = (cur?.files ?? []).filter((x) => !ql || `${x.name} ${x.iso.slice(0, 4)}`.toLowerCase().includes(ql));
+    const L = (cur?.files ?? []).filter((x) => !ql || text.ids.has(x.id) || `${x.name} ${x.iso.slice(0, 4)}`.toLowerCase().includes(ql));
     L.sort((a, b) => (sort === "name" ? a.name.localeCompare(b.name) : a.iso.localeCompare(b.iso)));
     if (dir === "desc") L.reverse();
     return L;
-  }, [cur, ql, sort, dir]);
+  }, [cur, ql, sort, dir, text.ids]);
 
   return (
     <>
@@ -638,7 +640,7 @@ function Reports({ data, me }: { data: RepDocumentsData; me: string }) {
           )}
         </>
       ) : !folders.length ? (
-        <Empty>No folders match “{q}”.</Empty>
+        <Empty>{text.pending ? "Searching inside files…" : `No folders match “${q}”.`}</Empty>
       ) : fv === "grid" ? (
         <div className="fgrid">
           {folders.map((f) => (

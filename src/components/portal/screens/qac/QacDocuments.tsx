@@ -15,6 +15,7 @@ import SearchBox from "../../kit/SearchBox";
 import SegTabs from "../../kit/SegTabs";
 import SumRows from "../../kit/SumRows";
 import useAct from "../../kit/useAct";
+import useContentMatches from "../../kit/useContentMatches";
 import type { CommonDoc, QacDocumentsData, TplGroupKey, TplRow } from "@/lib/qac-documents";
 import type { NdaItem } from "@/lib/qac-portal";
 import { safeName, uploadDirect } from "@/lib/upload-client";
@@ -61,11 +62,12 @@ export default function QacDocuments({ data, initialTab, verify }: { data: QacDo
 function Templates({ data }: { data: QacDocumentsData }) {
   const [lv, setLv] = useState<TplGroupKey>("areas");
   const [q, setQ] = useState("");
+  const text = useContentMatches(["template"], q);
   const [modal, setModal] = useState<null | { k: "up"; row?: TplRow } | { k: "hist" | "hide" | "view"; row: TplRow }>(null);
   const { busy, run } = useAct();
   const g = data.groups.find((x) => x.key === lv)!;
   const ql = q.toLowerCase();
-  const rows = g.rows.filter((t) => !ql || `${t.name}${t.file ?? ""}`.toLowerCase().includes(ql));
+  const rows = g.rows.filter((t) => !ql || (t.id !== null && text.ids.has(t.id)) || `${t.name}${t.file ?? ""}`.toLowerCase().includes(ql));
   return (
     <>
       <div className="rtool r2">
@@ -161,7 +163,7 @@ function Templates({ data }: { data: QacDocumentsData }) {
           </table>
         </div>
       ) : (
-        <div className="empty">{q ? `No templates match “${q}”.` : "No templates in this group yet."}</div>
+        <div className="empty">{q ? (text.pending ? "Searching inside files…" : `No templates match “${q}”.`) : "No templates in this group yet."}</div>
       )}
       <div className="sub" style={{ fontSize: 11.5, marginTop: 10 }}>
         Program reps can view and download these templates. Reps may also upload documents that don’t use them, such as a program’s own template.
@@ -329,10 +331,11 @@ function TemplateHistory({ row, onClose }: { row: TplRow; onClose: () => void })
 
 function Common({ docs, deleted, colleges }: { docs: CommonDoc[]; deleted: CommonDoc[]; colleges: [string, string][] }) {
   const [q, setQ] = useState("");
+  const text = useContentMatches(["common"], q);
   const [modal, setModal] = useState<null | { k: "up"; d?: CommonDoc } | { k: "del" | "view"; d: CommonDoc }>(null);
   const { busy, run } = useAct();
   const ql = q.toLowerCase();
-  const L = docs.filter((d) => !ql || `${d.title}${d.category}`.toLowerCase().includes(ql));
+  const L = docs.filter((d) => !ql || text.ids.has(d.id) || `${d.title}${d.category}`.toLowerCase().includes(ql));
   return (
     <>
       <div className="rtool r2">
@@ -385,7 +388,7 @@ function Common({ docs, deleted, colleges }: { docs: CommonDoc[]; deleted: Commo
           </table>
         </div>
       ) : (
-        <div className="empty">{docs.length ? "No documents match." : "No common documents uploaded yet."}</div>
+        <div className="empty">{docs.length ? (text.pending ? "Searching inside files…" : "No documents match.") : "No common documents uploaded yet."}</div>
       )}
       <div className="sub" style={{ fontSize: 11.5, marginTop: 10 }}>
         🔒 View only for program reps: watermarked with their name, no download or print. Each view is logged.

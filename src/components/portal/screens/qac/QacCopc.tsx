@@ -20,6 +20,7 @@ import RecentlyDeleted from "../../kit/RecentlyDeleted";
 import Result from "../../kit/Result";
 import SearchBox from "../../kit/SearchBox";
 import useAct from "../../kit/useAct";
+import useContentMatches from "../../kit/useContentMatches";
 import { FTYPES, type RepoFile, type RepoLoc, type RepoType, type RepoUnit, type Repository } from "@/lib/repository-model";
 import { uploadDirect } from "@/lib/upload-client";
 import { createCopcFolder, deleteCopcFile, deleteCopcFolder, renameCopcFile, renameCopcFolder, restoreCopcFile, uploadCopcFile } from "@/lib/repository-actions";
@@ -34,6 +35,7 @@ type Nav = { loc: RepoLoc | null; unit: string | null; type: RepoType | null };
 export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: Nav; today: string }) {
   const router = useNav();
   const [q, setQ] = useState("");
+  const text = useContentMatches(["repository"], q);
   const [folderMode, setFolderMode] = useState<"grid" | "list">("grid");
   const [fileMode, setFileMode] = useState<"grid" | "list">("list");
   const fv = nav.type ? fileMode : folderMode;
@@ -80,7 +82,7 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
     const main = repo.units.filter((u) => u.loc === "main" && u.college);
     const camp = repo.units.filter((u) => u.loc === "camp" && !u.customId);
     const hits = q.trim()
-      ? repo.files.filter((f) => `${f.title} ${f.program} ${f.unit} ${f.uploadedAt.slice(0, 4)}`.toLowerCase().includes(q.trim().toLowerCase()))
+      ? repo.files.filter((f) => text.ids.has(f.id) || `${f.title} ${f.program} ${f.unit} ${f.uploadedAt.slice(0, 4)}`.toLowerCase().includes(q.trim().toLowerCase()))
       : [];
     return (
       <div className="card">
@@ -112,7 +114,7 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
               </tbody>
             </table>
           ) : (
-            <div className="empty">No files match “{q}”.</div>
+            <div className="empty">{text.pending ? "Searching inside files…" : `No files match “${q}”.`}</div>
           )
         ) : (
           <div className="ccards">
@@ -167,7 +169,7 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
   if (T && nav.unit) {
     const L = repo.files
       .filter((f) => f.unit === nav.unit && f.type === T.key)
-      .filter((f) => !ql || `${f.title} ${f.program} ${f.uploadedAt.slice(0, 4)}`.toLowerCase().includes(ql))
+      .filter((f) => !ql || text.ids.has(f.id) || `${f.title} ${f.program} ${f.uploadedAt.slice(0, 4)}`.toLowerCase().includes(ql))
       .sort((a, b) => (sort === "name" ? a.title.localeCompare(b.title) : b.uploadedAt.localeCompare(a.uploadedAt)));
     body = L.length && fv === "grid" ? (
       <FileGrid items={L.map((x) => ({ id: x.id, name: x.title, sub: shortDate(x.uploadedAt), menu: fileMenu(x) }))} onOpen={(id) => setModal({ k: "view", f: L.find((x) => x.id === id)! })} />
@@ -233,7 +235,7 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
         </table>
       </div>
     ) : q ? (
-      <div className="empty">No files match “{q}”.</div>
+      <div className="empty">{text.pending ? "Searching inside files…" : `No files match “${q}”.`}</div>
     ) : (
       <div className="empty">
         <div className="big">🗂️</div>

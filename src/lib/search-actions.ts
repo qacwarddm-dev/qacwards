@@ -62,3 +62,25 @@ export async function searchPortal(q: string): Promise<SearchHit[]> {
     })),
   ];
 }
+
+export type TextKind = "submission" | "common" | "repository" | "template";
+
+const TEXT_TABLES = {
+  submission: "submission_documents",
+  common: "common_documents",
+  repository: "repository_files",
+  template: "templates",
+} as const;
+
+/** Ids of the caller's readable files whose name or text has every word, each
+ *  as a prefix — the same rule as search_documents. */
+export async function matchDocumentText(kinds: TextKind[], q: string): Promise<string[]> {
+  const words = q.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  if (!words.length || q.trim().length < 2 || !(await getCurrentUser())) return [];
+  const query = words.map((w) => `'${w}':*`).join(" & ");
+  const supabase = await createClient();
+  const results = await Promise.all(
+    kinds.map((k) => supabase.from(TEXT_TABLES[k]).select("id").textSearch("search_tsv", query, { config: "english" }).limit(1000)),
+  );
+  return results.flatMap((r) => (r.data ?? []).map((x) => x.id));
+}

@@ -99,6 +99,7 @@ export type { CalType, CalEvent } from "./calendar";
 export { printPaper } from "./printPaper";
 export { default as useAct } from "./useAct";
 export { default as useBusy } from "./useBusy";
+export { default as useContentMatches } from "./useContentMatches";
 export { default as useNav, startNav, useNavigating, NAV_START } from "./nav";
 export { default as useClientValue } from "./useClientValue";
 export { evalTitle, evalBadge, pendingOf, useEvaluations } from "./useEvaluations";

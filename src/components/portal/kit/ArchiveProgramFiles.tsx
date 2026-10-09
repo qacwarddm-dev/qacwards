@@ -12,6 +12,7 @@ import FileViewModal from "./FileViewModal";
 import NoteBar from "./NoteBar";
 import Pill, { type PillTone } from "./Pill";
 import SearchBox from "./SearchBox";
+import useContentMatches from "./useContentMatches";
 import SumRows from "./SumRows";
 
 const STATE: Record<CycleFileState, [string, PillTone]> = {
@@ -42,11 +43,12 @@ export default function ArchiveProgramFiles({
   onRecord: (id: string) => void;
 }) {
   const [q, setQ] = useState("");
+  const text = useContentMatches(["submission", "repository"], q);
   const [group, setGroup] = useState<"all" | CycleFileGroup>("all");
   const [view, setView] = useState<{ title: string; src: string; sub: string } | null>(null);
   const ay = cycle.name.replace(/ Accreditation Cycle$/, "");
   const term = q.trim().toLowerCase();
-  const list = p.files.filter((f) => (group === "all" || f.group === group) && (!term || `${f.name} ${f.sub}`.toLowerCase().includes(term)));
+  const list = p.files.filter((f) => (group === "all" || f.group === group) && (!term || text.ids.has(f.id) || `${f.name} ${f.sub}`.toLowerCase().includes(term)));
   const zippable = p.files.some((f) => f.source !== "report");
 
   const note = p.movedTo
@@ -88,7 +90,7 @@ export default function ArchiveProgramFiles({
 
       <Card>
         <div className="ftools cy-tools">
-          <SearchBox value={q} onChange={setQ} placeholder="Search file name" />
+          <SearchBox value={q} onChange={setQ} placeholder="Search files" />
           <label className="fl">Show</label>
           <select className="inp" aria-label="Show" value={group} onChange={(e) => setGroup(e.target.value as "all" | CycleFileGroup)}>
             <option value="all">All files</option>
@@ -163,7 +165,7 @@ export default function ArchiveProgramFiles({
               );
             })
         ) : (
-          <Empty>{p.files.length ? "No files match your search." : "No files were uploaded for this program in this cycle."}</Empty>
+          <Empty>{p.files.length ? (text.pending ? "Searching inside files…" : "No files match your search.") : "No files were uploaded for this program in this cycle."}</Empty>
         )}
       </Card>
       {view && <FileViewModal title={view.title} sub={view.sub} src={view.src} viewer={viewer} own={own} onClose={() => setView(null)} />}
