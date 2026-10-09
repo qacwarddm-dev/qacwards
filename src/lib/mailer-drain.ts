@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
-import { sendMail } from "@/lib/email";
+import { SMTP_MISSING, mailConfigured, sendMail } from "@/lib/email";
 
 /**
  * Drains `email_outbox`. Shared by the daily cron sweep
@@ -42,6 +42,10 @@ export type DrainResult = {
 export async function drainEmailOutbox(
   client: SupabaseClient<Database>,
 ): Promise<DrainResult> {
+  // Without this, a deployment missing SMTP vars spends all five attempts and
+  // marks every queued row failed, so nothing sends even after SMTP is fixed.
+  if (!mailConfigured()) throw new Error(SMTP_MISSING);
+
   const nowIso = new Date().toISOString();
 
   const { data: rows, error } = await client

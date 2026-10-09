@@ -42,6 +42,12 @@ function transport(): Transporter | null {
 
 export type SendResult = { ok: true } | { ok: false; error: string };
 
+export const SMTP_MISSING = "SMTP is not configured (SMTP_HOST/USER/PASS).";
+
+export function mailConfigured(): boolean {
+  return transport() !== null;
+}
+
 export async function sendMail(
   to: string,
   subject: string,
@@ -49,7 +55,7 @@ export async function sendMail(
 ): Promise<SendResult> {
   const tx = transport();
   if (!tx) {
-    return { ok: false, error: "SMTP is not configured (SMTP_HOST/USER/PASS)." };
+    return { ok: false, error: SMTP_MISSING };
   }
 
   try {
