@@ -2619,6 +2619,23 @@ export type Database = {
       }
       admin_purge_program: { Args: { p_id: string }; Returns: undefined }
       admin_purge_user: { Args: { p_id: string }; Returns: undefined }
+      register_issue_otp: {
+        Args: { p_email: string; p_data: Json; p_expertise: string; p_ip: string }
+        Returns: Json
+      }
+      register_discard_otp: { Args: { p_email: string }; Returns: undefined }
+      register_verify_otp: {
+        Args: { p_email: string; p_code: string }
+        Returns: Json
+      }
+      register_check_token: {
+        Args: { p_email: string; p_token: string }
+        Returns: boolean
+      }
+      register_complete: {
+        Args: { p_email: string; p_token: string; p_password: string }
+        Returns: Json
+      }
       admin_last_activity: {
         Args: never
         Returns: {

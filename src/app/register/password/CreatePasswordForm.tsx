@@ -11,30 +11,19 @@ import {
 } from "@/components/auth";
 import { createClient } from "@/lib/supabase/browser";
 import { REGISTER_STEPS } from "../register-options";
+import { completeRegistration } from "../actions";
+import { clearDraft } from "../registration-draft";
 
 /**
  * Step 3 of register — set the password.
  *
- * The previous step's `verifyOtp` already created the account and signed the
- * user in, so this is `updateUser({ password })` against a live session. An
- * account exists from here on whether or not the user finishes the profile step,
- * which is why Profile's Skip is a legitimate ending — and why this screen and
- * the next deliberately carry no Back link.
- *
- * ## 2026-08-21 redesign
- *
- * **The two requirements are live.** They were static grey italic lines with a
- * hand-drawn 2.5px bullet and no connection to the field or to the button they
- * governed; the only feedback on satisfying them was that Next stopped being
- * grey. Each now reports its own state, in text as well as colour, and is bound
- * to the input through `aria-describedby`.
- *
- * **The mismatch is stated.** Typing two different passwords produced no message
- * at all — the button simply stayed inert.
- *
- * **`contentWidth="narrow"` is gone.** This was the one frame that inset its
- * body 64px instead of 44, which the earlier notes already flagged as a probable
- * design slip; the card has one inset now.
+ * This is the step that creates the account: `completeRegistration` inserts the
+ * user and hashes the password in the database (bcrypt, the same hash the
+ * sign-in endpoint checks). The page is only reachable with a verified code, see
+ * page.tsx. The browser then signs in with the new credentials, so the profile
+ * step has a session and the password is proven to work before the user leaves.
+ * From here an account exists, which is why this screen and the next carry no
+ * Back link.
  */
 const MIN_LENGTH = 8;
 
@@ -69,15 +58,21 @@ export default function CreatePasswordForm() {
     setError(null);
     setPending(true);
 
-    const { error: updateError } = await createClient().auth.updateUser({ password });
-
-    if (updateError) {
-      setError(
-        updateError.message.toLowerCase().includes("session")
-          ? "That registration expired. Start again from Create an account."
-          : updateError.message,
-      );
+    const created = await completeRegistration(password);
+    if (!created.ok) {
+      setError(created.error);
       setPending(false);
+      return;
+    }
+
+    clearDraft();
+
+    const { error: signInError } = await createClient().auth.signInWithPassword({
+      email: created.email,
+      password,
+    });
+    if (signInError) {
+      router.push("/login");
       return;
     }
 
@@ -102,6 +97,7 @@ export default function CreatePasswordForm() {
           <AuthPasswordField
             label="Password"
             autoComplete="new-password"
+            maxLength={72}
             placeholder="Enter a password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -111,6 +107,7 @@ export default function CreatePasswordForm() {
           <AuthPasswordField
             label="Confirm password"
             autoComplete="new-password"
+            maxLength={72}
             placeholder="Re-enter the password"
             value={confirm}
             error={confirmError}

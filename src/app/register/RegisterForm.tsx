@@ -27,8 +27,7 @@ import {
   REGISTER_STEPS,
   SYSTEM_ROLES,
 } from "./register-options";
-import { createClient } from "@/lib/supabase/browser";
-import { otpErrorMessage } from "./otp-error";
+import { sendRegistrationOtp } from "./actions";
 import { draftToAuthMetadata, readDraft, saveDraft } from "./registration-draft";
 
 /**
@@ -40,10 +39,9 @@ import { draftToAuthMetadata, readDraft, saveDraft } from "./registration-draft"
  *     hides it.
  *   - Program Representative + any campus chosen  → PUP Position appears.
  *
- * Next mails a 6-digit code with `signInWithOtp({ shouldCreateUser: true })` and
- * carries these fields along as auth metadata, so the account is only created
- * when the code is verified on the next step — see registration-draft.ts for why
- * the OTP flow is what fits the frames' order.
+ * Next mails a 6-digit code through `sendRegistrationOtp`, which stores only the
+ * email, the code and these fields temporarily. No account exists until the
+ * password step — see registration-draft.ts.
  *
  * ## 2026-08-21 redesign
  *
@@ -69,6 +67,7 @@ import { draftToAuthMetadata, readDraft, saveDraft } from "./registration-draft"
  * initialiser would hydrate mismatched.
  */
 const ROLE_LABELS = SYSTEM_ROLES.map((r) => r.label);
+const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 export default function RegisterForm({ invitedWebmail = "" }: { invitedWebmail?: string }) {
   const router = useNav();
@@ -115,7 +114,8 @@ export default function RegisterForm({ invitedWebmail = "" }: { invitedWebmail?:
     const next: Record<string, string> = {};
     if (surname.trim() === "") next.name = "Enter your surname and given name.";
     else if (given.trim() === "") next.name = "Enter your given name.";
-    if (webmail.trim() === "") next.webmail = "Enter your PUP webmail.";
+    if (webmail.trim() === "") next.webmail = "Enter your email address.";
+    else if (!EMAIL_PATTERN.test(webmail.trim())) next.webmail = "Enter a valid email address (example@email.com).";
     if (role === "") next.role = "Choose your system role.";
     if (isProgramRep && campus === "") next.campus = "Choose your campus.";
     if (isAccreditor && expertise === "") next.expertise = "Choose your field of expertise.";
@@ -143,26 +143,24 @@ export default function RegisterForm({ invitedWebmail = "" }: { invitedWebmail?:
       expertise: isAccreditor ? expertise : "",
     };
 
-    // The domain rule is also a Postgres trigger on auth.users, which is the one
-    // that actually holds — this check only saves a pointless round trip.
-    if (!/^[^@\s]+@pup\.edu\.ph$/i.test(draft.webmail)) {
-      setErrors({ webmail: "Use your PUP webmail (example@pup.edu.ph)." });
-      setPending(false);
-      return;
-    }
-
-    const { error: otpError } = await createClient().auth.signInWithOtp({
+    const result = await sendRegistrationOtp({
       email: draft.webmail,
-      options: { shouldCreateUser: true, data: draftToAuthMetadata(draft) },
+      data: draftToAuthMetadata(draft),
+      expertise: draft.expertise,
     });
 
-    if (otpError) {
-      setError(otpErrorMessage(otpError.message));
+    if (!result.ok) {
+      setError(result.error);
       setPending(false);
       return;
     }
 
-    saveDraft(draft);
+    const now = Date.now();
+    saveDraft({
+      ...draft,
+      codeExpiresAt: now + result.expiresIn * 1000,
+      resendAt: now + result.resendIn * 1000,
+    });
     router.push(REGISTER_STEPS.verify);
   }
 
@@ -172,7 +170,7 @@ export default function RegisterForm({ invitedWebmail = "" }: { invitedWebmail?:
         variant="register"
         step={{ current: 1, total: 4 }}
         title="Create an account"
-        subtitle="Register with your PUP webmail. We will send a code to confirm it."
+        subtitle="Register with your email address. We will send a code to confirm it."
       >
         <form
           onSubmit={handleSubmit}
@@ -212,13 +210,13 @@ export default function RegisterForm({ invitedWebmail = "" }: { invitedWebmail?:
           </AuthFieldGroup>
 
           <AuthTextField
-            label="PUP Webmail"
+            label="Email Address"
             type="email"
             inputMode="email"
             autoComplete="email"
             autoCapitalize="none"
             spellCheck={false}
-            placeholder="example@pup.edu.ph"
+            placeholder="example@email.com"
             value={webmail}
             error={errors.webmail}
             onChange={(e) => setWebmail(e.target.value)}

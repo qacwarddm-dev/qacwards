@@ -320,9 +320,9 @@ function Invite({ onClose }: { onClose: () => void }) {
         </div>
       </div>
       <label className="fl" style={{ marginTop: 10 }}>
-        PUP webmail *
+        Email address *
       </label>
-      <input className="inp" value={v.email} onChange={(e) => setV({ ...v, email: e.target.value })} placeholder="name@pup.edu.ph" />
+      <input className="inp" value={v.email} onChange={(e) => setV({ ...v, email: e.target.value })} placeholder="name@example.com" />
       <div className="fg2">
         <div>
           <label className="fl">Role *</label>

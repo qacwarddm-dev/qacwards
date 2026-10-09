@@ -53,13 +53,16 @@ export async function sendMail(
   }
 
   try {
-    await tx.sendMail({
+    const info = await tx.sendMail({
       from: process.env.SMTP_FROM ?? process.env.SMTP_USER,
       to,
       subject,
       text: body,
       html: htmlBody(subject, body),
     });
+    if (info.rejected.length > 0) {
+      return { ok: false, error: `Recipient rejected by the SMTP server: ${info.rejected.join(", ")}` };
+    }
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };

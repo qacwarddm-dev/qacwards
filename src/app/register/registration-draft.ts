@@ -5,27 +5,14 @@ import { COLLEGES as REF_COLLEGES } from "@/lib/reference/colleges";
 import { SYSTEM_ROLES } from "./register-options";
 
 /**
- * The half-filled account, carried across the four register steps.
+ * The half-filled registration, carried across the register steps in
+ * `sessionStorage` (dies with the tab, never reaches the network on its own).
  *
- * The built flow is account → verify webmail → create password → profile, and
- * each step is its own route, so something has to hold the first step's fields
- * until there is an account to attach them to. `sessionStorage` rather than a
- * cookie or a server draft table: it dies with the tab, never reaches the
- * network, and a half-finished registration leaves nothing behind.
- *
- * **How this maps onto Supabase Auth.** The frames verify the webmail *before*
- * asking for a password, which `signUp` cannot do — it wants both at once. The
- * OTP flow fits the built order exactly:
- *
- *   1. account  → `signInWithOtp({ shouldCreateUser: true, data })` mails a code
- *   2. verify   → `verifyOtp` creates the auth.users row and signs them in.
- *                 That insert fires the @pup.edu.ph trigger and
- *                 `handle_new_user`, which reads `data` out of
- *                 raw_user_meta_data and writes the profile row.
- *   3. password → `updateUser({ password })` on the session that now exists
+ * No account exists until the password step:
+ *   1. details  → `sendRegistrationOtp` stores a temporary code row and mails it
+ *   2. verify   → `verifyRegistrationOtp` checks it and sets the `qac_reg` cookie
+ *   3. password → `completeRegistration` inserts the user and hashes the password
  *   4. profile  → avatar upload, then done
- *
- * So no step invents an account and none of the built screens moved.
  */
 
 export type RegistrationDraft = {
@@ -42,6 +29,10 @@ export type RegistrationDraft = {
   position: string;
   /** Expertise area name; Internal Accreditor only. */
   expertise: string;
+  /** Epoch ms the mailed code stops working. */
+  codeExpiresAt?: number;
+  /** Epoch ms the next code may be requested. */
+  resendAt?: number;
 };
 
 const KEY = "qac_registration_draft";

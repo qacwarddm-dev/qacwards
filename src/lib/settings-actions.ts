@@ -217,7 +217,7 @@ async function queueInvite(email: string, given: string, role: string) {
   return supabase.rpc("admin_queue_email", {
     p_to: email,
     p_subject: "[QAC-WARDS] You’re invited to QAC-WARDS",
-    p_body: `Good day, ${given}.\n\nThe PUP Quality Assurance Center invited you to QAC-WARDS as ${ROLE_NAME[role] ?? role}.\n\nCreate your account with this webmail here:\n${link}\n\n— Quality Assurance Center`,
+    p_body: `Good day, ${given}.\n\nThe PUP Quality Assurance Center invited you to QAC-WARDS as ${ROLE_NAME[role] ?? role}.\n\nCreate your account with this email here:\n${link}\n\n— Quality Assurance Center`,
   });
 }
 
@@ -226,7 +226,7 @@ export async function inviteUser(input: { surname: string; given: string; email:
   if (!user) return DENIED;
   const email = input.email.trim().toLowerCase();
   if (!input.surname.trim() || !input.given.trim()) return { ok: false, error: "Enter the name" };
-  if (!/@pup\.edu\.ph$/i.test(email)) return { ok: false, error: "Use a PUP webmail (@pup.edu.ph)" };
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, error: "Enter a valid email address" };
   const supabase = await createClient();
   const { data: dup } = await supabase.from("profiles").select("id, deleted_at").ilike("webmail", email).limit(1);
   if (dup?.length) return { ok: false, error: dup[0].deleted_at ? "That person was deleted. Restore them from Recently Deleted." : "That webmail already has an account" };

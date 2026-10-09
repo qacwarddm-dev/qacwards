@@ -31,7 +31,7 @@ import { createClient } from "@/lib/supabase/browser";
  * `autoComplete`, sentence-case heading, no nested card. See LoginForm.
  */
 const SENT =
-  "If that webmail has an account, a reset link is on its way. Check your inbox, including spam.";
+  "If that email has an account, a reset link is on its way. Check your inbox, including spam.";
 
 export default function ForgotPasswordForm() {
   const [webmail, setWebmail] = useState("");
@@ -43,7 +43,7 @@ export default function ForgotPasswordForm() {
     event.preventDefault();
     const address = webmail.trim();
     if (address === "") {
-      setFieldError("Enter your PUP webmail.");
+      setFieldError("Enter your email address.");
       return;
     }
     setFieldError(undefined);
@@ -85,7 +85,7 @@ export default function ForgotPasswordForm() {
                 block
                 onClick={() => setSent(null)}
               >
-                Use a different webmail
+                Use a different email
               </AuthButton>
             </div>
           </div>
@@ -96,14 +96,14 @@ export default function ForgotPasswordForm() {
             className="auth-stagger flex flex-col gap-[var(--auth-vgap)]"
           >
             <AuthTextField
-              label="PUP Webmail"
+              label="Email Address"
               type="email"
               name="email"
               inputMode="email"
               autoComplete="username"
               autoCapitalize="none"
               spellCheck={false}
-              placeholder="example@pup.edu.ph"
+              placeholder="example@email.com"
               value={webmail}
               error={fieldError}
               onChange={(e) => setWebmail(e.target.value)}

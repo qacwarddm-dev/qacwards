@@ -50,7 +50,7 @@ import { safeNextParam } from "@/lib/safe-next";
 /** Supabase returns one deliberately vague message for bad email *and* bad
  *  password, and repeating it verbatim is right: distinguishing them tells an
  *  attacker which webmail addresses exist. */
-const INVALID = "That webmail and password do not match an account.";
+const INVALID = "That email and password do not match an account.";
 
 export default function LoginForm({ as }: { as?: string }) {
   void as; // the role picker's ?as= is cosmetic; the account carries the role
@@ -75,7 +75,7 @@ export default function LoginForm({ as }: { as?: string }) {
     // Validated here rather than by disabling the button, so the reason is on
     // screen and attached to the field it belongs to.
     const next = {
-      webmail: webmail.trim() === "" ? "Enter your PUP webmail." : undefined,
+      webmail: webmail.trim() === "" ? "Enter your email address." : undefined,
       password: password === "" ? "Enter your password." : undefined,
     };
     setFieldErrors(next);
@@ -95,7 +95,7 @@ export default function LoginForm({ as }: { as?: string }) {
     if (signInError) {
       setError(
         signInError.message.toLowerCase().includes("email not confirmed")
-          ? "Verify your PUP webmail first — check your inbox for the link."
+          ? "Verify your email first — check your inbox for the link."
           : INVALID,
       );
       setPending(false);
@@ -113,7 +113,7 @@ export default function LoginForm({ as }: { as?: string }) {
       <AuthCard
         variant="form"
         title="Log in to your account"
-        subtitle="Use the PUP webmail your account was registered with."
+        subtitle="Use the email address your account was registered with."
       >
         {/* noValidate: the browser's own bubbles are unstyled, untranslatable
             and vanish on blur. The messages below are ours and they persist. */}
@@ -125,14 +125,14 @@ export default function LoginForm({ as }: { as?: string }) {
           {error && <AuthFormError>{error}</AuthFormError>}
 
           <AuthTextField
-            label="PUP Webmail"
+            label="Email Address"
             type="email"
             name="email"
             inputMode="email"
             autoComplete="username"
             autoCapitalize="none"
             spellCheck={false}
-            placeholder="example@pup.edu.ph"
+            placeholder="example@email.com"
             value={webmail}
             error={fieldErrors.webmail}
             onChange={(e) => setWebmail(e.target.value)}
