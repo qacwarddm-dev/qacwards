@@ -1,4 +1,4 @@
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { createClient as createSupabaseClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 
 /**
@@ -19,25 +19,50 @@ import type { Database } from "@/lib/database.types";
  *
  * `persistSession: false` matters: this runs in a shared server process, and a
  * persisted session would be a global one every subsequent request could reach.
+ *
+ * One sign-in per server instance, then the session is reused and refreshed.
+ * Any portal render can trigger an email flush, and a password sign-in per flush
+ * spends Supabase's per-IP sign-in limit (30 per 5 minutes), which registration's
+ * own sign-in here also needs. Callers must not sign this client out.
  */
-export async function createJobClient() {
-  const email = process.env.MAILER_EMAIL;
-  const password = process.env.MAILER_PASSWORD;
+type JobResult = { client: SupabaseClient<Database>; error: null } | { client: null; error: string };
 
-  if (!email || !password) {
-    return { client: null, error: "MAILER_EMAIL / MAILER_PASSWORD are not set." } as const;
-  }
+const REFRESH_MARGIN_S = 300;
 
+let cached: SupabaseClient<Database> | null = null;
+let inflight: Promise<JobResult> | null = null;
+
+async function signIn(email: string, password: string): Promise<JobResult> {
   const client = createSupabaseClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     { auth: { persistSession: false, autoRefreshToken: false } },
   );
-
   const { error } = await client.auth.signInWithPassword({ email, password });
-  if (error) return { client: null, error: error.message } as const;
+  if (error) return { client: null, error: error.message };
+  cached = client;
+  return { client, error: null };
+}
 
-  return { client, error: null } as const;
+async function current(email: string, password: string): Promise<JobResult> {
+  if (cached) {
+    const { data } = await cached.auth.getSession();
+    if ((data.session?.expires_at ?? 0) - Date.now() / 1000 > REFRESH_MARGIN_S) return { client: cached, error: null };
+    const { error } = await cached.auth.refreshSession();
+    if (!error) return { client: cached, error: null };
+    cached = null;
+  }
+  return signIn(email, password);
+}
+
+export async function createJobClient(): Promise<JobResult> {
+  const email = process.env.MAILER_EMAIL;
+  const password = process.env.MAILER_PASSWORD;
+  if (!email || !password) return { client: null, error: "MAILER_EMAIL / MAILER_PASSWORD are not set." };
+  inflight ??= current(email, password).finally(() => {
+    inflight = null;
+  });
+  return inflight;
 }
 
 /**

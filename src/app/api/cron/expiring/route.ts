@@ -25,9 +25,6 @@ async function run(request: Request) {
   }
 
   const { data, error } = await client.rpc("notify_expiring_awards", { p_days: 60 });
-
-  await client.auth.signOut({ scope: "local" });
-
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ notified: data ?? 0 });

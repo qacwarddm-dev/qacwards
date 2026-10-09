@@ -19,8 +19,6 @@ async function run(request: Request) {
     return NextResponse.json(await indexPending(client, 50_000));
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
-  } finally {
-    await client.auth.signOut({ scope: "local" });
   }
 }
 
