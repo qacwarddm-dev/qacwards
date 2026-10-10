@@ -70,6 +70,7 @@ export async function sendRegistrationOtp(input: {
       email,
       "[QAC-WARDS] Your verification code",
       `Your QAC-WARDS verification code is ${issued.code}.\n\nIt expires in 10 minutes. If you did not try to create an account, you can ignore this email.`,
+      { kind: "code", code: issued.code, minutes: 10 },
     );
     if (!sent.ok) {
       console.error(`[register:send] SMTP failed for ${email}:`, sent.error);

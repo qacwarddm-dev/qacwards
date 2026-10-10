@@ -214,9 +214,10 @@ const ROLE_NAME: Record<string, string> = {
 
 async function sendInvite(email: string, given: string, role: string): Promise<string | null> {
   const subject = "[QAC-WARDS] You’re invited to QAC-WARDS";
+  const roleName = ROLE_NAME[role] ?? role;
   const link = `${await origin()}/register?email=${encodeURIComponent(email)}`;
-  const body = `Good day, ${given}.\n\nThe PUP Quality Assurance Center invited you to QAC-WARDS as ${ROLE_NAME[role] ?? role}.\n\nCreate your account with this email here:\n${link}\n\n— Quality Assurance Center`;
-  const sent = await sendMail(email, subject, body);
+  const body = `Good day, ${given}.\n\nThe PUP Quality Assurance Center invited you to QAC-WARDS as ${roleName}.\n\nCreate your account with this email here:\n${link}\n\n— Quality Assurance Center`;
+  const sent = await sendMail(email, subject, body, { kind: "invite", name: given, role: roleName, email, link });
   if (sent.ok) return null;
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_queue_email", { p_to: email, p_subject: subject, p_body: body });

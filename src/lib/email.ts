@@ -1,4 +1,5 @@
 import nodemailer, { type Transporter } from "nodemailer";
+import { renderEmail, type EmailSpec } from "@/lib/email-template";
 
 /**
  * SMTP, per the stack decision. Decision 14 approves four classes of mail —
@@ -52,6 +53,7 @@ export async function sendMail(
   to: string,
   subject: string,
   body: string,
+  spec?: EmailSpec,
 ): Promise<SendResult> {
   const tx = transport();
   if (!tx) {
@@ -64,7 +66,7 @@ export async function sendMail(
       to,
       subject,
       text: body,
-      html: htmlBody(subject, body),
+      html: renderEmail(subject, body, spec),
     });
     if (info.rejected.length > 0) {
       return { ok: false, error: `Recipient rejected by the SMTP server: ${info.rejected.join(", ")}` };
@@ -73,19 +75,4 @@ export async function sendMail(
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
-}
-
-/** Plain text is the payload; this is the same words in a readable frame. No
- *  images and no remote assets, so it renders the same in every client. */
-function htmlBody(subject: string, body: string): string {
-  const esc = (s: string) =>
-    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#1a1a1a">
-  <p style="font-weight:bold;margin:0 0 12px">${esc(subject)}</p>
-  <p style="margin:0 0 16px;white-space:pre-line">${esc(body)}</p>
-  <p style="margin:0;color:#6b6b6b;font-size:12px">
-    PUP Quality Assurance Center — this is an automated message.
-  </p>
-</div>`;
 }
