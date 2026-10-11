@@ -41,7 +41,7 @@ export async function searchPortal(q: string): Promise<SearchHit[]> {
     if (d.kind === "submission") byContent.push({ ...base, sub: where(d.program, d.level), href: `${docBase}?sub=${d.ref_id}` });
     else if (d.kind === "repository") byContent.push({ ...base, sub: [where(d.program, null), "AACCUP & COPC"].filter(Boolean).join(" · "), href: qac ? "/portal/aaccup-copc" : "/portal/documents?tab=reports" });
     else if (d.kind === "common") byContent.push({ ...base, sub: "Common Documents", href: "/portal/documents?tab=common" });
-    else byContent.push({ ...base, sub: "Template", href: "/portal/documents" });
+    else byContent.push({ ...base, sub: "Toolkit", href: "/portal/documents" });
   }
 
   return [

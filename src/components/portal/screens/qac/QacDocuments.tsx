@@ -48,7 +48,7 @@ export default function QacDocuments({ data, initialTab, verify }: { data: QacDo
         value={tab}
         onChange={setTab}
         tabs={[
-          { key: "tpl", label: "Templates" },
+          { key: "tpl", label: "Toolkit" },
           { key: "common", label: "Common Documents" },
           { key: "nda", label: "NDA Form", count: pend || undefined },
         ]}
@@ -86,8 +86,8 @@ function Templates({ data }: { data: QacDocumentsData }) {
           }))}
         />
         <div className="rbtns">
-          <SearchBox variant="r-sm" value={q} onChange={setQ} placeholder="Search templates" />
-          <Btn onClick={() => setModal({ k: "up" })}>＋ Add template</Btn>
+          <SearchBox variant="r-sm" value={q} onChange={setQ} placeholder="Search toolkit" />
+          <Btn onClick={() => setModal({ k: "up" })}>＋ Add toolkit file</Btn>
         </div>
       </div>
       {rows.length ? (
@@ -95,7 +95,7 @@ function Templates({ data }: { data: QacDocumentsData }) {
           <table>
             <thead>
               <tr>
-                <th>Template for</th>
+                <th>Toolkit for</th>
                 <th>File</th>
                 <th>Version</th>
                 <th>Updated</th>
@@ -116,7 +116,7 @@ function Templates({ data }: { data: QacDocumentsData }) {
                         <span className={t.ext === "pdf" ? "pdfi" : "docxi"}>{t.ext.toUpperCase()}</span> {t.file}
                       </>
                     ) : (
-                      <span className="sub">No template yet</span>
+                      <span className="sub">No toolkit file yet</span>
                     )}
                   </td>
                   <td>{t.id ? `v${t.ver}` : "—"}</td>
@@ -147,7 +147,7 @@ function Templates({ data }: { data: QacDocumentsData }) {
                           variant="gh"
                           sm
                           disabled={busy}
-                          onClick={() => (t.published ? setModal({ k: "hide", row: t }) : run(() => setTemplatePublished(t.id!, true), "Template published"))}
+                          onClick={() => (t.published ? setModal({ k: "hide", row: t }) : run(() => setTemplatePublished(t.id!, true), "Toolkit file published"))}
                         >
                           {t.published ? "Hide" : "Publish"}
                         </Btn>
@@ -164,16 +164,16 @@ function Templates({ data }: { data: QacDocumentsData }) {
           </table>
         </div>
       ) : (
-        <div className="empty">{q ? (text.pending ? "Searching inside files…" : `No templates match “${q}”.`) : "No templates in this group yet."}</div>
+        <div className="empty">{q ? (text.pending ? "Searching inside files…" : `No toolkit files match “${q}”.`) : "No toolkit files in this group yet."}</div>
       )}
       <div className="sub" style={{ fontSize: 11.5, marginTop: 10 }}>
-        Program reps can view and download these templates. Reps may also upload documents that don’t use them, such as a program’s own template.
+        Program reps can only view these toolkit files in Documents. Reps may also upload documents that don’t use them, such as a program’s own version.
       </div>
       {modal?.k === "up" && <TemplateUpload group={lv} groupLabel={g.label} row={modal.row} onClose={() => setModal(null)} />}
       {modal?.k === "hist" && <TemplateHistory row={modal.row} onClose={() => setModal(null)} />}
       {modal?.k === "hide" && (
         <Modal
-          title="Hide this template?"
+          title="Hide this toolkit file?"
           sub={modal.row.name}
           onClose={() => setModal(null)}
           footer={
@@ -181,14 +181,14 @@ function Templates({ data }: { data: QacDocumentsData }) {
               <Btn variant="gh" onClick={() => setModal(null)}>
                 Cancel
               </Btn>
-              <Btn variant="d" disabled={busy} onClick={() => run(() => setTemplatePublished(modal.row.id!, false), "Template hidden", () => setModal(null))}>
+              <Btn variant="d" disabled={busy} onClick={() => run(() => setTemplatePublished(modal.row.id!, false), "Toolkit file hidden",() => setModal(null))}>
                 Hide
               </Btn>
             </>
           }
         >
           <p className="sub" style={{ lineHeight: 1.6 }}>
-            Program reps won’t see it in Documents › Templates until you publish it again. Documents already uploaded are not affected.
+            Program reps won’t see it in Documents › Toolkit until you publish it again. Documents already uploaded are not affected.
           </p>
         </Modal>
       )}
@@ -198,7 +198,7 @@ function Templates({ data }: { data: QacDocumentsData }) {
           downloadHref={dl("template", modal.row.id!, true)}
           file={modal.row.file ?? modal.row.name}
           meta={`${g.label} · ${modal.row.name} · v${modal.row.ver}`}
-          note="Program reps can view and download this template"
+          note="Program reps can only view this toolkit file"
           onClose={() => setModal(null)}
         />
       )}
@@ -216,7 +216,7 @@ function TemplateUpload({ group, groupLabel, row, onClose }: { group: TplGroupKe
   const { busy, run, toast } = useAct();
   const save = () => {
     if (!file) return toast.say("Choose a .docx file first.", true);
-    if (!row && !title.trim()) return toast.say("Enter what the template is for", true);
+    if (!row && !title.trim()) return toast.say("Enter what the toolkit file is for", true);
     const fd = new FormData();
     const path = `${group}/${crypto.randomUUID()}/${safeName(file.name)}`;
     fd.set("path", path);
@@ -234,13 +234,13 @@ function TemplateUpload({ group, groupLabel, row, onClose }: { group: TplGroupKe
         const up = await uploadDirect("templates", path, file, DOCX);
         return up.ok ? saveTemplate(fd) : up;
       },
-      pub ? "Template published" : "Template saved as draft",
+      pub ? "Toolkit file published" : "Toolkit file saved as draft",
       onClose,
     );
   };
   return (
     <Modal
-      title={replace ? "Replace template" : "Add template"}
+      title={replace ? "Replace toolkit file" : "Add toolkit file"}
       sub={`${groupLabel}${row ? ` · ${row.name}${replace ? ` · now v${row.ver}` : ""}` : ""}`}
       onClose={onClose}
       locked={busy}
@@ -250,19 +250,19 @@ function TemplateUpload({ group, groupLabel, row, onClose }: { group: TplGroupKe
             Cancel
           </Btn>
           <Btn disabled={busy} onClick={save}>
-            {replace ? "Upload new version" : "Add template"}
+            {replace ? "Upload new version" : "Add toolkit file"}
           </Btn>
         </>
       }
     >
       {!row && (
         <>
-          <label className="fl">Template for *</label>
+          <label className="fl">Toolkit for *</label>
           <input
             className="inp"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder={group === "gen" ? "e.g. PUP Memo Template" : "e.g. Area XI – Quality Assurance"}
+            placeholder={group === "gen" ? "e.g. PUP Memo Toolkit" : "e.g. Area XI – Quality Assurance"}
           />
         </>
       )}

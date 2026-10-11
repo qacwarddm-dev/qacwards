@@ -35,7 +35,7 @@ async function notifyReps(title: string, link: string, colleges: string[] = []) 
 
 export async function saveTemplate(fd: FormData): Promise<ActionResult> {
   const user = await qac();
-  if (!user) return { ok: false, error: "Only QAC can manage templates." };
+  if (!user) return { ok: false, error: "Only QAC can manage the toolkit." };
   const path = String(fd.get("path") ?? "");
   const fileName = String(fd.get("fileName") ?? "");
   const id = String(fd.get("id") ?? "") || null;
@@ -46,8 +46,8 @@ export async function saveTemplate(fd: FormData): Promise<ActionResult> {
   const note = String(fd.get("note") ?? "").trim() || null;
   const publish = fd.get("publish") === "1";
   const notify = fd.get("notify") === "1";
-  if (!GROUPS.includes(group)) return { ok: false, error: "Unknown template group." };
-  if (!id && !title) return { ok: false, error: "Enter what the template is for" };
+  if (!GROUPS.includes(group)) return { ok: false, error: "Unknown toolkit group." };
+  if (!id && !title) return { ok: false, error: "Enter what the toolkit file is for" };
 
   const supabase = await createClient();
   const up = await checkUploaded(supabase, BUCKETS.templates, { path, prefix: `${group}/`, name: fileName, exts: [".docx"], max: MAX });
@@ -55,7 +55,7 @@ export async function saveTemplate(fd: FormData): Promise<ActionResult> {
 
   if (id) {
     const { data: cur } = await supabase.from("templates").select("title, version, storage_path, uploaded_by, is_published").eq("id", id).maybeSingle();
-    if (!cur) return { ok: false, error: "That template no longer exists." };
+    if (!cur) return { ok: false, error: "That toolkit file no longer exists." };
     const { error: hErr } = await supabase
       .from("template_versions")
       .insert({ template_id: id, version: cur.version, storage_path: cur.storage_path, file_name: cur.storage_path.split("/").pop() ?? "", uploaded_by: cur.uploaded_by });
@@ -66,11 +66,11 @@ export async function saveTemplate(fd: FormData): Promise<ActionResult> {
       .eq("id", id);
     if (error) return { ok: false, error: error.message };
     after(() => indexDocument(supabase, "template", id));
-    if (notify) await notifyReps(`Template updated: ${cur.title} (v${cur.version + 1})`, "/portal/documents");
+    if (notify) await notifyReps(`Toolkit updated: ${cur.title} (v${cur.version + 1})`, "/portal/documents");
   } else {
     if (!areaId) {
       const { data: dup } = await supabase.from("templates").select("id").eq("group_key", group).ilike("title", title).limit(1);
-      if (dup?.length) return { ok: false, error: "A template for this already exists. Use Replace instead." };
+      if (dup?.length) return { ok: false, error: "A toolkit file for this already exists. Use Replace instead." };
     }
     const { data: created, error } = await supabase
       .from("templates")
@@ -90,7 +90,7 @@ export async function saveTemplate(fd: FormData): Promise<ActionResult> {
       return { ok: false, error: error.message };
     }
     after(() => indexDocument(supabase, "template", created.id));
-    if (notify && publish) await notifyReps(`New template: ${title}`, "/portal/documents");
+    if (notify && publish) await notifyReps(`New toolkit file: ${title}`, "/portal/documents");
   }
   refresh();
   return { ok: true };
@@ -98,12 +98,12 @@ export async function saveTemplate(fd: FormData): Promise<ActionResult> {
 
 export async function restoreTemplateVersion(versionId: string): Promise<ActionResult> {
   const user = await qac();
-  if (!user) return { ok: false, error: "Only QAC can manage templates." };
+  if (!user) return { ok: false, error: "Only QAC can manage the toolkit." };
   const supabase = await createClient();
   const { data: v } = await supabase.from("template_versions").select("template_id, version, storage_path").eq("id", versionId).maybeSingle();
   if (!v) return { ok: false, error: "That version no longer exists." };
   const { data: cur } = await supabase.from("templates").select("version, storage_path, uploaded_by").eq("id", v.template_id).maybeSingle();
-  if (!cur) return { ok: false, error: "That template no longer exists." };
+  if (!cur) return { ok: false, error: "That toolkit file no longer exists." };
   const { error: hErr } = await supabase
     .from("template_versions")
     .insert({ template_id: v.template_id, version: cur.version, storage_path: cur.storage_path, file_name: cur.storage_path.split("/").pop() ?? "", uploaded_by: cur.uploaded_by });
@@ -119,11 +119,11 @@ export async function restoreTemplateVersion(versionId: string): Promise<ActionR
 }
 
 export async function setTemplatePublished(id: string, published: boolean): Promise<ActionResult> {
-  if (!(await qac())) return { ok: false, error: "Only QAC can manage templates." };
+  if (!(await qac())) return { ok: false, error: "Only QAC can manage the toolkit." };
   const supabase = await createClient();
   const { data, error } = await supabase.from("templates").update({ is_published: published }).eq("id", id).select("id");
   if (error) return { ok: false, error: error.message };
-  if (!data?.length) return { ok: false, error: "That template could not be updated." };
+  if (!data?.length) return { ok: false, error: "That toolkit file could not be updated." };
   refresh();
   return { ok: true };
 }

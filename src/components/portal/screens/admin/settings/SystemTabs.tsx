@@ -194,7 +194,7 @@ export function PublicTab({ data }: { data: PublicData }) {
         <Kv label="Non-Disclosure Agreement (blank)" sub="from Documents › NDA Form">
           <Toggle checked={p.forms.nda} onChange={(v) => set({ forms: { ...p.forms, nda: v } })} />
         </Kv>
-        <Kv label="PUP Document Template" sub="the General template from Documents › Templates">
+        <Kv label="PUP Document Toolkit" sub="the General toolkit file from Documents › Toolkit">
           <Toggle checked={p.forms.tpl} onChange={(v) => set({ forms: { ...p.forms, tpl: v } })} />
         </Kv>
         <Kv label="Accreditation guide (PDF)">

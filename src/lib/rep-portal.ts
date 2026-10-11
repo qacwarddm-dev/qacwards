@@ -127,16 +127,16 @@ export async function getGeneralTemplate(): Promise<TemplateFile> {
     .order("updated_at", { ascending: false });
   const link = (t: { id: string; storage_path: string }): { name: string; url: string } => {
     const file = t.storage_path.split("/").pop() ?? "";
-    return { name: file.includes(".") ? file : "PUP-Document-Template.docx", url: `/api/documents/download?source=template&id=${t.id}&download=1` };
+    return { name: file.includes(".") ? file : "PUP-Document-Toolkit.docx", url: `/api/documents/download?source=template&id=${t.id}&download=1` };
   };
   const rows = data ?? [];
-  const general = rows.find((t) => t.group_key === "gen" || /PUP Document Template/i.test(t.title));
+  const general = rows.find((t) => t.group_key === "gen" || /PUP Document (Template|Toolkit)/i.test(t.title));
   const byRef: Record<string, { name: string; url: string }> = {};
   for (const t of rows) {
     const ref = t.requirement_area_id ?? t.phase_document_id;
     if (ref && !byRef[ref]) byRef[ref] = link(t);
   }
-  return { ...(general ? link(general) : { name: "PUP-Document-Template.docx", url: null }), byRef };
+  return { ...(general ? link(general) : { name: "PUP-Document-Toolkit.docx", url: null }), byRef };
 }
 
 /** level id → visit date label, for levels whose survey visit already happened. */

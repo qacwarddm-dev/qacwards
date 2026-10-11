@@ -294,7 +294,7 @@ function describe(r: RawRow, viewer: string | null): Described | null {
     case "repository_units":
       return op === "insert" ? { title: `Created the folder ${str(row.name) ?? ""}`, icon: "document", cat: "file", ref: {} } : null;
     case "template_versions":
-      return op === "insert" ? { title: `Uploaded v${String(row.version ?? "")} of a template`, icon: "document", cat: "file", ref: {} } : null;
+      return op === "insert" ? { title: `Uploaded v${String(row.version ?? "")} of a toolkit file`, icon: "document", cat: "file", ref: {} } : null;
     default:
       return null;
   }

@@ -34,7 +34,7 @@ export default function RepDocuments({ data, me, initialTab }: { data: RepDocume
         value={tab}
         onChange={setTab}
         tabs={[
-          { key: "templates", label: "Templates" },
+          { key: "templates", label: "Toolkit" },
           { key: "common", label: "Common Documents" },
           { key: "reports", label: "AACCUP & COPC Reports" },
         ]}
@@ -71,7 +71,7 @@ function Templates({ groups, me }: { groups: TemplateGroup[]; me: string }) {
   if (!open)
     return (
       <>
-        <div className="lvhint">Click a level to view its document templates.</div>
+        <div className="lvhint">Click a level to view its toolkit.</div>
         <div className="lvg">
           {groups.map((g) => {
             const n = g.sections.reduce((s, x) => s + x.items.length, 0);
@@ -82,9 +82,11 @@ function Templates({ groups, me }: { groups: TemplateGroup[]; me: string }) {
                 </div>
                 <div className="band">{g.label}</div>
                 <div className="ft">
-                  <span>{n} templates</span>
+                  <span>
+                    {n} toolkit file{n === 1 ? "" : "s"}
+                  </span>
                   <b>
-                    View Templates <Icon name="arrowRight" size={15} stroke={2} />
+                    View Toolkit <Icon name="arrowRight" size={15} stroke={2} />
                   </b>
                 </div>
               </div>
@@ -99,7 +101,7 @@ function Templates({ groups, me }: { groups: TemplateGroup[]; me: string }) {
         <div>
           <div className="crumb" style={{ margin: "0 0 4px" }}>
             <a role="button" onClick={() => setOpen(null)}>
-              Templates
+              Toolkit
             </a>{" "}
             › {open.full}
           </div>
@@ -129,15 +131,8 @@ function Templates({ groups, me }: { groups: TemplateGroup[]; me: string }) {
                       setPreview({ name: t.name, id: t.templateId, pdf: t.isPdf });
                     }}
                   >
-                    👁 View template
+                    👁 View toolkit
                   </Btn>
-                  {t.templateId && (
-                    <span onClick={(e) => e.stopPropagation()}>
-                      <Btn variant="o" href={dl("template", t.templateId, true)} download>
-                        ⬇ Download
-                      </Btn>
-                    </span>
-                  )}
                 </div>
               </div>
             ))}
@@ -146,9 +141,9 @@ function Templates({ groups, me }: { groups: TemplateGroup[]; me: string }) {
       ))}
       {preview &&
         (preview.id && preview.pdf ? (
-          <FileViewModal title={preview.name} sub="Template from the Quality Assurance Center" src={dl("template", preview.id)} downloadHref={dl("template", preview.id, true)} viewer={me} onClose={() => setPreview(null)} />
+          <FileViewModal title={preview.name} src={dl("template", preview.id)} viewer={me} onClose={() => setPreview(null)} />
         ) : (
-          <TemplatePreview tpl={{ name: preview.name, url: preview.id ? dl("template", preview.id, true) : null }} viewer={me} goHref="/portal/submission" onClose={() => setPreview(null)} />
+          <TemplatePreview tpl={{ name: preview.name, url: null }} viewer={me} goHref="/portal/submission" onClose={() => setPreview(null)} />
         ))}
     </>
   );

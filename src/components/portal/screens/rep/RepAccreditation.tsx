@@ -451,7 +451,7 @@ function LevelCard({ ctx, visitDone }: { ctx: Ctx; visitDone?: string }) {
         </div>
         <div className="ovp">
           <Link className="lnk" href="/portal/documents?tab=templates">
-            📄 Templates for this level
+            📄 Toolkit for this level
           </Link>
           <div className="ovbar">
             <Bar pct={s.pct} color={s.pct === 100 ? "var(--green)" : "var(--gold)"} height={10} />
@@ -665,7 +665,7 @@ function PhaseView({ ctx, g, onTemplate }: { ctx: Ctx; g: PhaseGroup; onTemplate
           ‹ {prev ? prev.name.split(" – ")[0] : "Previous"}
         </Btn>
         <a className="lnk" role="button" onClick={onTemplate}>
-          👁 View PUP template
+          👁 View PUP toolkit
         </a>
         {next ? (
           <Btn variant="gh" onClick={() => router.push(href({ p, l, g: next.ordinal }))}>

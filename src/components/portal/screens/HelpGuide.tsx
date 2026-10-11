@@ -25,15 +25,15 @@ const IA_FAQ: [string, React.ReactNode][] = [
 ];
 
 const REP_STEPS: Step[] = [
-  ["/portal/documents", "View the template", "Documents → Templates → level → area"],
+  ["/portal/documents", "View the toolkit", "Documents → Toolkit → level → area"],
   ["/portal/submission", "Fill out & upload", "Accreditation → program → level → Upload"],
   ["/portal/feedback", "Fix returned files", "Feedback → From Accreditors → Resubmit"],
   ["/portal/events", "Watch deadlines", "Events and the Dashboard countdown"],
 ];
 
 const REP_FAQ: Faq[] = [
-  ["Documents", "Can I download the templates?", <>No. Templates in <b>Documents → Templates</b> are view only. To create the document, open <b>Accreditation → Upload</b>; the blank PUP template is provided there.</>],
-  ["Upload", "Why was my file rejected?", "The system only accepts PDF files up to 25 MB. Word files and PDFs that are corrupt or password-protected are rejected. Documents don’t have to use the PUP template, so your program’s own template is fine."],
+  ["Documents", "Can I download the toolkit files?", <>No. Files in <b>Documents → Toolkit</b> are view only. To create the document, open <b>Accreditation → Upload</b>; the blank PUP toolkit file is provided there.</>],
+  ["Upload", "Why was my file rejected?", "The system only accepts PDF files up to 25 MB. Word files and PDFs that are corrupt or password-protected are rejected. Documents don’t have to use the PUP toolkit, so your program’s own version is fine."],
   ["Upload", "Can I save and finish later?", <>Yes. A file is saved automatically as soon as you choose it, and other representatives of your program can see it. It is not submitted until you click Upload.</>],
   ["Feedback", "What does “Needs revision” mean?", <>An internal accreditor asked for changes. Open <b>Feedback → From Accreditors</b> to read the comment, then <b>Resubmit</b> the revised file.</>],
   ["Readiness", "How is the readiness % computed?", "Documents uploaded and not returned (approved + for review) divided by all required documents for that level."],

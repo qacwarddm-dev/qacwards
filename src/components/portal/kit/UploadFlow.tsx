@@ -70,8 +70,8 @@ export function TemplatePreview({ onClose, back, tpl, viewer, goHref }: { onClos
   return (
     <Modal
       size="wide"
-      title={back ? "Template preview" : tpl.name.replace(/\.docx$/, "")}
-      sub={back ? tpl.name : "Template from the Quality Assurance Center"}
+      title={back ? "Toolkit preview" : tpl.name.replace(/\.docx$/, "")}
+      sub={back ? tpl.name : "Toolkit from the Quality Assurance Center"}
       onClose={back ?? onClose}
       bodyStyle={{ background: "#e9e9e9" }}
       footer={
@@ -95,7 +95,7 @@ export function TemplatePreview({ onClose, back, tpl, viewer, goHref }: { onClos
             </Btn>
             {tpl.url && (
               <Btn href={tpl.url} download={tpl.name}>
-                ⬇ Download template
+                ⬇ Download toolkit
               </Btn>
             )}
             {goHref && <Btn href={goHref}>Go to Accreditation ›</Btn>}
@@ -104,7 +104,7 @@ export function TemplatePreview({ onClose, back, tpl, viewer, goHref }: { onClos
       }
     >
       <div className="vwrap" onContextMenu={(e) => e.preventDefault()}>
-        <img src="/assets/portal/mockup/preview.jpg" alt="Template preview" draggable={false} />
+        <img src="/assets/portal/mockup/preview.jpg" alt="Toolkit preview" draggable={false} />
         {!back && (
           <div className="wm">
             {Array.from({ length: 6 }, (_, i) => (
@@ -276,7 +276,7 @@ export default function UploadFlow({
           </Btn>
           <input ref={k === "main" ? mainIn : extraIn} type="file" accept="application/pdf,.pdf" hidden onChange={pick(k)} />
         </div>
-        <div className="hint">ⓘ PDF only · max 25 MB · the PUP template or your program’s own template</div>
+        <div className="hint">ⓘ PDF only · max 25 MB · the PUP toolkit or your program’s own version</div>
       </>
     );
   };
@@ -379,7 +379,7 @@ export default function UploadFlow({
       </div>
       <div className="howto">
         <span>
-          <i>1</i>Download template
+          <i>1</i>Download toolkit
         </span>
         <span style={{ color: "#ccc" }}>›</span>
         <span>
@@ -399,7 +399,7 @@ export default function UploadFlow({
         <span className="docxi">DOCX</span>
         <div className="t">
           <b>{tpl.name}</b>
-          <small>{tpl.url ? "Template from the Quality Assurance Center" : "The QA Center hasn’t published this template yet"}</small>
+          <small>{tpl.url ? "Toolkit from the Quality Assurance Center" : "The QA Center hasn’t published this toolkit file yet"}</small>
         </div>
         <Btn variant="gh" sm onClick={() => setStage("tpl")}>
           Preview
