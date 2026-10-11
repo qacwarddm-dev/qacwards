@@ -1,13 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { getMyPrograms } from "@/lib/submissions";
 import { allPhaseSlots, countSlots, emptyReview, getReferenceStructure, getSubmissionReviews, includedAreas, missingChoices } from "@/lib/reviews";
-import { manilaDay, programMid, programShort } from "@/lib/program-names";
+import { manilaDay, personName, programMid, programShort } from "@/lib/program-names";
 import { acceptsWork } from "@/lib/cycle";
 import type { RepProgram } from "@/lib/rep-model";
 import type { TemplateFile } from "@/components/portal/kit/UploadFlow";
 export * from "@/lib/rep-model";
 import type { CalEvent } from "@/components/portal/kit/calendar";
 import type { EventExtra } from "@/components/portal/screens/EventsScreen";
+
+type TeamRow = { response: string; profiles: { surname: string; given_name: string; middle_initial: string | null } | null };
 
 const SHORT: Record<string, string> = { PSV: "PSV", I: "LEVEL I", II: "LEVEL II", III: "LEVEL III", IV: "LEVEL IV" };
 
@@ -21,7 +23,7 @@ export async function getRepPrograms(): Promise<RepProgram[]> {
     supabase.from("accreditation_levels").select("id, code, name, ordinal").order("ordinal"),
     supabase
       .from("submissions")
-      .select("id, program_id, level_id, status, attempt, accreditation_cycles!submissions_cycle_id_fkey(status, end_date)")
+      .select("id, program_id, level_id, status, attempt, accreditation_cycles!submissions_cycle_id_fkey(status, end_date), assignments(id, assignment_accreditors(profile_id, response, profiles(surname, given_name, middle_initial)))")
       .in("program_id", programs.map((p) => p.id))
       .order("attempt", { ascending: false }),
     supabase
@@ -33,10 +35,15 @@ export async function getRepPrograms(): Promise<RepProgram[]> {
   ]);
   const today = manilaDay();
   const live = acceptsWork(openCycle, today);
-  const latest = new Map<string, { id: string; status: string; closed: boolean }>();
+  const latest = new Map<string, { id: string; status: string; closed: boolean; accreditors: { name: string; accepted: boolean }[] }>();
   for (const s of subs ?? []) {
     const k = `${s.program_id}|${s.level_id}`;
-    if (!latest.has(k)) latest.set(k, { id: s.id, status: s.status, closed: !acceptsWork(s.accreditation_cycles, today) });
+    const asg = Array.isArray(s.assignments) ? s.assignments[0] : s.assignments;
+    const team = (asg?.assignment_accreditors ?? []) as TeamRow[];
+    const accreditors = team
+      .filter((a) => a.response !== "rejected")
+      .map((a) => ({ name: a.profiles ? personName(a.profiles) : "—", accepted: a.response === "accepted" }));
+    if (!latest.has(k)) latest.set(k, { id: s.id, status: s.status, closed: !acceptsWork(s.accreditation_cycles, today), accreditors });
   }
   const [reviews, ref] = await Promise.all([getSubmissionReviews([...latest.values()].map((s) => s.id)), getReferenceStructure()]);
   return programs.map((p) => {
@@ -62,6 +69,7 @@ export async function getRepPrograms(): Promise<RepProgram[]> {
           submissionId: s?.id ?? null,
           status: s?.status ?? null,
           closed: s?.closed ?? !live,
+          accreditors: s?.accreditors ?? [],
           review: s
             ? (reviews.find((r) => r.submissionId === s.id) ?? null)
             : emptyReview(ref, { id: l.id, code: l.code, name: l.name, required_choices: ref.levels.find((x) => x.id === l.id)?.required_choices ?? null }, {

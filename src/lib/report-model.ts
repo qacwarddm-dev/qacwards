@@ -1,8 +1,8 @@
-import { allPhaseSlots, countSlots } from "@/lib/review-model";
+import { campusTitle, certTable, filterCert, type CertSource } from "@/lib/cert-model";
 import { LVS, SOON_DAYS, daysTo, levelName, qacStatus, type QacProgram } from "@/lib/qac-model";
 import { shortDate } from "@/lib/program-names";
 
-export type ReportType = "copc" | "valid" | "expired" | "level" | "eval" | "ext";
+export type ReportType = "copc" | "valid" | "expired" | "level" | "eval" | "cert";
 
 export const RTYPES: Record<ReportType, [string, string, string]> = {
   copc: ["COPC Status", "Programs with and without a CHED Certificate of Program Compliance", "✅"],
@@ -10,8 +10,10 @@ export const RTYPES: Record<ReportType, [string, string, string]> = {
   expired: ["Expired & Expiring Accreditation", "Programs already expired or ending within 6 months", "⚠"],
   level: ["Programs by Accreditation Level", "Count per college and level", "📊"],
   eval: ["Accreditor Evaluation Status", "Ongoing programs, assigned accreditors and report status", "👥"],
-  ext: ["Pre-Accreditation Phase Completion", "Approved phase documents per program", "📄"],
+  cert: ["Certification of Accreditation Status", "Every program per campus and college: status, validity and latest visit (Office of the President format)", "🏅"],
 };
+
+export const reportTitle = (t: ReportType) => (t === "cert" ? RTYPES[t][0] : `${RTYPES[t][0]} Report`);
 
 export const isReportType = (t: unknown): t is ReportType => typeof t === "string" && t in RTYPES;
 
@@ -20,11 +22,11 @@ export type CatalogProgram = { name: string; college: string; campus: string; co
 export type SavedReport = { id: string; type: ReportType; title: string; scope: string; filters: ReportFilters; by: string; date: string };
 export type ReportData = { h: string[]; rows: (string | number)[][]; sum: string };
 
-export function reportScope(f: ReportFilters) {
-  return [f.camp === "all" ? "All campuses" : f.camp, f.col === "all" ? "All colleges" : f.col, f.lv === "all" ? "All levels" : levelName(f.lv)].join(" · ");
+export function reportScope(f: ReportFilters, type?: ReportType) {
+  return [f.camp === "all" ? "All campuses" : type === "cert" ? campusTitle(f.camp) : f.camp, f.col === "all" ? "All colleges" : f.col, f.lv === "all" ? "All levels" : levelName(f.lv)].join(" · ");
 }
 
-export function reportData(type: ReportType, f: ReportFilters, programs: QacProgram[], catalog: CatalogProgram[]): ReportData {
+export function reportData(type: ReportType, f: ReportFilters, programs: QacProgram[], catalog: CatalogProgram[], cert: CertSource[]): ReportData {
   const today = f.asOf;
   const ok = (p: { campus: string; college: string }) => (f.camp === "all" || p.campus === f.camp) && (f.col === "all" || p.college === f.col);
   const L = programs.filter((p) => ok(p) && (f.lv === "all" || p.levelCode === f.lv));
@@ -78,25 +80,8 @@ export function reportData(type: ReportType, f: ReportFilters, programs: QacProg
         sum: `${O.length} programs in process`,
       };
     }
-    case "ext": {
-      const O = L.filter((p) => p.inproc && p.review);
-      const phases = O[0]?.review?.phases ?? [];
-      return {
-        h: ["Program", ...phases.map((g) => g.name.split(" – ")[0]), "Approved"],
-        rows: O.map((p) => {
-          const c = countSlots(allPhaseSlots(p.review!));
-          return [
-            p.name,
-            ...phases.map((_, i) => {
-              const x = countSlots(p.review!.phases[i]?.docs ?? []);
-              return `${x.ap}/${x.req}`;
-            }),
-            `${c.req ? Math.round((c.ap / c.req) * 100) : 0}%`,
-          ];
-        }),
-        sum: `${O.length} programs`,
-      };
-    }
+    case "cert":
+      return certTable(filterCert(cert, { camp: f.camp, col: f.col, lv: f.lv }));
   }
 }
 

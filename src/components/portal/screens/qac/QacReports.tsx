@@ -5,6 +5,7 @@ import { useMemo, useRef, useState } from "react";
 import useBusy from "../../kit/useBusy";
 import Btn from "../../kit/Btn";
 import Card, { CardHead } from "../../kit/Card";
+import CertificationPaper from "../../kit/CertificationPaper";
 import Letterhead from "../../kit/Letterhead";
 import Modal from "../../kit/Modal";
 import SearchBox from "../../kit/SearchBox";
@@ -18,12 +19,14 @@ import {
   reportCsv,
   reportData,
   reportScope,
+  reportTitle,
   type CatalogProgram,
   type ReportData,
   type ReportFilters,
   type ReportType,
   type SavedReport,
 } from "@/lib/report-model";
+import { filterCert, type CertSource } from "@/lib/cert-model";
 import { deleteReport, saveReport } from "@/lib/report-actions";
 import { downloadReportPdf } from "@/lib/report-pdf";
 import { shortDate } from "@/lib/program-names";
@@ -36,6 +39,7 @@ export default function QacReports({
   catalog,
   saved,
   colleges,
+  cert,
   today,
   me,
   initialNew,
@@ -44,6 +48,7 @@ export default function QacReports({
   catalog: CatalogProgram[];
   saved: SavedReport[];
   colleges: [string, string][];
+  cert: CertSource[];
   today: string;
   me: string;
   initialNew: ReportType | null;
@@ -65,7 +70,7 @@ export default function QacReports({
     (r) => (year === "all" || r.date.startsWith(year)) && (type === "all" || r.type === type) && (!ql || `${r.title}${r.scope}${r.by}`.toLowerCase().includes(ql)),
   );
 
-  const csvData = (r: { type: ReportType; filters: ReportFilters }) => reportData(r.type, r.filters, programs, catalog);
+  const csvData = (r: { type: ReportType; filters: ReportFilters }) => reportData(r.type, r.filters, programs, catalog, cert);
   const csvOf = (r: { type: ReportType; filters: ReportFilters }) => reportCsv(csvData(r));
   const pdf = (r: Draft, d: ReportData) => downloadReportPdf({ title: r.title, scope: r.scope, asOf: shortDate(r.date), by: r.by }, d, toast.say);
 
@@ -148,9 +153,13 @@ export default function QacReports({
                       <Btn variant="o" sm onClick={() => setPreview({ ...r, date: r.filters.asOf })}>
                         View
                       </Btn>{" "}
-                      <Btn variant="gh" sm onClick={() => pdf({ ...r, date: r.filters.asOf }, csvData(r))}>
-                        ⬇ PDF
-                      </Btn>{" "}
+                      {r.type !== "cert" && (
+                        <>
+                          <Btn variant="gh" sm onClick={() => pdf({ ...r, date: r.filters.asOf }, csvData(r))}>
+                            ⬇ PDF
+                          </Btn>{" "}
+                        </>
+                      )}
                       <Btn variant="gh" sm href={csvOf(r)} download={csvName(r.title)} onClick={() => toast.say("CSV downloaded")}>
                         ⬇ CSV
                       </Btn>{" "}
@@ -176,11 +185,12 @@ export default function QacReports({
           preset={form.preset}
           campuses={[...new Set(catalog.map((p) => p.campus))].sort()}
           colleges={colleges}
+          cert={cert}
           today={today}
           onClose={() => setForm(null)}
           onPreview={(t, f) => {
             setForm(null);
-            setPreview({ type: t, filters: f, title: `${RTYPES[t][0]} Report`, scope: reportScope(f), by: me, date: f.asOf });
+            setPreview({ type: t, filters: f, title: reportTitle(t), scope: reportScope(f, t), by: me, date: f.asOf });
           }}
         />
       )}
@@ -189,6 +199,7 @@ export default function QacReports({
           r={preview}
           programs={programs}
           catalog={catalog}
+          cert={cert}
           onClose={() => setPreview(null)}
           onSaved={() => {
             setPreview(null);
@@ -207,6 +218,7 @@ function NewReportModal({
   preset,
   campuses,
   colleges,
+  cert,
   today,
   onClose,
   onPreview,
@@ -215,6 +227,7 @@ function NewReportModal({
   preset?: WatchPreset;
   campuses: string[];
   colleges: [string, string][];
+  cert: CertSource[];
   today: string;
   onClose: () => void;
   onPreview: (t: ReportType, f: ReportFilters) => void;
@@ -222,6 +235,14 @@ function NewReportModal({
   const [t, setT] = useState(type);
   const [f, setF] = useState<ReportFilters>({ camp: preset?.camp ?? "all", col: "all", lv: preset?.lv ?? "all", asOf: today });
   const set = (k: keyof ReportFilters) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.value });
+  const isCert = t === "cert";
+  const campusOptions: [string, string][] = isCert ? cert.map((c) => [c.name, c.label.replace(/^PUP /, "").replace(/ Campus$/, "")]) : campuses.map((c) => [c, c]);
+  const certColleges = isCert ? [...new Map((f.camp === "all" ? cert : cert.filter((c) => c.name === f.camp)).flatMap((c) => c.colleges).filter((k) => k.code).map((k) => [k.code, k.name])).entries()] : [];
+  const collegeOptions: [string, string][] = isCert ? certColleges : colleges.map(([c, n]) => [c, `${c} · ${n}`]);
+  const switchType = (next: ReportType) => {
+    setT(next);
+    setF({ ...f, camp: "all", col: "all" });
+  };
   return (
     <Modal
       title="New report"
@@ -237,7 +258,7 @@ function NewReportModal({
       }
     >
       <label className="fl">Report type</label>
-      <select className="inp" value={t} onChange={(e) => setT(e.target.value as ReportType)}>
+      <select className="inp" value={t} onChange={(e) => switchType(e.target.value as ReportType)}>
         {Object.entries(RTYPES).map(([k, x]) => (
           <option key={k} value={k}>
             {x[0]}
@@ -247,20 +268,22 @@ function NewReportModal({
       <div className="fg2">
         <div>
           <label className="fl">Campus</label>
-          <select className="inp" value={f.camp} onChange={set("camp")}>
-            <option value="all">All campuses</option>
-            {campuses.map((c) => (
-              <option key={c}>{c}</option>
+          <select className="inp" value={f.camp} onChange={(e) => setF({ ...f, camp: e.target.value, col: "all" })}>
+            <option value="all">{isCert ? `All campuses (${cert.length})` : "All campuses"}</option>
+            {campusOptions.map(([v, label]) => (
+              <option key={v} value={v}>
+                {label}
+              </option>
             ))}
           </select>
         </div>
         <div>
           <label className="fl">College</label>
-          <select className="inp" value={f.col} onChange={set("col")}>
-            <option value="all">All colleges</option>
-            {colleges.map(([c, n]) => (
-              <option key={c} value={c}>
-                {c} · {n}
+          <select className="inp" value={f.col} onChange={set("col")} disabled={isCert && !collegeOptions.length}>
+            <option value="all">{isCert && !collegeOptions.length ? "No colleges (branch campus)" : "All colleges"}</option>
+            {collegeOptions.map(([v, label]) => (
+              <option key={v} value={v}>
+                {label}
               </option>
             ))}
           </select>
@@ -289,12 +312,14 @@ function PreviewModal({
   r,
   programs,
   catalog,
+  cert,
   onClose,
   onSaved,
 }: {
   r: Draft;
   programs: QacProgram[];
   catalog: CatalogProgram[];
+  cert: CertSource[];
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -302,7 +327,8 @@ function PreviewModal({
   const toast = useToast();
   const [busy, start] = useBusy();
   const paper = useRef<HTMLDivElement>(null);
-  const d = useMemo(() => reportData(r.type, r.filters, programs, catalog), [r, programs, catalog]);
+  const d = useMemo(() => reportData(r.type, r.filters, programs, catalog, cert), [r, programs, catalog, cert]);
+  const certCampuses = useMemo(() => (r.type === "cert" ? filterCert(cert, { camp: r.filters.camp, col: r.filters.col, lv: r.filters.lv }) : []), [r, cert]);
 
   const save = () =>
     start(async () => {
@@ -325,11 +351,13 @@ function PreviewModal({
           <Btn variant="gh" href={reportCsv(d)} download={csvName(r.title)} onClick={() => toast.say("CSV downloaded")}>
             ⬇ CSV (Excel)
           </Btn>
-          <Btn variant="o" onClick={() => downloadReportPdf({ title: r.title, scope: r.scope, asOf: shortDate(r.date), by: r.by }, d, toast.say)}>
-            ⬇ Download PDF
-          </Btn>
-          <Btn variant="gh" onClick={() => printPaper(paper.current, () => toast.say("Printing is blocked in this preview", true))}>
-            🖨 Print
+          {r.type !== "cert" && (
+            <Btn variant="o" onClick={() => downloadReportPdf({ title: r.title, scope: r.scope, asOf: shortDate(r.date), by: r.by }, d, toast.say)}>
+              ⬇ Download PDF
+            </Btn>
+          )}
+          <Btn variant={r.type === "cert" ? "o" : "gh"} onClick={() => printPaper(paper.current, () => toast.say("Printing is blocked in this preview", true), r.type === "cert")}>
+            {r.type === "cert" ? "🖨 Print / Save as PDF" : "🖨 Print"}
           </Btn>
           {r.id ? (
             <Btn onClick={onClose}>Close</Btn>
@@ -341,6 +369,11 @@ function PreviewModal({
         </>
       }
     >
+      {r.type === "cert" ? (
+        <div className="cert-md" ref={paper}>
+          <CertificationPaper campuses={certCampuses} />
+        </div>
+      ) : (
       <div className="paper" ref={paper}>
         <Letterhead />
         <div className="dtt">{r.title.toUpperCase()}</div>
@@ -374,6 +407,7 @@ function PreviewModal({
         </table>
         <div className="pfoot2">Generated by {r.by} · QAC-WARDS · Form Code: QAC-TPL-01</div>
       </div>
+      )}
     </Modal>
   );
 }

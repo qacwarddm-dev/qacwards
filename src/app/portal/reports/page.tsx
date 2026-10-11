@@ -10,13 +10,14 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const user = await requireCurrentUser();
   if (user.role !== "qac_personnel" && user.role !== "qac_admin") redirect("/portal/dashboard");
   const sp = await searchParams;
-  const [{ programs }, { saved, catalog, colleges }] = await Promise.all([getQacOverview(), getReportsData()]);
+  const [{ programs }, { saved, catalog, colleges, cert }] = await Promise.all([getQacOverview(), getReportsData()]);
   return (
     <QacReports
       programs={programs}
       catalog={catalog}
       saved={saved}
       colleges={colleges}
+      cert={cert}
       today={manilaDay()}
       me={user.name}
       initialNew={isReportType(sp.new) ? sp.new : null}

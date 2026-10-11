@@ -1,4 +1,5 @@
-import { allPhaseSlots, countSlots, includedAreas, type SubmissionReview } from "@/lib/review-model";
+import { allPhaseSlots, countSlots, type SubmissionReview } from "@/lib/review-model";
+import { programPercent } from "@/lib/progress-model";
 
 export type QacMember = { id: string; name: string; surname: string; initials: string; response: string; acting: string | null };
 
@@ -64,9 +65,9 @@ export function daysTo(iso: string | null, today: string) {
   return Math.round((new Date(iso.slice(0, 10)).getTime() - new Date(today).getTime()) / 864e5);
 }
 
+/** The accreditation progress %: moves on acceptance, not on upload. */
 export function readiness(p: QacProgram) {
-  if (!p.review) return 0;
-  return countSlots([...allPhaseSlots(p.review), ...includedAreas(p.review)]).pct;
+  return programPercent(p);
 }
 
 export type Tone = "ok" | "pend" | "ret" | "miss" | "blue";

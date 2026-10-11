@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
-import { RTYPES, isReportType, reportScope, type ReportFilters } from "@/lib/report-model";
+import { isReportType, reportScope, reportTitle, type ReportFilters } from "@/lib/report-model";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -21,8 +21,8 @@ export async function saveReport(type: string, filters: ReportFilters): Promise<
   const supabase = await createClient();
   const { error } = await supabase.from("saved_reports").insert({
     type,
-    title: `${RTYPES[type][0]} Report`,
-    scope: reportScope(filters),
+    title: reportTitle(type),
+    scope: reportScope(filters, type),
     filters,
     created_by: user.id,
   });

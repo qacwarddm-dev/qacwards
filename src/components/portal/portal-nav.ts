@@ -58,7 +58,7 @@ export const PORTAL_NAV: Record<PortalRole, PortalNav> = {
           DASH,
           { label: "Assignment", href: "/portal/assignment", icon: "assign", badge: "assign" },
           { label: "Accreditation", href: "/portal/evaluation", icon: "cap" },
-          { label: "Resubmissions", href: "/portal/resubmissions", icon: "resub", badge: "resub", newTag: true },
+          { label: "Resubmissions", href: "/portal/resubmissions", icon: "resub", badge: "resub" },
         ],
       },
       { title: "SCHEDULE", items: [EVENTS] },

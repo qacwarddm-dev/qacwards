@@ -16,12 +16,14 @@ import FullScreenViewer from "../../kit/FullScreenViewer";
 import LevelRings from "../../kit/LevelRings";
 import Modal from "../../kit/Modal";
 import Pill from "../../kit/Pill";
+import ProgramProgress from "../../kit/ProgramProgress";
 import SegTabs from "../../kit/SegTabs";
 import StageSwitch from "../../kit/StageSwitch";
 import SumRows from "../../kit/SumRows";
 import { useToast } from "../../kit/ToastProvider";
 import CertStatusSelect, { CSDEF } from "../../kit/CertStatusSelect";
 import { LVS, phaseCounts, qacStatus, readiness, type QacProgram } from "@/lib/qac-model";
+import { programProgressInput } from "@/lib/progress-model";
 import { countSlots, describeMean, includedAreas, type Slot } from "@/lib/review-model";
 import { areaShort, shortDate } from "@/lib/program-names";
 import { recordVisitResult, reviewReport, sendReminder } from "@/lib/qac-actions";
@@ -116,6 +118,7 @@ export default function QacProgramDetail({ p, today, initialStage }: { p: QacPro
           </span>
         </div>
       </Card>
+      {p.inproc && <ProgramProgress program={`${p.short} · ${p.levelName}`} input={programProgressInput(p)} perspective="staff" />}
       <Card>
         <LevelRings
           items={LVS.map(([k, sh, nm]) => {
