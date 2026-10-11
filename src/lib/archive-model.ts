@@ -28,6 +28,7 @@ export type ArchiveEntry = {
   visit: string | null;
   visitDay: string | null;
   accreditors: string[];
+  leader: string | null;
   grandMean: number | null;
   passed: boolean;
   status: string;
@@ -92,6 +93,7 @@ export type CycleProgram = {
   level: string;
   levelCode: string;
   accreditors: string[];
+  leader: string | null;
   result: "passed" | "deferred" | null;
   archiveId: string | null;
   movedTo: string | null;

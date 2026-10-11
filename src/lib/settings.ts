@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { fileSize, manilaTime, personName, programShort, shortDate } from "@/lib/program-names";
-import { DEFAULTS, type SettingKey } from "@/lib/settings-model";
+import { areaTag, fileSize, manilaTime, personName, programShort, shortDate } from "@/lib/program-names";
+import { DEFAULTS, type SettingKey, type TeamAreas } from "@/lib/settings-model";
 import { getQacOverview, phaseCounts } from "@/lib/qac-portal";
 
 type Supa = Awaited<ReturnType<typeof createClient>>;
@@ -46,24 +46,37 @@ export type SetupData = {
   levels: { id: string; name: string }[];
   areas: { id: string; name: string; levelId: string }[];
   psvLevelId: string | null;
+  teamGroups: { key: keyof TeamAreas; label: string; chips: string[] }[];
+  teamAreas: TeamAreas;
   phases: { id: string; name: string; docs: { id: string; name: string }[] }[];
   rules: typeof DEFAULTS.rules;
 };
 
 export async function getSetupData(): Promise<SetupData> {
   const supabase = await createClient();
-  const [{ data: levels }, { data: areas }, { data: phases }, { data: pdocs }, rules] = await Promise.all([
+  const [{ data: levels }, { data: areas }, { data: phases }, { data: pdocs }, rules, teamAreas] = await Promise.all([
     supabase.from("accreditation_levels").select("id, code, name").order("ordinal"),
     supabase.from("requirement_areas").select("id, name, level_id, ordinal").order("ordinal"),
     supabase.from("phases").select("id, name, ordinal").order("ordinal"),
     supabase.from("phase_documents").select("id, name, phase_id, ordinal").order("ordinal"),
     getSetting(supabase, "rules"),
+    getSetting(supabase, "teamAreas"),
   ]);
   const psv = (levels ?? []).find((l) => l.code === "PSV")?.id ?? null;
+  const chipsOf = (code: string) =>
+    (areas ?? [])
+      .filter((a) => a.level_id === (levels ?? []).find((l) => l.code === code)?.id)
+      .map((a) => areaTag(code, a.ordinal, a.name));
   return {
     levels: (levels ?? []).map((l) => ({ id: l.id, name: l.name })),
     areas: (areas ?? []).filter((a) => a.level_id === psv).map((a) => ({ id: a.id, name: a.name, levelId: a.level_id })),
     psvLevelId: psv,
+    teamGroups: [
+      { key: "base", label: "PSV, Level I–II", chips: chipsOf("PSV") },
+      { key: "l3", label: "Level III", chips: chipsOf("III") },
+      { key: "l4", label: "Level IV", chips: chipsOf("IV") },
+    ],
+    teamAreas,
     phases: (phases ?? []).map((p) => ({ id: p.id, name: p.name, docs: (pdocs ?? []).filter((d) => d.phase_id === p.id).map((d) => ({ id: d.id, name: d.name })) })),
     rules,
   };

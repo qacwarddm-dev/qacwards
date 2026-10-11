@@ -10,7 +10,7 @@ import Pill from "../../../kit/Pill";
 import useAct from "../../../kit/useAct";
 import useNav from "../../../kit/nav";
 import type { CyclesData, SetupData } from "@/lib/settings";
-import type { Rules } from "@/lib/settings-model";
+import type { Rules, TeamAreas } from "@/lib/settings-model";
 import { addArea, addPhaseDoc, closeCycle, extendCycle, openCycle, removeArea, removePhaseDoc, saveSetting } from "@/lib/settings-actions";
 import { areaLabel, shortDate } from "@/lib/program-names";
 
@@ -264,6 +264,7 @@ function Chips({ items, onRemove, onAdd }: { items: { id: string; name: string }
 
 export function SetupTab({ data }: { data: SetupData }) {
   const [rules, setRules] = useState<Rules>(data.rules);
+  const [team, setTeam] = useState<TeamAreas>(data.teamAreas);
   const [modal, setModal] = useState<null | { add: "area" | string } | { rm: "area" | "doc"; id: string; name: string }>(null);
   const [name, setName] = useState("");
   const { busy, run } = useAct();
@@ -300,6 +301,27 @@ export function SetupTab({ data }: { data: SetupData }) {
           />
         </div>
       ))}
+      <h3 className="h3s">Accreditor team · default Team Leader areas</h3>
+      <div className="sub" style={{ margin: "-4px 0 8px" }}>
+        QAC picks the Team Leader per assignment. These areas are pre-selected for the Team Leader; the rest go to the Assistant. QAC can still change them per program.
+      </div>
+      {data.teamGroups.map((g) => (
+        <div key={g.key} className="phs">
+          <b>{g.label}</b>
+          <div className="tlchips">
+            {g.chips.map((n, i) => (
+              <button
+                key={n}
+                type="button"
+                className={team[g.key].includes(i) ? "on" : ""}
+                onClick={() => setTeam({ ...team, [g.key]: (team[g.key].includes(i) ? team[g.key].filter((x) => x !== i) : [...team[g.key], i]).sort((a, b) => a - b) })}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
       <h3 className="h3s">Rules</h3>
       <div className="kv">
         <div>
@@ -332,7 +354,10 @@ export function SetupTab({ data }: { data: SetupData }) {
         <span className="sub" style={{ margin: 0 }}>
           Saved changes are logged in Activity.
         </span>
-        <Btn disabled={busy} onClick={() => run(() => saveSetting("rules", rules), "Setup saved")}>
+        <Btn disabled={busy} onClick={() => run(async () => {
+              const saved = await saveSetting("rules", rules);
+              return saved.ok ? saveSetting("teamAreas", team) : saved;
+            }, "Setup saved")}>
           Save changes
         </Btn>
       </div>

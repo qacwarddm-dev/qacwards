@@ -387,6 +387,8 @@ export type Database = {
       }
       assignment_accreditors: {
         Row: {
+          areas_sent_at: string | null
+          is_team_leader: boolean
           acting_reason: string | null
           assignment_id: string
           profile_id: string
@@ -395,6 +397,8 @@ export type Database = {
           response: Database["public"]["Enums"]["accreditor_response"]
         }
         Insert: {
+          areas_sent_at?: string | null
+          is_team_leader?: boolean
           acting_reason?: string | null
           assignment_id: string
           profile_id: string
@@ -403,6 +407,8 @@ export type Database = {
           response?: Database["public"]["Enums"]["accreditor_response"]
         }
         Update: {
+          areas_sent_at?: string | null
+          is_team_leader?: boolean
           acting_reason?: string | null
           assignment_id?: string
           profile_id?: string
@@ -429,6 +435,7 @@ export type Database = {
       }
       assignments: {
         Row: {
+          leader_area_ids: string[]
           assigned_by: string | null
           created_at: string
           cycle_id: string
@@ -440,6 +447,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          leader_area_ids?: string[]
           assigned_by?: string | null
           created_at?: string
           cycle_id: string
@@ -451,6 +459,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          leader_area_ids?: string[]
           assigned_by?: string | null
           created_at?: string
           cycle_id?: string
@@ -537,8 +546,66 @@ export type Database = {
         }
         Relationships: []
       }
+      common_document_versions: {
+        Row: {
+          change_note: string | null
+          created_at: string
+          document_id: string
+          file_name: string
+          file_size: number | null
+          id: string
+          storage_path: string
+          title: string
+          uploaded_at: string
+          uploaded_by: string | null
+          version: number
+        }
+        Insert: {
+          change_note?: string | null
+          created_at?: string
+          document_id: string
+          file_name: string
+          file_size?: number | null
+          id?: string
+          storage_path: string
+          title: string
+          uploaded_at: string
+          uploaded_by?: string | null
+          version: number
+        }
+        Update: {
+          change_note?: string | null
+          created_at?: string
+          document_id?: string
+          file_name?: string
+          file_size?: number | null
+          id?: string
+          storage_path?: string
+          title?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "common_document_versions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "common_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "common_document_versions_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       common_documents: {
         Row: {
+          change_note: string | null
           content_text: string | null
           deleted_at: string | null
           category: string
@@ -550,10 +617,12 @@ export type Database = {
           title: string
           updated_at: string
           uploaded_by: string | null
+          version: number
           view_count: number
           visible_to: string
         }
         Insert: {
+          change_note?: string | null
           content_text?: string | null
           deleted_at?: string | null
           category?: string
@@ -565,10 +634,12 @@ export type Database = {
           title: string
           updated_at?: string
           uploaded_by?: string | null
+          version?: number
           view_count?: number
           visible_to?: string
         }
         Update: {
+          change_note?: string | null
           content_text?: string | null
           deleted_at?: string | null
           category?: string
@@ -580,6 +651,7 @@ export type Database = {
           title?: string
           updated_at?: string
           uploaded_by?: string | null
+          version?: number
           view_count?: number
           visible_to?: string
         }
@@ -2679,6 +2751,28 @@ export type Database = {
         Returns: boolean
       }
       count_common_document_view: { Args: { p_id: string }; Returns: undefined }
+      default_leader_areas: { Args: { p_level: string }; Returns: string[] }
+      included_areas: { Args: { p_assignment: string }; Returns: string[] }
+      owns_area: { Args: { p_area: string; p_assignment: string; p_profile?: string }; Returns: boolean }
+      area_locked: { Args: { p_assignment: string; p_profile?: string }; Returns: boolean }
+      area_is_evaluated: { Args: { p_area: string; p_assignment: string }; Returns: boolean }
+      may_review_document: { Args: { p_doc: string }; Returns: boolean }
+      set_team_roles: { Args: { p_areas: string[]; p_assignment: string; p_leader: string }; Returns: undefined }
+      send_areas_to_leader: { Args: { p_assignment: string }; Returns: undefined }
+      publish_common_document_version: {
+        Args: {
+          p_category: string
+          p_colleges: string[]
+          p_document: string
+          p_file_size: number
+          p_note: string
+          p_path: string
+          p_title: string
+          p_visible_to: string
+        }
+        Returns: number
+      }
+      restore_common_document_version: { Args: { p_version: string }; Returns: number }
       create_event: {
         Args: {
           p_description?: string

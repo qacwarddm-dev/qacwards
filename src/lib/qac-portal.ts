@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSubmissionReviews } from "@/lib/reviews";
 import { initialsOf, personName, programMid, programShort, shortDate } from "@/lib/program-names";
 import type { QacProgram, QacReport } from "@/lib/qac-model";
-import { DEFAULTS } from "@/lib/settings-model";
+import { DEFAULTS, type TeamAreas } from "@/lib/settings-model";
 export * from "@/lib/qac-model";
 
 const ACTIVE = ["not_started", "in_progress", "submitted", "under_evaluation", "returned"];
@@ -21,8 +21,8 @@ export async function getQacOverview(): Promise<QacOverview> {
       .select(
         `id, program_id, level_id, status, attempt, updated_at,
          accreditation_levels(code, name, ordinal),
-         assignments(id, status, site_visit_date, due_date,
-           assignment_accreditors(profile_id, response, acting_reason, profiles(surname, given_name, middle_initial)),
+         assignments(id, status, site_visit_date, due_date, leader_area_ids,
+           assignment_accreditors(profile_id, response, acting_reason, is_team_leader, areas_sent_at, profiles(surname, given_name, middle_initial)),
            evaluations(outcome, released_at))`,
       )
       .order("updated_at", { ascending: false }),
@@ -89,14 +89,17 @@ export async function getQacOverview(): Promise<QacOverview> {
     const current = aw.filter((a) => a.status === "active").sort((a, b) => (b.accreditation_levels?.ordinal ?? 0) - (a.accreditation_levels?.ordinal ?? 0))[0];
     if (!s && !current) continue;
     const asg = s ? (Array.isArray(s.assignments) ? s.assignments[0] : s.assignments) : null;
-    type M = { profile_id: string; response: string; acting_reason: string | null; profiles: { surname: string; given_name: string; middle_initial: string | null } | null };
-    const team = ((asg?.assignment_accreditors ?? []) as M[]).map((m) => {
-      const name = personName(m.profiles);
-      return { id: m.profile_id, name, surname: m.profiles?.surname ?? name, initials: initialsOf(name), response: m.response, acting: m.acting_reason };
-    });
+    type M = { profile_id: string; response: string; acting_reason: string | null; is_team_leader: boolean; areas_sent_at: string | null; profiles: { surname: string; given_name: string; middle_initial: string | null } | null };
+    const team = ((asg?.assignment_accreditors ?? []) as M[])
+      .map((m) => {
+        const name = personName(m.profiles);
+        return { id: m.profile_id, name, surname: m.profiles?.surname ?? name, initials: initialsOf(name), response: m.response, acting: m.acting_reason, leader: m.is_team_leader, sentAt: m.areas_sent_at };
+      })
+      .sort((a, b) => Number(b.leader) - Number(a.leader));
+    const leaderId = team.find((m) => m.leader)?.id ?? null;
     const rep = (reps ?? []).find((r) => r.program_id === p.id);
     const myReports: QacReport[] = (reports ?? [])
-      .filter((r) => r.assignment_id === asg?.id)
+      .filter((r) => r.assignment_id === asg?.id && (!leaderId || r.accreditor_id === leaderId))
       .map((r) => ({
         accreditorId: r.accreditor_id,
         status: r.status as QacReport["status"],
@@ -145,6 +148,7 @@ export async function getQacOverview(): Promise<QacOverview> {
       visitLabel: asg?.site_visit_date ? shortDate(asg.site_visit_date) : "Not scheduled",
       due: asg?.due_date ?? null,
       team,
+      leaderAreaIds: asg?.leader_area_ids ?? [],
       rep: rep?.profiles ? personName(rep.profiles) : "—",
       review: s ? (reviews.find((r) => r.submissionId === s.id) ?? null) : null,
       reports: myReports,
@@ -186,11 +190,13 @@ export type AssignForm = {
   evalDays: number;
   perProgram: number;
   acceptDays: number;
+  areasByLevel: Record<string, { id: string; name: string; ordinal: number }[]>;
+  teamAreas: TeamAreas;
 };
 
 export async function getAssignFormData(meId: string): Promise<AssignForm> {
   const supabase = await createClient();
-  const [{ data: campuses }, { data: colleges }, { data: programs }, { data: levels }, { data: people }, { data: team }, { data: rules }] = await Promise.all([
+  const [{ data: campuses }, { data: colleges }, { data: programs }, { data: levels }, { data: people }, { data: team }, { data: rules }, { data: areaRows }, { data: teamRow }] = await Promise.all([
     supabase.from("campuses").select("name, is_main").order("is_main", { ascending: false }).order("name"),
     supabase.from("colleges").select("code, name").order("code"),
     supabase.from("programs").select("id, name, colleges(code), campuses(name)").is("deleted_at", null).order("name"),
@@ -206,7 +212,11 @@ export async function getAssignFormData(meId: string): Promise<AssignForm> {
       .select("profile_id, response, assignments(id, status, site_visit_date, submissions(programs(name)))")
       .neq("response", "rejected"),
     supabase.from("site_settings").select("value").eq("key", "rules").maybeSingle(),
+    supabase.from("requirement_areas").select("id, level_id, name, ordinal").order("ordinal"),
+    supabase.from("site_settings").select("value").eq("key", "teamAreas").maybeSingle(),
   ]);
+  const areasByLevel: AssignForm["areasByLevel"] = {};
+  for (const a of areaRows ?? []) (areasByLevel[a.level_id] ??= []).push({ id: a.id, name: a.name, ordinal: a.ordinal });
   const busy: AssignForm["busy"] = [];
   const load: Record<string, number> = {};
   for (const t of team ?? []) {
@@ -234,6 +244,8 @@ export async function getAssignFormData(meId: string): Promise<AssignForm> {
     evalDays: Number(((rules?.value as { evalDays?: number } | null)?.evalDays ?? DEFAULTS.rules.evalDays)) || DEFAULTS.rules.evalDays,
     perProgram: Number((rules?.value as { perProgram?: number } | null)?.perProgram) || DEFAULTS.rules.perProgram,
     acceptDays: Number((rules?.value as { acceptDays?: number } | null)?.acceptDays) || DEFAULTS.rules.acceptDays,
+    areasByLevel,
+    teamAreas: { ...DEFAULTS.teamAreas, ...((teamRow?.value as Partial<TeamAreas> | null) ?? {}) },
   };
 }
 

@@ -16,7 +16,7 @@ import SegTabs from "../../kit/SegTabs";
 import SumRows from "../../kit/SumRows";
 import useAct from "../../kit/useAct";
 import useContentMatches from "../../kit/useContentMatches";
-import type { CommonDoc, QacDocumentsData, TplGroupKey, TplRow } from "@/lib/qac-documents";
+import type { CommonDoc, CommonVersion, QacDocumentsData, TplGroupKey, TplRow } from "@/lib/qac-documents";
 import type { NdaItem } from "@/lib/qac-portal";
 import { safeName, uploadDirect } from "@/lib/upload-client";
 import {
@@ -24,6 +24,7 @@ import {
   replaceNdaForm,
   restoreTemplateVersion,
   restoreCommonDoc,
+  restoreCommonDocVersion,
   reviewNda,
   saveCommonDoc,
   saveTemplate,
@@ -332,7 +333,7 @@ function TemplateHistory({ row, onClose }: { row: TplRow; onClose: () => void })
 function Common({ docs, deleted, colleges }: { docs: CommonDoc[]; deleted: CommonDoc[]; colleges: [string, string][] }) {
   const [q, setQ] = useState("");
   const text = useContentMatches(["common"], q);
-  const [modal, setModal] = useState<null | { k: "up"; d?: CommonDoc } | { k: "del" | "view"; d: CommonDoc }>(null);
+  const [modal, setModal] = useState<null | { k: "up"; d?: CommonDoc } | { k: "del" | "view" | "hist"; d: CommonDoc } | { k: "vview"; d: CommonDoc; v: CommonVersion }>(null);
   const { busy, run } = useAct();
   const ql = q.toLowerCase();
   const L = docs.filter((d) => !ql || text.ids.has(d.id) || `${d.title}${d.category}`.toLowerCase().includes(ql));
@@ -353,6 +354,7 @@ function Common({ docs, deleted, colleges }: { docs: CommonDoc[]; deleted: Commo
             <thead>
               <tr>
                 <th>Document</th>
+                <th>Version</th>
                 <th>Category</th>
                 <th>Visible to</th>
                 <th>Updated</th>
@@ -367,6 +369,7 @@ function Common({ docs, deleted, colleges }: { docs: CommonDoc[]; deleted: Commo
                     <span className="pdfi">PDF</span> <b style={{ fontWeight: 600 }}>{d.title}</b>
                     <small>{d.size}</small>
                   </td>
+                  <td>v{d.version}</td>
                   <td>{d.category}</td>
                   <td>{d.visibleTo}</td>
                   <td style={{ whiteSpace: "nowrap" }}>{d.date}</td>
@@ -376,7 +379,10 @@ function Common({ docs, deleted, colleges }: { docs: CommonDoc[]; deleted: Commo
                       View
                     </Btn>{" "}
                     <Btn variant="o" sm onClick={() => setModal({ k: "up", d })}>
-                      ⬆ Replace
+                      ⬆ New version
+                    </Btn>{" "}
+                    <Btn variant="gh" sm onClick={() => setModal({ k: "hist", d })}>
+                      History
                     </Btn>{" "}
                     <Btn variant="gh" sm title="Delete" onClick={() => setModal({ k: "del", d })}>
                       🗑
@@ -421,12 +427,71 @@ function Common({ docs, deleted, colleges }: { docs: CommonDoc[]; deleted: Commo
           url={dl("common", modal.d.id)}
           downloadHref={dl("common", modal.d.id, true)}
           file={`${modal.d.title}.pdf`}
-          meta={`Common Documents · ${modal.d.category}`}
+          meta={`Common Documents · ${modal.d.category} · v${modal.d.version}`}
           note="Watermarked for program reps, who can only view this file"
           onClose={() => setModal(null)}
         />
       )}
+      {modal?.k === "hist" && <CommonHistory d={modal.d} onView={(v) => setModal({ k: "vview", d: modal.d, v })} onClose={() => setModal(null)} />}
+      {modal?.k === "vview" && (
+        <FullScreenViewer
+          url={modal.v.id ? dl("common_version", modal.v.id) : dl("common", modal.d.id)}
+          downloadHref={modal.v.id ? dl("common_version", modal.v.id, true) : dl("common", modal.d.id, true)}
+          file={`${modal.v.title} v${modal.v.ver}.pdf`}
+          meta={`Common Documents · v${modal.v.ver}`}
+          note="Earlier versions are only visible to the QA Center"
+          onClose={() => setModal({ k: "hist", d: modal.d })}
+        />
+      )}
     </>
+  );
+}
+
+function CommonHistory({ d, onView, onClose }: { d: CommonDoc; onView: (v: CommonVersion) => void; onClose: () => void }) {
+  const { busy, run } = useAct();
+  return (
+    <Modal title="Version history" sub={d.title} onClose={onClose} locked={busy} footer={<Btn onClick={onClose}>Close</Btn>}>
+      <table>
+        <tbody>
+          <tr>
+            <th>Version</th>
+            <th>Uploaded</th>
+            <th>What changed</th>
+            <th />
+          </tr>
+          {d.history.map((h) => (
+            <tr key={`${h.ver}${h.id ?? "cur"}`}>
+              <td>
+                v{h.ver} {h.cur && <Pill tone="ok">Current</Pill>}
+              </td>
+              <td style={{ whiteSpace: "nowrap" }}>
+                {h.date}
+                <small>
+                  {h.by} · {h.size}
+                </small>
+              </td>
+              <td>{h.note || (h.ver === 1 ? "First upload" : "—")}</td>
+              <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                <Btn variant="gh" sm onClick={() => onView(h)}>
+                  View
+                </Btn>
+                {!h.cur && h.id && (
+                  <>
+                    {" "}
+                    <Btn variant="gh" sm disabled={busy} onClick={() => run(() => restoreCommonDocVersion(h.id!), `v${h.ver} restored as the current version`, onClose)}>
+                      Restore
+                    </Btn>
+                  </>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="sub" style={{ fontSize: 11.5, marginTop: 10 }}>
+        Program reps always see the current version only.
+      </div>
+    </Modal>
   );
 }
 
@@ -437,6 +502,7 @@ function CommonUpload({ d, colleges, onClose }: { d?: CommonDoc; colleges: [stri
   const [cat, setCat] = useState(d?.category ?? "Institutional");
   const [scope, setScope] = useState(initial.length ? "sel" : "all");
   const [sel, setSel] = useState<string[]>(initial);
+  const [note, setNote] = useState("");
   const [notify, setNotify] = useState(true);
   const { busy, run, toast } = useAct();
   const save = () => {
@@ -452,20 +518,21 @@ function CommonUpload({ d, colleges, onClose }: { d?: CommonDoc; colleges: [stri
     fd.set("category", cat);
     fd.set("visibleTo", scope === "all" ? ALL : `${sel.join(", ")} only`);
     fd.set("colleges", scope === "all" ? "" : sel.join(","));
+    fd.set("note", note);
     fd.set("notify", notify ? "1" : "");
     return run(
       async () => {
         const up = await uploadDirect("common-docs", path, file, "application/pdf");
         return up.ok ? saveCommonDoc(fd) : up;
       },
-      "Document uploaded",
+      d ? "New version uploaded" : "Document uploaded",
       onClose,
     );
   };
   return (
     <Modal
-      title={d ? "Replace document" : "Upload common document"}
-      sub={d?.title}
+      title={d ? "Upload new version" : "Upload common document"}
+      sub={d ? `${d.title} · now v${d.version} → becomes v${d.version + 1}` : undefined}
       onClose={onClose}
       locked={busy}
       footer={
@@ -474,7 +541,7 @@ function CommonUpload({ d, colleges, onClose }: { d?: CommonDoc; colleges: [stri
             Cancel
           </Btn>
           <Btn disabled={busy} onClick={save}>
-            {d ? "Replace" : "Upload"}
+            {d ? "Upload new version" : "Upload"}
           </Btn>
         </>
       }
@@ -515,6 +582,14 @@ function CommonUpload({ d, colleges, onClose }: { d?: CommonDoc; colleges: [stri
             </button>
           ))}
         </div>
+      )}
+      {d && (
+        <>
+          <label className="fl" style={{ marginTop: 12 }}>
+            What changed? (shown in the version history)
+          </label>
+          <input className="inp" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Updated to the 2026 revision" />
+        </>
       )}
       <label className="chk2" style={{ marginTop: 10 }}>
         <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} /> Notify users who can see it

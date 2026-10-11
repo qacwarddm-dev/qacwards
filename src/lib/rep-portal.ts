@@ -9,7 +9,7 @@ export * from "@/lib/rep-model";
 import type { CalEvent } from "@/components/portal/kit/calendar";
 import type { EventExtra } from "@/components/portal/screens/EventsScreen";
 
-type TeamRow = { response: string; profiles: { surname: string; given_name: string; middle_initial: string | null } | null };
+type TeamRow = { response: string; is_team_leader: boolean; profiles: { surname: string; given_name: string; middle_initial: string | null } | null };
 
 const SHORT: Record<string, string> = { PSV: "PSV", I: "LEVEL I", II: "LEVEL II", III: "LEVEL III", IV: "LEVEL IV" };
 
@@ -23,7 +23,7 @@ export async function getRepPrograms(): Promise<RepProgram[]> {
     supabase.from("accreditation_levels").select("id, code, name, ordinal").order("ordinal"),
     supabase
       .from("submissions")
-      .select("id, program_id, level_id, status, attempt, accreditation_cycles!submissions_cycle_id_fkey(status, end_date), assignments(id, assignment_accreditors(profile_id, response, profiles(surname, given_name, middle_initial)))")
+      .select("id, program_id, level_id, status, attempt, accreditation_cycles!submissions_cycle_id_fkey(status, end_date), assignments(id, assignment_accreditors(profile_id, response, is_team_leader, profiles(surname, given_name, middle_initial)))")
       .in("program_id", programs.map((p) => p.id))
       .order("attempt", { ascending: false }),
     supabase
@@ -35,14 +35,15 @@ export async function getRepPrograms(): Promise<RepProgram[]> {
   ]);
   const today = manilaDay();
   const live = acceptsWork(openCycle, today);
-  const latest = new Map<string, { id: string; status: string; closed: boolean; accreditors: { name: string; accepted: boolean }[] }>();
+  const latest = new Map<string, { id: string; status: string; closed: boolean; accreditors: { name: string; accepted: boolean; leader: boolean }[] }>();
   for (const s of subs ?? []) {
     const k = `${s.program_id}|${s.level_id}`;
     const asg = Array.isArray(s.assignments) ? s.assignments[0] : s.assignments;
     const team = (asg?.assignment_accreditors ?? []) as TeamRow[];
     const accreditors = team
       .filter((a) => a.response !== "rejected")
-      .map((a) => ({ name: a.profiles ? personName(a.profiles) : "—", accepted: a.response === "accepted" }));
+      .map((a) => ({ name: a.profiles ? personName(a.profiles) : "—", accepted: a.response === "accepted", leader: a.is_team_leader }))
+      .sort((a, b) => Number(b.leader) - Number(a.leader));
     if (!latest.has(k)) latest.set(k, { id: s.id, status: s.status, closed: !acceptsWork(s.accreditation_cycles, today), accreditors });
   }
   const [reviews, ref] = await Promise.all([getSubmissionReviews([...latest.values()].map((s) => s.id)), getReferenceStructure()]);

@@ -10,7 +10,10 @@ export default function ProgramCard({ a }: { a: IaAssignment }) {
   return (
     <div className={`pc2${ok ? "" : " dim"}`}>
       <div className="pn">
-        <b>{a.mid}</b>
+        <b>{a.mid}</b>{" "}
+        <Pill tone={a.role === "leader" ? "pb" : "pm"} style={{ verticalAlign: 1 }}>
+          {a.role === "leader" ? "Team Leader" : "Assistant"}
+        </Pill>
         <small className="pcamp">
           📍 {a.campus} · {a.college}
         </small>

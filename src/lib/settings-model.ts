@@ -49,6 +49,8 @@ export type PublicInfo = {
 export type Security = { maint: boolean; mmsg: string; dom: string; tfa: boolean; pw: number; sess: number; att: number; lock: number; watermark: boolean };
 export type BackupPrefs = { auto: boolean; time: string; keep: number; files: boolean; offsite: boolean; mailFail: boolean };
 export type NotifyPrefs = Record<string, boolean>;
+export type TeamAreas = { base: number[]; l3: number[]; l4: number[] };
+export const teamAreaKey = (levelCode: string): keyof TeamAreas => (levelCode === "III" ? "l3" : levelCode === "IV" ? "l4" : "base");
 
 export const DEFAULTS = {
   rules: { minReadiness: 10, perProgram: 2, acceptDays: 3, evalDays: 3, scale: "1–5 (Poor to Excellent)", formCode: "QAC-TPL-01" } as Rules,
@@ -69,6 +71,7 @@ export const DEFAULTS = {
   security: { maint: false, mmsg: "QAC-WARDS is under scheduled maintenance. Please come back later.", dom: "@pup.edu.ph", tfa: false, pw: 10, sess: 30, att: 5, lock: 15, watermark: true } as Security,
   backup: { auto: true, time: "02:00", keep: 30, files: true, offsite: false, mailFail: true } as BackupPrefs,
   notify: {} as NotifyPrefs,
+  teamAreas: { base: [1, 2, 4, 5, 7], l3: [0, 1], l4: [0, 1, 2] } as TeamAreas,
 };
 
 export type SettingKey = keyof typeof DEFAULTS;

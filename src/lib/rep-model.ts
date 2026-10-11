@@ -9,7 +9,7 @@ export type RepLevel = {
   submissionId: string | null;
   status: string | null;
   closed: boolean;
-  accreditors: { name: string; accepted: boolean }[];
+  accreditors: { name: string; accepted: boolean; leader: boolean }[];
   review: SubmissionReview | null;
 };
 

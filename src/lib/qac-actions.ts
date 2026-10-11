@@ -24,6 +24,8 @@ export async function saveAssignment(input: {
   programId: string;
   levelId: string;
   accreditorIds: string[];
+  leaderId: string;
+  leaderAreaIds: string[];
   acting: Record<string, string>;
   siteVisitDate: string;
   dueDate: string | null;
@@ -33,6 +35,7 @@ export async function saveAssignment(input: {
   const { perProgram, evalDays } = await getSetting(supabase, "rules");
   if (input.accreditorIds.length !== perProgram) return { ok: false, error: `Select exactly ${perProgram} accreditor${perProgram === 1 ? "" : "s"}.` };
   if (!input.siteVisitDate) return { ok: false, error: "Pick the site visit date." };
+  if (!input.accreditorIds.includes(input.leaderId)) return { ok: false, error: "Choose which accreditor is the Team Leader." };
   const dueDate = input.dueDate || evalDeadline(input.siteVisitDate, evalDays);
   let id = input.assignmentId;
   if (!id) {
@@ -55,6 +58,8 @@ export async function saveAssignment(input: {
     const { error } = await supabase.from("assignments").update({ site_visit_date: input.siteVisitDate, due_date: dueDate }).eq("id", id);
     if (error) return { ok: false, error: error.message };
   }
+  const { error: roleError } = await supabase.rpc("set_team_roles", { p_assignment: id, p_leader: input.leaderId, p_areas: input.leaderAreaIds });
+  if (roleError) return { ok: false, error: roleError.message };
   for (const [pid, reason] of Object.entries(input.acting)) {
     if (input.accreditorIds.includes(pid)) await supabase.from("assignment_accreditors").update({ acting_reason: reason }).eq("assignment_id", id).eq("profile_id", pid);
   }

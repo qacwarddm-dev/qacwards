@@ -40,7 +40,7 @@ export default function ArchiveDetail({
   const timeline: [string, string | null, string][] = [
     ["Scheduled & assigned", entry.assignedAt, entry.accreditors.length ? `${entry.accreditors.join(" and ")} accepted` : "Accreditors accepted"],
     ["Documents accepted", entry.documentsAcceptedAt, `${entry.areasTotal ? `${entry.areasAccepted} of ${entry.areasTotal} areas accepted · ` : ""}${entry.issues.length} returned and fixed`],
-    ["QAC review", reviewed, means.length ? `Signed reports acknowledged · grand means ${means.map((m) => m.toFixed(2)).join(" and ")}` : "Signed reports acknowledged"],
+    ["QAC review", reviewed, means.length ? `Team Leader’s overall report acknowledged · grand mean ${(means.reduce((a, b) => a + b, 0) / means.length).toFixed(2)}` : "Team Leader’s overall report acknowledged"],
     ["Accreditation result", entry.evaluatedAt, entry.passed ? entry.status : "Deferred · re-survey needed"],
   ];
 
@@ -56,7 +56,7 @@ export default function ArchiveDetail({
             ["Survey visit", entry.visit ?? "—"],
             ["Result", <b key="r"><Pill tone={entry.passed ? "ok" : "ret"}>{entry.passed ? "Passed" : "Deferred"}</Pill></b>],
             ["Status on certificate", entry.passed ? entry.status : "—"],
-            ["Internal accreditors", entry.accreditors.join(" · ") || "—"],
+            ["Internal accreditors", entry.accreditors.map((n) => (n === entry.leader ? `${n} (Team Leader)` : n)).join(" · ") || "—"],
             ["Grand mean", mean === null ? "—" : `${mean.toFixed(2)} · ${describeMean(mean)}`],
             ["Valid", range(entry)],
             ["Issues resolved", entry.issues.length],

@@ -160,6 +160,8 @@ function describe(r: RawRow, viewer: string | null): Described | null {
       if (op === "delete") return { title: "Removed an internal accreditor", icon: "assignment", ref, link: "assignment" };
       if (became("response", "accepted")) return { title: "Accepted an assignment", icon: "assignment", ref, link: "assignment" };
       if (became("response", "rejected")) return { title: "Declined an assignment", icon: "assignment", ref, link: "assignment" };
+      if (became("is_team_leader", true)) return { title: "Set the Team Leader for an assignment", icon: "assignment", ref, link: "assignment" };
+      if (changed("areas_sent_at") && n.areas_sent_at) return { title: "Sent areas to the Team Leader", icon: "assignment", cat: "rev", ref, link: "assignment" };
       return null;
     }
     case "assignments": {
@@ -169,6 +171,7 @@ function describe(r: RawRow, viewer: string | null): Described | null {
       if (changed("site_visit_date") && str(n.site_visit_date))
         return { title: `Set the site visit for ${shortDate(`${n.site_visit_date}T00:00:00+08:00`)}`, icon: "event", ref, link: "assignment" };
       if (changed("due_date")) return { title: "Changed an assignment's due date", icon: "assignment", ref, link: "assignment" };
+      if (changed("leader_area_ids")) return { title: "Split the areas between the Team Leader and the Assistant", icon: "assignment", ref, link: "assignment" };
       return null;
     }
     case "evaluations": {
@@ -216,6 +219,16 @@ function describe(r: RawRow, viewer: string | null): Described | null {
     case "common_documents": {
       const title = str(row.title) ?? "a file";
       if (op === "insert") return { title: `Uploaded ${title} to Documents`, icon: "document", ref: {}, link: "documents" };
+      if (r.target_table === "common_documents" && changed("version")) {
+        const restored = /^Restored v\d+$/.exec(str(n.change_note) ?? "");
+        return {
+          title: restored ? `Restored ${title} to ${restored[0].slice(9)} as v${String(n.version)}` : `Uploaded v${String(n.version)} of the common document ${title}`,
+          icon: "document",
+          ref: {},
+          link: "documents",
+          extra: restored ? undefined : str(n.change_note),
+        };
+      }
       if (op === "delete") return { title: `Removed ${title} from Documents`, icon: "remove", ref: {}, link: "documents" };
       if (became("is_archived", true)) return { title: `Archived ${title}`, icon: "document", ref: {}, link: "documents" };
       if (changed("deleted_at")) return n.deleted_at ? { title: `Removed ${title} from Documents`, icon: "remove", ref: {}, link: "documents" } : { title: `Restored ${title} to Documents`, icon: "document", ref: {}, link: "documents" };
@@ -251,9 +264,9 @@ function describe(r: RawRow, viewer: string | null): Described | null {
     }
     case "accreditor_reports": {
       const ref = { assignment: str(row.assignment_id) };
-      if (became("status", "submitted")) return { title: "Signed and submitted the evaluation report", icon: "evaluation", cat: "rev", ref, link: "assignment", extra: str(n.doc_code) };
-      if (became("status", "acknowledged")) return { title: "Acknowledged an evaluation report", icon: "decision", cat: "rev", ref, link: "assignment", extra: str(n.doc_code) };
-      if (became("status", "returned")) return { title: "Returned an evaluation report", icon: "remove", cat: "rev", ref, link: "assignment" };
+      if (became("status", "submitted")) return { title: "Signed and submitted the overall evaluation report", icon: "evaluation", cat: "rev", ref, link: "assignment", extra: str(n.doc_code) };
+      if (became("status", "acknowledged")) return { title: "Acknowledged the overall evaluation report", icon: "decision", cat: "rev", ref, link: "assignment", extra: str(n.doc_code) };
+      if (became("status", "returned")) return { title: "Returned the overall evaluation report", icon: "remove", cat: "rev", ref, link: "assignment" };
       return null;
     }
     case "account_events": {

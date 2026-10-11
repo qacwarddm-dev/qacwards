@@ -48,7 +48,7 @@ function repProgressInput(program: RepProgram, level: RepLevel): ProgressInput {
   for (let i = 0; i < (r ? missingChoices(r) : 0); i++) areas.push({ name: "Chosen area (not picked yet)", state: "missing" as const, remark: undefined });
   const done = program.awarded.includes(level.code);
   return {
-    accreditors: level.accreditors.map((a) => ({ name: a.name, accepted: a.accepted, report: "none" as const })),
+    accreditors: level.accreditors.map((a) => ({ name: a.name, accepted: a.accepted, report: "none" as const, leader: a.leader })),
     areas,
     completed: done,
     result: done ? "Passed" : null,

@@ -44,6 +44,7 @@ const BACKUP_TABLES = [
   "templates",
   "template_versions",
   "common_documents",
+  "common_document_versions",
   "ndas",
   "nda_issuances",
   "repository_folders",
@@ -77,6 +78,11 @@ export async function saveSetting<K extends SettingKey>(key: K, value: (typeof D
     const whole = (n: number) => Number.isInteger(n) && n >= 1;
     if (!whole(r.perProgram)) return { ok: false, error: "Internal accreditors per program must be a whole number, at least 1." };
     if (!whole(r.acceptDays) || !whole(r.evalDays)) return { ok: false, error: "Days must be whole numbers, at least 1." };
+  }
+  if (key === "teamAreas") {
+    const t = value as (typeof DEFAULTS)["teamAreas"];
+    const bad = (["base", "l3", "l4"] as const).some((k) => !Array.isArray(t[k]) || t[k].some((n) => !Number.isInteger(n) || n < 0));
+    if (bad) return { ok: false, error: "Team Leader areas must be a list of area positions." };
   }
   const supabase = await createClient();
   const { error } = await supabase.from("site_settings").upsert({ key, value: value as never, updated_by: user.id, updated_at: new Date().toISOString() });

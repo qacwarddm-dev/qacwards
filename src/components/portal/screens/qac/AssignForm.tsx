@@ -14,7 +14,8 @@ import type { AssignForm as Data } from "@/lib/qac-portal";
 import type { QacProgram } from "@/lib/qac-model";
 import { relevantExpertise } from "@/lib/expertise-disciplines";
 import { saveAssignment, startAccreditation } from "@/lib/qac-actions";
-import { evalDeadline } from "@/lib/settings-model";
+import { evalDeadline, teamAreaKey } from "@/lib/settings-model";
+import { areaLabel, areaTag } from "@/lib/program-names";
 
 const REASONS = [
   "No available internal accreditor with matching expertise",
@@ -38,6 +39,8 @@ export default function AssignForm({ data, edit, from, preset }: { data: Data; e
   const [dlSet, setDlSet] = useState(Boolean(edit?.due));
   const [sel, setSel] = useState<string[]>(edit ? edit.team.filter((m) => m.response !== "rejected").map((m) => m.id) : []);
   const [acting, setActing] = useState<Record<string, string>>(() => Object.fromEntries((edit?.team ?? []).filter((m) => m.acting).map((m) => [m.id, m.acting!])));
+  const [leader, setLeader] = useState<string | null>(() => edit?.team.find((m) => m.leader && m.response !== "rejected")?.id ?? null);
+  const [tla, setTla] = useState<string[] | null>(edit ? edit.leaderAreaIds : null);
   const [qopen, setQopen] = useState(false);
   const [actFor, setActFor] = useState<string | null>(null);
   const [reason, setReason] = useState(REASONS[0]);
@@ -62,7 +65,20 @@ export default function AssignForm({ data, edit, from, preset }: { data: Data; e
   const qac = data.people.filter((p) => p.qac);
   const qShown = qopen || avail < need || qac.some((q) => sel.includes(q.id));
   const discipline = [...relevant].slice(0, 1)[0];
-  const miss = repFirst ? [!program && "a program"].filter(Boolean) : [!program && "a program", !vd && "the site visit date", sel.length !== need && `${need - sel.length > 0 ? `${need - sel.length} more` : `only ${need}`} accreditor${Math.abs(need - sel.length) === 1 ? "" : "s"}`].filter(Boolean);
+  const teamed = need === 2;
+  const levelAreas = data.areasByLevel[lv] ?? [];
+  const levelCode = data.levels.find((l) => l.id === lv)?.code ?? "";
+  const defaultIds = (data.teamAreas[teamAreaKey(levelCode)] ?? []).map((i) => levelAreas[i]?.id).filter((x): x is string => Boolean(x));
+  const tlAreas = tla ?? defaultIds;
+  const lead = leader && sel.includes(leader) ? leader : null;
+  const assistant = sel.find((x) => x !== lead) ?? null;
+  const asN = levelAreas.length - tlAreas.length;
+  const splitOk = tlAreas.length > 0 && asN > 0;
+  const tag = (a: { name: string; ordinal: number }) => areaTag(levelCode, a.ordinal, a.name);
+  const roleMiss = !teamed || sel.length !== 2 ? [] : !lead ? ["the Team Leader"] : !splitOk ? ["an area for each accreditor"] : [];
+  const miss = repFirst
+    ? [!program && "a program"].filter(Boolean)
+    : [!program && "a program", !vd && "the site visit date", sel.length !== need && `${need - sel.length > 0 ? `${need - sel.length} more` : `only ${need}`} accreditor${Math.abs(need - sel.length) === 1 ? "" : "s"}`, ...roleMiss].filter(Boolean);
 
   function tog(id: string) {
     if (sel.includes(id)) setSel(sel.filter((x) => x !== id));
@@ -81,7 +97,7 @@ export default function AssignForm({ data, edit, from, preset }: { data: Data; e
       });
     }
     return start(async () => {
-      const r = await saveAssignment({ assignmentId: edit?.assignmentId ?? null, programId: program.id, levelId: lv, accreditorIds: sel, acting, siteVisitDate: vd, dueDate: dl || null });
+      const r = await saveAssignment({ assignmentId: edit?.assignmentId ?? null, programId: program.id, levelId: lv, accreditorIds: sel, leaderId: lead ?? sel[0], leaderAreaIds: teamed ? tlAreas : levelAreas.map((a) => a.id), acting, siteVisitDate: vd, dueDate: dl || null });
       if (!r.ok) return toast.say(r.error, true);
       setDone({ id: r.assignmentId, programId: program.id });
       router.refresh();
@@ -138,7 +154,7 @@ export default function AssignForm({ data, edit, from, preset }: { data: Data; e
           </div>
           <div>
             <label className="fl">Level</label>
-            <select className="inp" disabled={lock} value={lv} onChange={(e) => setLv(e.target.value)}>
+            <select className="inp" disabled={lock} value={lv} onChange={(e) => (setLv(e.target.value), setTla(null))}>
               {data.levels.map((l) => (
                 <option key={l.id} value={l.id}>
                   {l.name}
@@ -327,12 +343,103 @@ export default function AssignForm({ data, edit, from, preset }: { data: Data; e
                 </tbody>
               </table>
               <div className="sub" style={{ fontSize: 11.5, marginTop: 6 }}>
-                An acting IA evaluates and signs like a regular internal accreditor. The reason is saved in Activity and shown to the QAC Admin.
+                An acting IA can be the Team Leader or the Assistant, like a regular internal accreditor. The reason is saved in Activity and shown to the QAC Admin.
               </div>
             </>
           )}
         </div>
       </div>
+      )}
+      {!repFirst && teamed && (
+        <div className="box fbx">
+          <div className="ch" style={{ marginBottom: 8 }}>
+            <div>
+              <h3 style={{ fontSize: 15 }}>Team roles &amp; areas</h3>
+              <div className="sub">
+                {sel.length < 2 ? (
+                  "Select 2 accreditors first. Then choose the Team Leader and split the areas."
+                ) : (
+                  <>
+                    Each accreditor rates only their own areas. Both can view all areas. Only the <b>Team Leader</b> generates and submits the overall evaluation report.
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+          {sel.length === 2 && (
+            <>
+              <div className="trole">
+                {sel.map((id) => {
+                  const on = lead === id;
+                  return (
+                    <label key={id} className={`trc${on ? " on" : ""}`}>
+                      <input type="radio" name="tlr" checked={on} onChange={() => setLeader(id)} />
+                      <span>
+                        <b>{name(id)}</b>
+                        <small>
+                          {on
+                            ? `Team Leader · rates ${tlAreas.length} area${tlAreas.length === 1 ? "" : "s"}, signs and submits the overall report`
+                            : lead
+                              ? `Assistant Accreditor · rates ${asN} area${asN === 1 ? "" : "s"}, can view the report`
+                              : "Click to make Team Leader"}
+                        </small>
+                      </span>
+                      {on ? (
+                        <em>
+                          <Pill tone="blue">Team Leader</Pill>
+                        </em>
+                      ) : lead ? (
+                        <em>
+                          <Pill tone="miss">Assistant</Pill>
+                        </em>
+                      ) : null}
+                    </label>
+                  );
+                })}
+              </div>
+              {lead && assistant && (
+                <div className="tarea">
+                  <div className="tah">
+                    <b>Who rates each area?</b>
+                    <span className="sub">
+                      Default from <b>Settings › Accreditation Setup</b>: {levelAreas.filter((a) => defaultIds.includes(a.id)).map(tag).join(", ") || "none"} for the Team Leader. Change it for this program if needed.
+                    </span>
+                    <a className="lnk" role="button" onClick={() => setTla(null)}>
+                      Reset to default
+                    </a>
+                  </div>
+                  <div className="tgrid2">
+                    {levelAreas.map((a) => {
+                      const tl = tlAreas.includes(a.id);
+                      return (
+                        <div key={a.id} className="tar">
+                          <span>{areaLabel(a.name)}</span>
+                          <div className="seg2">
+                            <button type="button" className={tl ? "on" : ""} onClick={() => !tl && setTla([...tlAreas, a.id])}>
+                              {name(lead).split(",")[0]} · TL
+                            </button>
+                            <button type="button" className={tl ? "" : "on a"} onClick={() => setTla(tlAreas.filter((x) => x !== a.id))}>
+                              {name(assistant).split(",")[0]} · Asst
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="sub" style={{ fontSize: 11.5, marginTop: 8 }}>
+                    Team Leader: <b>{tlAreas.length}</b> area{tlAreas.length === 1 ? "" : "s"} · Assistant: <b>{asN}</b> area{asN === 1 ? "" : "s"}
+                    {!splitOk && (
+                      <>
+                        {" "}
+                        · <b style={{ color: "var(--red)" }}>each accreditor needs at least 1 area</b>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       )}
       <div className="subbar" style={{ border: 0 }}>
         <span className="sub" style={{ margin: 0 }}>
@@ -411,6 +518,13 @@ export default function AssignForm({ data, edit, from, preset }: { data: Data; e
               {levelName} · visit {vd}
               <br />
               {sel.map(name).join(" and ")} {sel.length === 1 ? "was" : "were"} emailed and must accept within {data.acceptDays} days. The visit was added to Events.
+              {teamed && lead && assistant && (
+                <>
+                  <br />
+                  <br />
+                  <b>{name(lead)}</b> is the Team Leader ({levelAreas.filter((a) => tlAreas.includes(a.id)).map(tag).join(", ")}). <b>{name(assistant)}</b> is the Assistant.
+                </>
+              )}
             </p>
             )}
           </Result>

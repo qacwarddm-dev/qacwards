@@ -10,7 +10,7 @@ export type RepFolderView = { id: string; name: string; org: "AACCUP" | "CHED" |
 export type RepDocumentsData = {
   templates: TemplateGroup[];
   nda: { status: "none" | "review" | "verified" | "returned"; fileId: string | null; note: string | null; path: string | null };
-  common: { id: string; title: string; date: string; size: string }[];
+  common: { id: string; title: string; version: number; date: string; size: string }[];
   folders: RepFolderView[];
 };
 
@@ -33,7 +33,7 @@ export async function getRepDocuments(userId: string): Promise<RepDocumentsData>
       supabase.from("requirement_areas").select("id, level_id, name, ordinal, is_optional").order("ordinal"),
       supabase.from("templates").select("id, title, storage_path, requirement_area_id, level_id, is_published").eq("is_published", true),
       supabase.from("ndas").select("status, file_id, review_note, storage_path").eq("profile_id", userId).maybeSingle(),
-      supabase.from("common_documents").select("id, title, updated_at, created_at, file_size").order("title"),
+      supabase.from("common_documents").select("id, title, version, updated_at, created_at, file_size").order("title"),
       supabase.from("repository_folders").select("id, slug, name, ordinal").order("ordinal"),
       ids.length
         ? supabase.from("repository_files").select("id, title, folder_id, created_at, file_size, program_id, programs(name)").in("program_id", ids).eq("is_archived", false).order("created_at", { ascending: false })
@@ -80,7 +80,7 @@ export async function getRepDocuments(userId: string): Promise<RepDocumentsData>
       note: nda?.review_note ?? null,
       path: nda?.storage_path ?? null,
     },
-    common: (common ?? []).map((c) => ({ id: c.id, title: c.title, date: shortDate(c.updated_at ?? c.created_at), size: fileSize(c.file_size) })),
+    common: (common ?? []).map((c) => ({ id: c.id, title: c.title, version: c.version, date: shortDate(c.updated_at ?? c.created_at), size: fileSize(c.file_size) })),
     folders: folderViews,
   };
 }

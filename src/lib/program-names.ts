@@ -46,6 +46,13 @@ export function areaShort(name: string): string {
   return parts.length > 1 ? parts.slice(1).join(" – ") : name;
 }
 
+const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
+
+/** "Area II" on the ten-area levels; Level III and IV name their areas instead. */
+export function areaTag(levelCode: string, ordinal: number, name: string): string {
+  return levelCode === "III" || levelCode === "IV" ? areaLabel(name) : `Area ${ROMAN[ordinal - 1] ?? ordinal}`;
+}
+
 export function phaseLabel(ordinal: number, name: string): string {
   return `Phase ${ordinal} – ${name}`;
 }

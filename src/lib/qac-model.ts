@@ -1,7 +1,7 @@
 import { allPhaseSlots, countSlots, type SubmissionReview } from "@/lib/review-model";
 import { programPercent } from "@/lib/progress-model";
 
-export type QacMember = { id: string; name: string; surname: string; initials: string; response: string; acting: string | null };
+export type QacMember = { id: string; name: string; surname: string; initials: string; response: string; acting: string | null; leader: boolean; sentAt: string | null };
 
 export type QacReport = {
   accreditorId: string;
@@ -35,6 +35,7 @@ export type QacProgram = {
   visitLabel: string;
   due: string | null;
   team: QacMember[];
+  leaderAreaIds: string[];
   rep: string;
   review: SubmissionReview | null;
   reports: QacReport[];
@@ -81,10 +82,18 @@ export function qacStatus(p: QacProgram, today: string): { t: string; c: Tone } 
   const active = p.team.filter((m) => m.response !== "rejected");
   if (active.length < 2) return { t: active.length ? "Needs 1 more accreditor" : "Needs accreditors", c: "ret" };
   if (active.some((m) => m.response === "pending")) return { t: "Awaiting acceptance", c: "miss" };
-  if (p.reports.length && active.every((m) => p.reports.find((r) => r.accreditorId === m.id)?.status === "acknowledged")) return { t: "Evaluation acknowledged", c: "ok" };
-  if (p.reports.some((r) => r.status === "submitted")) return { t: "For QAC review", c: "blue" };
+  const report = overallReport(p);
+  if (report?.status === "acknowledged") return { t: "Evaluation acknowledged", c: "ok" };
+  if (report?.status === "submitted") return { t: "For QAC review", c: "blue" };
   if (readiness(p) < 10) return { t: "Waiting for documents", c: "miss" };
   return { t: "In evaluation", c: "pend" };
 }
+
+export const leaderOf = (p: QacProgram) => p.team.find((m) => m.leader && m.response !== "rejected") ?? null;
+export const assistantOf = (p: QacProgram) => p.team.find((m) => !m.leader && m.response !== "rejected") ?? null;
+export const overallReport = (p: QacProgram) => {
+  const lead = leaderOf(p);
+  return lead ? (p.reports.find((r) => r.accreditorId === lead.id) ?? null) : null;
+};
 
 export const phaseCounts = (p: QacProgram) => countSlots(p.review ? allPhaseSlots(p.review) : []);

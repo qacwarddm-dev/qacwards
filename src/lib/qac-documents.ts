@@ -20,7 +20,19 @@ export type TplRow = {
   history: TplVersion[];
 };
 export type TplGroup = { key: TplGroupKey; label: string; rows: TplRow[] };
-export type CommonDoc = { id: string; title: string; category: string; visibleTo: string; date: string; size: string; views: number; deletedAt: string | null };
+export type CommonVersion = { id: string | null; ver: number; title: string; date: string; size: string; note: string; by: string; cur?: boolean };
+export type CommonDoc = {
+  id: string;
+  title: string;
+  category: string;
+  visibleTo: string;
+  date: string;
+  size: string;
+  views: number;
+  deletedAt: string | null;
+  version: number;
+  history: CommonVersion[];
+};
 export type NdaForm = { id: string | null; file: string; ver: number; date: string; dl: number };
 export type QacDocumentsData = { groups: TplGroup[]; common: CommonDoc[]; commonDeleted: CommonDoc[]; ndaForm: NdaForm; ndas: NdaItem[]; colleges: [string, string][] };
 
@@ -28,7 +40,7 @@ const fileOf = (p: string) => p.split("/").pop() ?? p;
 
 export async function getQacDocuments(): Promise<QacDocumentsData> {
   const supabase = await createClient();
-  const [{ data: levels }, { data: areas }, { data: tpls }, { data: hist }, { data: common }, { count: issued }, ndas, { data: colleges }] = await Promise.all([
+  const [{ data: levels }, { data: areas }, { data: tpls }, { data: hist }, { data: common }, { data: commonHist }, { count: issued }, ndas, { data: colleges }] = await Promise.all([
     supabase.from("accreditation_levels").select("id, code").order("ordinal"),
     supabase.from("requirement_areas").select("id, level_id, name, ordinal, is_optional").order("ordinal"),
     supabase
@@ -36,7 +48,14 @@ export async function getQacDocuments(): Promise<QacDocumentsData> {
       .select("id, title, storage_path, requirement_area_id, level_id, group_key, version, is_published, updated_at, created_at, profiles:uploaded_by(surname, given_name)")
       .order("created_at"),
     supabase.from("template_versions").select("id, template_id, version, file_name, created_at, profiles:uploaded_by(surname, given_name)").order("version", { ascending: false }),
-    supabase.from("common_documents").select("id, title, category, visible_to, view_count, file_size, created_at, updated_at, deleted_at").order("updated_at", { ascending: false }),
+    supabase
+      .from("common_documents")
+      .select("id, title, category, visible_to, view_count, file_size, created_at, updated_at, deleted_at, version, change_note, profiles:uploaded_by(surname, given_name)")
+      .order("updated_at", { ascending: false }),
+    supabase
+      .from("common_document_versions")
+      .select("id, document_id, version, title, file_size, change_note, uploaded_at, profiles:uploaded_by(surname, given_name)")
+      .order("version", { ascending: false }),
     supabase.from("nda_issuances").select("file_id", { count: "exact", head: true }),
     getNdaQueue(),
     supabase.from("colleges").select("code, name").order("code"),
@@ -94,6 +113,13 @@ export async function getQacDocuments(): Promise<QacDocumentsData> {
     size: fileSize(c.file_size),
     views: c.view_count,
     deletedAt: c.deleted_at,
+    version: c.version,
+    history: [
+      { id: null, ver: c.version, title: c.title, date: shortDate(c.updated_at ?? c.created_at), size: fileSize(c.file_size), note: c.change_note ?? "", by: c.profiles ? personName(c.profiles) : "—", cur: true },
+      ...(commonHist ?? [])
+        .filter((h) => h.document_id === c.id)
+        .map((h) => ({ id: h.id, ver: h.version, title: h.title, date: shortDate(h.uploaded_at), size: fileSize(h.file_size), note: h.change_note ?? "", by: h.profiles ? personName(h.profiles) : "—" })),
+    ],
   });
   const nda = T.filter((t) => t.group_key === "nda").at(-1);
   return {

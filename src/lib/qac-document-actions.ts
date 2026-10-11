@@ -138,28 +138,56 @@ export async function saveCommonDoc(fd: FormData): Promise<ActionResult> {
   const category = String(fd.get("category") ?? "Institutional");
   const visibleTo = String(fd.get("visibleTo") ?? "All program reps");
   const collegeCodes = String(fd.get("colleges") ?? "").split(",").map((c) => c.trim()).filter(Boolean);
+  const note = String(fd.get("note") ?? "").trim();
   if (!title) return { ok: false, error: "Enter a title" };
 
   const supabase = await createClient();
   const up = await checkUploaded(supabase, BUCKETS.commonDocs, { path, prefix: "", name: fileName, exts: [".pdf"], max: MAX });
   if ("error" in up) return { ok: false, error: up.error };
 
-  const row = { title, category, visible_to: visibleTo, college_codes: collegeCodes, storage_path: path, content_text: null, file_size: up.size, uploaded_by: user.id, updated_at: new Date().toISOString() };
+  let version = 1;
   if (id) {
-    const { data: old } = await supabase.from("common_documents").select("storage_path").eq("id", id).maybeSingle();
-    const { error } = await supabase.from("common_documents").update(row).eq("id", id);
-    if (error) return { ok: false, error: error.message };
-    if (old) await supabase.storage.from(BUCKETS.commonDocs).remove([old.storage_path]);
+    const { data, error } = await supabase.rpc("publish_common_document_version", {
+      p_document: id,
+      p_path: path,
+      p_file_size: up.size,
+      p_title: title,
+      p_category: category,
+      p_visible_to: visibleTo,
+      p_colleges: collegeCodes,
+      p_note: note,
+    });
+    if (error) {
+      await supabase.storage.from(BUCKETS.commonDocs).remove([path]);
+      return { ok: false, error: error.message };
+    }
+    version = data;
     after(() => indexDocument(supabase, "common", id));
   } else {
-    const { data: created, error } = await supabase.from("common_documents").insert(row).select("id").single();
+    const { data: created, error } = await supabase
+      .from("common_documents")
+      .insert({ title, category, visible_to: visibleTo, college_codes: collegeCodes, storage_path: path, file_size: up.size, uploaded_by: user.id })
+      .select("id")
+      .single();
     if (error) {
       await supabase.storage.from(BUCKETS.commonDocs).remove([path]);
       return { ok: false, error: error.message };
     }
     after(() => indexDocument(supabase, "common", created.id));
   }
-  if (fd.get("notify") === "1") await notifyReps(`${id ? "Updated" : "New"} common document: ${title}`, "/portal/documents?tab=common", collegeCodes);
+  if (fd.get("notify") === "1") await notifyReps(`${id ? `Updated (v${version})` : "New"} common document: ${title}`, "/portal/documents?tab=common", collegeCodes);
+  refresh();
+  return { ok: true };
+}
+
+export async function restoreCommonDocVersion(versionId: string): Promise<ActionResult> {
+  if (!(await qac())) return { ok: false, error: "Only QAC can manage common documents." };
+  const supabase = await createClient();
+  const { data: v } = await supabase.from("common_document_versions").select("document_id").eq("id", versionId).maybeSingle();
+  if (!v) return { ok: false, error: "That version no longer exists." };
+  const { error } = await supabase.rpc("restore_common_document_version", { p_version: versionId });
+  if (error) return { ok: false, error: error.message };
+  after(() => indexDocument(supabase, "common", v.document_id));
   refresh();
   return { ok: true };
 }
@@ -189,9 +217,10 @@ export async function purgeCommonDoc(id: string): Promise<ActionResult> {
   const supabase = await createClient();
   const { data: doc } = await supabase.from("common_documents").select("storage_path").eq("id", id).not("deleted_at", "is", null).maybeSingle();
   if (!doc) return { ok: false, error: "That document is no longer in Recently Deleted." };
+  const { data: versions } = await supabase.from("common_document_versions").select("storage_path").eq("document_id", id);
   const { error } = await supabase.from("common_documents").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };
-  await supabase.storage.from(BUCKETS.commonDocs).remove([doc.storage_path]);
+  await supabase.storage.from(BUCKETS.commonDocs).remove([...new Set([doc.storage_path, ...(versions ?? []).map((v) => v.storage_path)])]);
   refresh();
   revalidatePath("/portal/recently-deleted");
   return { ok: true };

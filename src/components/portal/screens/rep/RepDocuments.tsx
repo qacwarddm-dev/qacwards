@@ -277,6 +277,7 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
           <tbody>
             <tr>
               <th>Document</th>
+              <th>Version</th>
               <th>Updated</th>
               <th>Size</th>
               <th />
@@ -286,6 +287,7 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
                 <td>
                   <span className="pdfi">PDF</span> {c.title}
                 </td>
+                <td>v{c.version}</td>
                 <td>{c.date}</td>
                 <td>{c.size}</td>
                 <td style={{ textAlign: "right" }}>
@@ -304,7 +306,7 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
             ))}
             {!data.common.length && (
               <tr>
-                <td colSpan={4}>
+                <td colSpan={5}>
                   <Empty>The QA Center hasn’t shared any common documents yet.</Empty>
                 </td>
               </tr>

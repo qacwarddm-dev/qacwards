@@ -48,8 +48,8 @@ export default function QacDashboard({
     if (c.pe) T.push({ ic: "📄", bg: "#fff6d6", c: "#8a6d00", t: `Review ${c.pe} phase document${c.pe > 1 ? "s" : ""} · ${p.short}`, s: "Extension Monitoring · Pre-Accreditation Phases", b: "Review", href: `/portal/extension-monitoring?p=${p.id}` });
   }
   for (const p of ong) {
-    const n = p.reports.filter((r) => r.status === "submitted").length;
-    if (n) T.push({ ic: "📨", bg: "#e8eefb", c: "#1f4fa3", t: `Review ${n} evaluation report(s) · ${p.short}`, s: `Signed by the internal accreditors · ${p.levelName}`, b: "Review", href: `/portal/assignment?id=${p.id}&stage=rep` });
+    const lead = p.team.find((m) => m.leader);
+    if (p.reports.some((r) => r.status === "submitted")) T.push({ ic: "📨", bg: "#e8eefb", c: "#1f4fa3", t: `Review the overall evaluation report · ${p.short}`, s: `Signed by ${lead?.surname ?? "the Team Leader"} (Team Leader) · ${p.levelName}`, b: "Review", href: `/portal/assignment?id=${p.id}&stage=rep` });
   }
   for (const n of ndas.filter((x) => x.status === "review"))
     T.push({ ic: "🪪", bg: "#fdecec", c: "#b42323", t: `Verify NDA · ${n.who} (${n.college})`, s: `Uploaded ${n.date} · check the NDA File ID and notarial details`, b: "Verify", href: `/portal/documents?tab=nda&verify=${n.id}` });

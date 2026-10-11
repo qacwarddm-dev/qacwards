@@ -32,6 +32,10 @@ const SOURCES = {
     table: "common_documents",
     bucket: BUCKETS.commonDocs,
   },
+  common_version: {
+    table: "common_document_versions",
+    bucket: BUCKETS.commonDocs,
+  },
   nda: {
     table: "ndas",
     bucket: BUCKETS.ndas,

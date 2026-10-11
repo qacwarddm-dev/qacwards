@@ -102,6 +102,16 @@ async function passwordMatches(email: string, password: string) {
   return !error;
 }
 
+export async function sendAreasToLeader(assignmentId: string): Promise<ActionResult> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("send_areas_to_leader", { p_assignment: assignmentId });
+  if (error) return { ok: false, error: error.message };
+  refresh();
+  return { ok: true };
+}
+
 export async function signAccreditorReport(input: {
   assignmentId: string;
   findings: string;
@@ -123,13 +133,8 @@ export async function signAccreditorReport(input: {
   });
   if (error) return { ok: false, error: error.message };
 
-  const [{ data: team }, { data: signed }, { data: asg }] = await Promise.all([
-    supabase.from("assignment_accreditors").select("profile_id").eq("assignment_id", input.assignmentId).eq("response", "accepted"),
-    supabase.from("accreditor_reports").select("accreditor_id").eq("assignment_id", input.assignmentId).in("status", ["submitted", "acknowledged"]),
-    supabase.from("assignments").select("status").eq("id", input.assignmentId).maybeSingle(),
-  ]);
-  const everyone = (team ?? []).every((m) => (signed ?? []).some((s) => s.accreditor_id === m.profile_id));
-  if (everyone && asg) {
+  const { data: asg } = await supabase.from("assignments").select("status").eq("id", input.assignmentId).maybeSingle();
+  if (asg) {
     let status = asg.status;
     for (const next of ["for_psv", "evaluated"]) {
       if (canAdvanceAssignment(status, next)) {

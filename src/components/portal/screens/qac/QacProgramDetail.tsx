@@ -22,10 +22,10 @@ import StageSwitch from "../../kit/StageSwitch";
 import SumRows from "../../kit/SumRows";
 import { useToast } from "../../kit/ToastProvider";
 import CertStatusSelect, { CSDEF } from "../../kit/CertStatusSelect";
-import { LVS, phaseCounts, qacStatus, readiness, type QacProgram } from "@/lib/qac-model";
+import { LVS, assistantOf, leaderOf, overallReport, phaseCounts, qacStatus, readiness, type QacProgram } from "@/lib/qac-model";
 import { programProgressInput } from "@/lib/progress-model";
 import { countSlots, describeMean, includedAreas, type Slot } from "@/lib/review-model";
-import { areaShort, shortDate } from "@/lib/program-names";
+import { areaShort, areaTag, shortDate } from "@/lib/program-names";
 import { recordVisitResult, reviewReport, sendReminder } from "@/lib/qac-actions";
 
 type Stage = "pre" | "req" | "rep";
@@ -46,8 +46,11 @@ export default function QacProgramDetail({ p, today, initialStage }: { p: QacPro
   const areas = p.review ? includedAreas(p.review) : [];
   const a = countSlots(areas);
   const active = p.team.filter((m) => m.response !== "rejected");
-  const sub = p.reports.filter((r) => r.status === "submitted" || r.status === "acknowledged").length;
-  const [stage, setStage] = useState<Stage>(initialStage ?? (p.reports.some((r) => r.status === "submitted") ? "rep" : c.pe ? "pre" : "req"));
+  const lead = leaderOf(p);
+  const asst = assistantOf(p);
+  const e = overallReport(p);
+  const signedReport = e?.status === "submitted" || e?.status === "acknowledged";
+  const [stage, setStage] = useState<Stage>(initialStage ?? (e?.status === "submitted" ? "rep" : c.pe ? "pre" : "req"));
   const [full, setFull] = useState<Slot | null>(null);
   const [report, setReport] = useState<string | null>(null);
   const [ret, setRet] = useState<string | null>(null);
@@ -69,15 +72,17 @@ export default function QacProgramDetail({ p, today, initialStage }: { p: QacPro
       if (!r.ok) return toast.say(r.error, true);
       setReport(null);
       setRet(null);
-      toast.say(decision === "acknowledged" ? "Report acknowledged. The accreditor was notified." : "Returned to the accreditor");
+      toast.say(decision === "acknowledged" ? "Overall report acknowledged. Both accreditors were notified." : "Returned to the Team Leader");
       router.refresh();
     });
   }
 
-  const allAck = active.length > 0 && active.every((m) => p.reports.find((r) => r.accreditorId === m.id)?.status === "acknowledged");
-  const reportOf = (id: string) => p.reports.find((r) => r.accreditorId === id);
-  const viewing = report ? active.find((m) => m.id === report) : null;
-  const vr = viewing ? reportOf(viewing.id) : null;
+  const allAck = e?.status === "acknowledged";
+  const tlSlots = areas.filter((x) => p.leaderAreaIds.includes(x.refId));
+  const asSlots = areas.filter((x) => !p.leaderAreaIds.includes(x.refId));
+  const tags = (L: Slot[]) => L.map((x) => areaTag(p.levelCode, x.ordinal, x.name)).join(", ");
+  const viewing = report && lead ? lead : null;
+  const vr = viewing ? e : null;
 
   return (
     <>
@@ -148,10 +153,10 @@ export default function QacProgramDetail({ p, today, initialStage }: { p: QacPro
             { key: "req", title: "Accreditation Requirements", sub: `${a.ap} of ${areas.length} approved by accreditors${a.pe ? ` · ${a.pe} with accreditors` : ""}`, pct: areas.length ? Math.round((a.ap / areas.length) * 100) : 0, done: areas.length > 0 && a.ap === areas.length },
             {
               key: "rep",
-              title: "Evaluation Reports",
-              sub: <>{sub} of {Math.max(2, active.length)} submitted{p.reports.some((r) => r.status === "submitted") ? <> · <b style={{ color: "#1f4fa3" }}>for your review</b></> : null}</>,
-              pct: Math.round((sub / Math.max(2, active.length)) * 100),
-              done: sub >= 2,
+              title: "Overall Evaluation Report",
+              sub: <>{signedReport ? "Submitted by the Team Leader" : "Not submitted yet"}{e?.status === "submitted" ? <> · <b style={{ color: "#1f4fa3" }}>for your review</b></> : null}</>,
+              pct: e?.status === "acknowledged" ? 100 : signedReport ? 50 : 0,
+              done: e?.status === "acknowledged",
             },
           ]}
         />
@@ -225,7 +230,7 @@ export default function QacProgramDetail({ p, today, initialStage }: { p: QacPro
           </>
         )}
         {stage === "rep" &&
-          (!active.length ? (
+          (!active.length || !lead ? (
             <Empty icon="👥" title="No accreditors yet">
               Assign two internal accreditors first.
               <br />
@@ -235,76 +240,112 @@ export default function QacProgramDetail({ p, today, initialStage }: { p: QacPro
             </Empty>
           ) : (
             <>
+              <div className="lockb" style={{ background: "#f6f6f6" }}>
+                👥{" "}
+                <div>
+                  The <b>Team Leader</b> combines both accreditors’ ratings into <b>one overall evaluation report</b>, signs it and submits it to you. The Assistant rates their own areas and can only view the report.
+                </div>
+              </div>
               <div className="evrs">
-                {active.map((m) => {
-                  const e = reportOf(m.id);
-                  const S: [string, "blue" | "ok" | "ret" | "miss" | "pend"] =
-                    e?.status === "submitted"
-                      ? ["For your review", "blue"]
-                      : e?.status === "acknowledged"
-                        ? ["Acknowledged", "ok"]
-                        : e?.status === "returned"
-                          ? ["Returned to accreditor", "ret"]
-                          : m.response === "pending"
-                            ? ["Hasn’t accepted", "miss"]
-                            : ["Evaluating", "pend"];
-                  const signed = e && e.status !== "draft" && e.signedAt;
-                  return (
-                    <div key={m.id} className="evr">
-                      <div className="evh">
-                        <span className="av2">{m.surname.slice(0, 2).toUpperCase()}</span>
-                        <div>
-                          <b>{m.name}</b>
-                          <small>{m.acting ? "Acting internal accreditor" : "Internal Accreditor"}</small>
-                        </div>
-                        <Pill tone={S[1]}>{S[0]}</Pill>
-                      </div>
-                      {signed ? (
-                        <>
-                          <SumRows
-                            rows={[
-                              ["Grand mean", `${Number(e.grandMean ?? 0).toFixed(2)} · ${describeMean(Number(e.grandMean ?? 0))}`],
-                              ["Signed", shortDate(e.signedAt)],
-                              ["Document ID", <b key="d" style={{ fontSize: 12 }}>{e.code}</b>],
-                            ]}
-                          />
-                          {e.qacNote && e.status === "returned" && (
-                            <div className="rem" style={{ marginTop: 10 }}>
-                              ↺ <b>Your remark:</b> {e.qacNote}
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <div className="evp">
-                          <RBar pct={areas.length ? ((p.rated[m.id] ?? 0) / areas.length) * 100 : 0} color="var(--maroon)" label={`${p.rated[m.id] ?? 0}/${areas.length}`} />
-                          <small>areas rated · report not submitted yet</small>
+                <div className="evr">
+                  <div className="evh">
+                    <span className="av2">{lead.surname.slice(0, 2).toUpperCase()}</span>
+                    <div>
+                      <b>{lead.name}</b>
+                      <small>
+                        {lead.acting ? "Acting internal accreditor · " : ""}Team Leader · {tags(tlSlots)}
+                      </small>
+                    </div>
+                    {(() => {
+                      const S: [string, "blue" | "ok" | "ret" | "miss" | "pend"] =
+                        e?.status === "submitted"
+                          ? ["For your review", "blue"]
+                          : e?.status === "acknowledged"
+                            ? ["Acknowledged", "ok"]
+                            : e?.status === "returned"
+                              ? ["Returned to Team Leader", "ret"]
+                              : lead.response === "pending"
+                                ? ["Hasn’t accepted", "miss"]
+                                : ["Evaluating", "pend"];
+                      return <Pill tone={S[1]}>{S[0]}</Pill>;
+                    })()}
+                  </div>
+                  {e && signedReport && e.signedAt ? (
+                    <>
+                      <SumRows
+                        rows={[
+                          ["Overall grand mean", `${Number(e.grandMean ?? 0).toFixed(2)} · ${describeMean(Number(e.grandMean ?? 0))}`],
+                          ["Signed", shortDate(e.signedAt)],
+                          ["Document ID", <b key="d" style={{ fontSize: 12 }}>{e.code}</b>],
+                        ]}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      {e?.status === "returned" && e.qacNote && (
+                        <div className="rem" style={{ marginTop: 10 }}>
+                          ↺ <b>Your remark:</b> {e.qacNote}
                         </div>
                       )}
-                      <div className="evf">
-                        {signed && (
-                          <Btn variant="o" sm onClick={() => setReport(m.id)}>
-                            📄 View report
-                          </Btn>
-                        )}
-                        {e?.status === "submitted" && (
-                          <>
-                            <Btn variant="d" sm onClick={() => (setRet(m.id), setRetNote(""))}>
-                              ↺ Return
-                            </Btn>
-                            <Btn sm disabled={pending} onClick={() => decide(m.id, "acknowledged")}>
-                              ✓ Acknowledge
-                            </Btn>
-                          </>
-                        )}
-                        {!signed && m.response !== "pending" && (
-                          <Btn variant="gh" sm disabled={pending} onClick={() => remind(m.id, m.name)}>
-                            Send reminder
-                          </Btn>
-                        )}
+                      <div className="evp">
+                        <RBar pct={tlSlots.length ? (Math.min(p.rated[lead.id] ?? 0, tlSlots.length) / tlSlots.length) * 100 : 0} color="var(--maroon)" label={`${Math.min(p.rated[lead.id] ?? 0, tlSlots.length)}/${tlSlots.length}`} />
+                        <small>own areas rated · overall report not submitted yet</small>
                       </div>
+                    </>
+                  )}
+                  <div className="evf">
+                    {signedReport && (
+                      <Btn variant="o" sm onClick={() => setReport(lead.id)}>
+                        📄 View overall report
+                      </Btn>
+                    )}
+                    {e?.status === "submitted" && (
+                      <>
+                        <Btn variant="d" sm onClick={() => (setRet(lead.id), setRetNote(""))}>
+                          ↺ Return
+                        </Btn>
+                        <Btn sm disabled={pending} onClick={() => decide(lead.id, "acknowledged")}>
+                          ✓ Acknowledge
+                        </Btn>
+                      </>
+                    )}
+                    {!signedReport && lead.response !== "pending" && (
+                      <Btn variant="gh" sm disabled={pending} onClick={() => remind(lead.id, lead.name)}>
+                        Send reminder
+                      </Btn>
+                    )}
+                  </div>
+                </div>
+                {asst && (
+                  <div className="evr">
+                    <div className="evh">
+                      <span className="av2">{asst.surname.slice(0, 2).toUpperCase()}</span>
+                      <div>
+                        <b>{asst.name}</b>
+                        <small>
+                          {asst.acting ? "Acting internal accreditor · " : ""}Assistant Accreditor · {tags(asSlots)}
+                        </small>
+                      </div>
+                      <Pill tone={asst.sentAt ? "ok" : asst.response === "pending" ? "miss" : "pend"}>
+                        {asst.sentAt ? "Areas sent to Team Leader" : asst.response === "pending" ? "Hasn’t accepted" : "Rating own areas"}
+                      </Pill>
                     </div>
-                  );
-                })}
+                    <div className="evp">
+                      <small>
+                        {asst.sentAt
+                          ? `Submitted their ${asSlots.length} areas to ${lead.surname} on ${shortDate(asst.sentAt)}. Included in the overall report.`
+                          : `Rates ${asSlots.length} areas, then sends them to the Team Leader. Doesn’t sign or submit a report.`}
+                      </small>
+                    </div>
+                    <div className="evf">
+                      {!asst.sentAt && asst.response !== "pending" && (
+                        <Btn variant="gh" sm disabled={pending} onClick={() => remind(asst.id, asst.name)}>
+                          Send reminder
+                        </Btn>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="subbar">
                 <span className="sub" style={{ margin: 0 }}>
@@ -313,9 +354,9 @@ export default function QacProgramDetail({ p, today, initialStage }: { p: QacPro
                       ✅ Result recorded: <b>{p.result}</b>.
                     </>
                   ) : allAck ? (
-                    "✅ Both reports acknowledged. Record the visit result to close this level."
+                    "✅ Overall report acknowledged. Record the visit result to close this level."
                   ) : (
-                    "Acknowledge both signed reports to record the visit result."
+                    "Acknowledge the Team Leader’s overall report to record the visit result."
                   )}
                 </span>
                 {!p.result && (
@@ -339,7 +380,7 @@ export default function QacProgramDetail({ p, today, initialStage }: { p: QacPro
       {viewing && vr && (
         <Modal
           size="wide"
-          title={`Evaluation report · ${viewing.name}`}
+          title={`Overall evaluation report · ${viewing.surname} (Team Leader)`}
           sub={`${p.short} · ${p.levelName} · signed ${shortDate(vr.signedAt)}`}
           onClose={() => setReport(null)}
           bodyStyle={{ background: "#e9e9e9" }}
@@ -370,11 +411,16 @@ export default function QacProgramDetail({ p, today, initialStage }: { p: QacPro
               visitLabel: p.visitLabel,
               accreditor: viewing.name,
               evaluatedOn: shortDate(vr.signedAt),
-              rows: areas.map((x) => ({ roman: roman(x.ordinal), title: areaShort(x.name), mean: p.areaMeans[viewing.id]?.[x.refId] ?? 0 })),
+              team: { leader: viewing.name, assistant: asst?.name ?? null, assistantAreas: tags(asSlots) },
+              rows: areas.map((x) => {
+                const mine = p.leaderAreaIds.includes(x.refId);
+                const owner = mine ? viewing : asst;
+                return { roman: roman(x.ordinal), title: areaShort(x.name), mean: (owner && p.areaMeans[owner.id]?.[x.refId]) || 0, ratedBy: mine ? `${viewing.surname} (TL)` : (asst?.surname ?? "") };
+              }),
               improvements: [],
               findings: vr.findings,
               recommendation: vr.recommendation,
-              signers: [{ name: viewing.name, role: "Internal Accreditor", signedAt: shortDate(vr.signedAt) }],
+              signers: [{ name: viewing.name, role: "Team Leader", signedAt: shortDate(vr.signedAt) }],
               docId: vr.code,
             }}
           />
@@ -382,8 +428,8 @@ export default function QacProgramDetail({ p, today, initialStage }: { p: QacPro
       )}
       {ret && (
         <Modal
-          title={`Return report to ${active.find((m) => m.id === ret)?.name}`}
-          sub="The accreditor can edit and sign again. The program rep doesn’t see this."
+          title={`Return the overall report to ${lead?.name ?? "the Team Leader"}`}
+          sub="The Team Leader can edit and sign again. The program rep doesn’t see this."
           onClose={() => setRet(null)}
           footer={
             <>
@@ -396,7 +442,7 @@ export default function QacProgramDetail({ p, today, initialStage }: { p: QacPro
             </>
           }
         >
-          <label className="fl">What should the accreditor fix? *</label>
+          <label className="fl">What should the Team Leader fix? *</label>
           <textarea className="inp" rows={3} value={retNote} onChange={(e) => setRetNote(e.target.value)} placeholder="e.g. Area V rating has no remark explaining the low score." />
         </Modal>
       )}
@@ -420,7 +466,7 @@ function RecordResult({ p, onClose }: { p: QacProgram; onClose: () => void }) {
   return (
     <Modal
       title={`Record visit result · ${p.short}`}
-      sub={`${p.levelName} · ${p.visitLabel} · grand means ${p.reports.map((r) => Number(r.grandMean ?? 0).toFixed(2)).join(" and ")}`}
+      sub={`${p.levelName} · ${p.visitLabel} · overall grand mean ${Number(overallReport(p)?.grandMean ?? 0).toFixed(2)}`}
       onClose={onClose}
       footer={
         <>

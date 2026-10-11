@@ -1,6 +1,6 @@
 import type { QacMember } from "@/lib/qac-model";
 
-/** Two-accreditor team: initials chips, ⏳ for not yet accepted, and the gap called out. */
+/** Two-accreditor team: initials chips with each role, ⏳ for not yet accepted, and the gap called out. */
 export default function AccreditorChips({ team }: { team: QacMember[] }) {
   const active = team.filter((m) => m.response !== "rejected");
   if (!active.length) return <span className="iach miss">＋ 2 needed</span>;
@@ -10,6 +10,7 @@ export default function AccreditorChips({ team }: { team: QacMember[] }) {
         <span key={a.id} className={`iach${a.response === "pending" ? " wait" : ""}`} title={a.response === "pending" ? "Hasn’t accepted yet" : a.acting ? `Acting IA · ${a.acting}` : "Accepted"}>
           <i>{a.surname.slice(0, 2).toUpperCase()}</i>
           {a.surname}
+          <small className="rl">{a.leader ? "Team Leader" : "Assistant"}</small>
           {a.response === "pending" ? " ⏳" : ""}
         </span>
       ))}

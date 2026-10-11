@@ -12,7 +12,7 @@ export default async function SubmitEvaluationPage({ searchParams }: { searchPar
   const a = all.find((x) => x.id === id && x.myResponse === "accepted");
   if (!a || !a.review) redirect("/portal/evaluation");
   const signed = a.report?.status === "submitted" || a.report?.status === "acknowledged";
-  if (!signed && !iaStats(a).ready) redirect(`/portal/evaluation?a=${a.id}&st=req`);
+  if (!signed && (a.role !== "leader" || !iaStats(a).ready)) redirect(`/portal/evaluation?a=${a.id}&st=req`);
 
   const [signatories, mySig] = await Promise.all([getSignatories(a.id), getSignatureUrl(user.id, user.signaturePath)]);
   const signers = signatories.map((s) => {

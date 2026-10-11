@@ -1,8 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
-import { getAreaRatings, getSubmissionReviews } from "@/lib/reviews";
+import { getSubmissionReviews, getTeamRatings } from "@/lib/reviews";
 import type { IaAssignment, ReportState } from "@/lib/ia-model";
 export * from "@/lib/ia-model";
 import { initialsOf, personName, programMid, programShort, shortDate } from "@/lib/program-names";
+import type { TeamRole } from "@/lib/team-model";
 
 function visitRange(date: string | null) {
   if (!date) return "Not scheduled";
@@ -14,9 +15,9 @@ export async function getIaAssignments(viewerId: string): Promise<IaAssignment[]
   const { data } = await supabase
     .from("assignments")
     .select(
-      `id, status, due_date, site_visit_date, submission_id,
+      `id, status, due_date, site_visit_date, submission_id, leader_area_ids,
        submissions(id, level_id, program_id, programs(id, name, campuses(name), colleges(code, name)), accreditation_levels(code, name)),
-       assignment_accreditors(profile_id, response, profiles(surname, given_name, middle_initial))`,
+       assignment_accreditors(profile_id, response, is_team_leader, areas_sent_at, profiles(surname, given_name, middle_initial))`,
     )
     .order("created_at", { ascending: false });
 
@@ -55,8 +56,17 @@ export async function getIaAssignments(viewerId: string): Promise<IaAssignment[]
     mine.map(async (a) => {
       const s = a.submissions;
       const p = s?.programs;
-      const myResponse = a.assignment_accreditors.find((m) => m.profile_id === viewerId)?.response ?? "pending";
+      const me = a.assignment_accreditors.find((m) => m.profile_id === viewerId);
+      const myResponse = me?.response ?? "pending";
       const review = reviews.find((r) => r.submissionId === a.submission_id) ?? null;
+      const leader = a.assignment_accreditors.find((m) => m.is_team_leader) ?? null;
+      const assistant = a.assignment_accreditors.find((m) => !m.is_team_leader && m.response !== "rejected") ?? null;
+      const role: TeamRole = me?.is_team_leader || !leader ? "leader" : "assistant";
+      const mateRow = role === "leader" ? assistant : leader;
+      const mateName = mateRow ? personName(mateRow.profiles) : "";
+      const areaIds = review?.areas.map((x) => x.refId) ?? [];
+      const mineIds = leader ? areaIds.filter((id) => a.leader_area_ids.includes(id) === (role === "leader")) : areaIds;
+      const ownerOf = (areaId: string) => (leader ? ((a.leader_area_ids.includes(areaId) ? leader.profile_id : assistant?.profile_id) ?? null) : null);
       return {
         id: a.id,
         status: a.status,
@@ -83,12 +93,20 @@ export async function getIaAssignments(viewerId: string): Promise<IaAssignment[]
             initials: initialsOf(name),
             response: m.response,
             me: m.profile_id === viewerId,
+            leader: m.is_team_leader,
+            sentAt: m.areas_sent_at,
             report: toReport((reports ?? []).find((r) => r.assignment_id === a.id && r.accreditor_id === m.profile_id)),
           };
         }),
+        role,
+        mine: mineIds,
+        leaderAreaIds: a.leader_area_ids,
+        mate: mateRow ? { id: mateRow.profile_id, name: mateName, short: mateName.split(",")[0], response: mateRow.response } : null,
+        mySentAt: me?.areas_sent_at ?? null,
+        mateSentAt: role === "leader" ? (assistant?.areas_sent_at ?? null) : null,
         review,
-        ratings: myResponse === "accepted" ? await getAreaRatings(a.id, viewerId) : {},
-        report: toReport((reports ?? []).find((r) => r.assignment_id === a.id && r.accreditor_id === viewerId)),
+        ratings: myResponse === "accepted" ? await getTeamRatings(a.id, ownerOf) : {},
+        report: toReport((reports ?? []).find((r) => r.assignment_id === a.id && r.accreditor_id === leader?.profile_id)),
         awardedCodes: (awards ?? [])
           .filter((w) => w.program_id === p?.id)
           .map((w) => w.accreditation_levels?.code)

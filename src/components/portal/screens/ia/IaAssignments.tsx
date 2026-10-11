@@ -72,6 +72,7 @@ export default function IaAssignments({ assignments }: { assignments: IaAssignme
                           <i>{m.initials}</i>
                           {m.name}
                           {m.me ? " (you)" : ""}
+                          <small className="rl">{m.leader ? "Team Leader" : "Assistant"}</small>
                         </span>
                       ))}
                   </td>

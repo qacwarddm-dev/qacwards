@@ -42,6 +42,7 @@ export function Indicators({
   set,
   disabled,
   readOnly,
+  placeholder = "Remarks for the report (optional)",
 }: {
   areaNo: number;
   areaId: string;
@@ -49,6 +50,7 @@ export function Indicators({
   set: ReturnType<typeof useRatings>["set"];
   disabled: boolean;
   readOnly: boolean;
+  placeholder?: string;
 }) {
   return (
     <>
@@ -73,7 +75,7 @@ export function Indicators({
             </div>
             <textarea
               readOnly={readOnly}
-              placeholder="Remarks for the report (optional)"
+              placeholder={placeholder}
               value={cur?.remark ?? ""}
               onChange={(e) => set(areaId, j + 1, { remark: e.target.value }, false)}
               onBlur={(e) => !readOnly && set(areaId, j + 1, { remark: e.target.value })}

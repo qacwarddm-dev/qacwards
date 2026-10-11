@@ -87,6 +87,13 @@ function issuesOf(docs: Doc[]): { issues: ArchiveIssue[]; acceptedAt: string | n
   return { issues, acceptedAt, acceptedAreas };
 }
 
+
+type Member = { response: string; is_team_leader: boolean; profiles: { surname: string; given_name: string } | null };
+const team = (list: Member[] | null | undefined) => {
+  const m = (list ?? []).filter((x) => x.response === "accepted" && x.profiles).sort((a, b) => Number(b.is_team_leader) - Number(a.is_team_leader));
+  return { accreditors: m.map((x) => personName(x.profiles)), leader: m.find((x) => x.is_team_leader) ? personName(m.find((x) => x.is_team_leader)!.profiles) : null };
+};
+
 export async function getArchive(only?: string): Promise<ArchiveEntry[]> {
   const supabase = await createClient();
   const query = supabase
@@ -94,7 +101,7 @@ export async function getArchive(only?: string): Promise<ArchiveEntry[]> {
     .select(
       `assignment_id, outcome, compliance_status, score, evaluated_at,
        assignments!inner(id, created_at, site_visit_date, submission_id,
-         assignment_accreditors(response, profiles(surname, given_name)),
+         assignment_accreditors(profile_id, response, is_team_leader, profiles(surname, given_name)),
          submissions!inner(id, program_id, level_id, cycle_id,
            accreditation_cycles!submissions_cycle_id_fkey(name),
            programs(name, campuses(name), colleges(code, name)),
@@ -133,7 +140,7 @@ export async function getArchive(only?: string): Promise<ArchiveEntry[]> {
       cycleId: s.cycle_id,
       visit: a.site_visit_date ? shortDate(a.site_visit_date) : null,
       visitDay: a.site_visit_date,
-      accreditors: (a.assignment_accreditors ?? []).filter((m) => m.response === "accepted" && m.profiles).map((m) => personName(m.profiles)),
+      ...team(a.assignment_accreditors),
       grandMean: e.score === null ? null : Number(e.score),
       passed,
       status: passed ? (e.compliance_status ?? "Passed") : "Deferred",
@@ -261,7 +268,7 @@ export async function getCycleContents(cycle: { id: string; closedAt: string | n
       subChunks.map((chunk) =>
         supabase
           .from("submissions")
-          .select("id, accreditation_levels(code), programs(name, campuses(name), colleges(code, name)), assignments(id, assignment_accreditors(response, profiles(surname, given_name)))")
+          .select("id, accreditation_levels(code), programs(name, campuses(name), colleges(code, name)), assignments(id, assignment_accreditors(profile_id, response, is_team_leader, profiles(surname, given_name)))")
           .in("id", chunk),
       ),
     ),
@@ -324,15 +331,15 @@ export async function getCycleContents(cycle: { id: string; closedAt: string | n
 
     const results: CycleFile[] = [
       ...(reports ?? [])
-        .filter((r) => r.assignment_id === asg?.id)
+        .filter((r) => r.assignment_id === asg?.id && (!asg?.assignment_accreditors.some((m) => m.is_team_leader) || asg.assignment_accreditors.find((m) => m.is_team_leader)?.profile_id === r.accreditor_id))
         .map<CycleFile>((r) => ({
           id: `${r.assignment_id}:${r.accreditor_id}`,
           source: "report",
           group: "ev",
           sub: "Evaluation & result",
-          name: `Evaluation Report – ${r.profiles?.surname ?? "Accreditor"}`,
+          name: `Overall Evaluation Report – ${r.profiles?.surname ?? "Team Leader"} (Team Leader)`,
           version: 1,
-          by: `${personName(r.profiles)} (Internal Accreditor)`,
+          by: `${personName(r.profiles)} (Team Leader)`,
           at: r.reviewed_at ?? r.signed_at ?? entry?.evaluatedAt ?? "",
           size: null,
           state: "acknowledged",
@@ -366,7 +373,7 @@ export async function getCycleContents(cycle: { id: string; closedAt: string | n
       campus: s.programs?.campuses?.name ?? "—",
       level: levelName(code),
       levelCode: code,
-      accreditors: (asg?.assignment_accreditors ?? []).filter((m) => m.response === "accepted" && m.profiles).map((m) => personName(m.profiles)),
+      ...team(asg?.assignment_accreditors),
       result: entry ? (entry.passed ? "passed" : "deferred") : null,
       archiveId: entry ? entry.id : null,
       movedTo: cycleName.get(movedTo.get(s.id) ?? "") ?? null,

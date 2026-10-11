@@ -5,7 +5,15 @@ import type { QacProgram } from "@/lib/qac-model";
 export type ReportState = "ack" | "submitted" | "returned" | "none";
 
 export type ProgressArea = { name: string; state: DocState; remark?: string };
-export type ProgressAccreditor = { name: string; accepted: boolean; report: ReportState; grandMean?: number | null };
+export type ProgressAccreditor = {
+  name: string;
+  accepted: boolean;
+  report: ReportState;
+  grandMean?: number | null;
+  leader?: boolean;
+  /** The Assistant has sent their areas to the Team Leader. */
+  sent?: boolean;
+};
 
 export type ProgressInput = {
   accreditors: ProgressAccreditor[];
@@ -21,7 +29,7 @@ export type StageKey = "assigned" | "documents" | "review" | "result";
 export const PROGRESS_STAGES: { key: StageKey; title: string; hint: string }[] = [
   { key: "assigned", title: "Scheduled & assigned", hint: "Both internal accreditors accepted" },
   { key: "documents", title: "Documents accepted", hint: "Accepted by the internal accreditors" },
-  { key: "review", title: "QAC review", hint: "Signed reports acknowledged by QAC" },
+  { key: "review", title: "QAC review", hint: "Team Leader’s overall report acknowledged by QAC" },
   { key: "result", title: "Accreditation result", hint: "Visit result recorded" },
 ];
 
@@ -47,17 +55,16 @@ export function computeProgress(input: ProgressInput): Progress {
   const total = input.areas.length || 10;
   const approved = input.areas.filter((a) => a.state === "approved").length;
   const accepted = Math.min(input.accreditors.filter((a) => a.accepted).length, NEEDED);
-  const acknowledged = Math.min(input.accreditors.filter((a) => a.report === "ack").length, NEEDED);
-  const waiting = input.accreditors.filter((a) => a.report === "submitted").length;
+  const report = input.accreditors.find((a) => a.leader)?.report ?? "none";
 
   const done = Boolean(input.completed);
-  const fractions = done ? [1, 1, 1, 1] : [accepted / NEEDED, approved / total, acknowledged / NEEDED, input.result ? 1 : 0];
+  const fractions = done ? [1, 1, 1, 1] : [accepted / NEEDED, approved / total, report === "ack" ? 1 : 0, input.result ? 1 : 0];
   const summaries = done
-    ? [`${NEEDED} of ${NEEDED} accepted`, `${total} of ${total} accepted`, `${NEEDED} of ${NEEDED} acknowledged`, input.result ?? "Passed"]
+    ? [`${NEEDED} of ${NEEDED} accepted`, `${total} of ${total} accepted`, "Overall report acknowledged", input.result ?? "Passed"]
     : [
         `${accepted} of ${NEEDED} accepted`,
         `${approved} of ${total} accepted`,
-        `${acknowledged} of ${NEEDED} acknowledged${waiting > 0 ? ` · ${waiting} waiting` : ""}`,
+        report === "ack" ? "Overall report acknowledged" : report === "submitted" ? "Overall report · waiting for QAC" : "Waiting for the Team Leader’s report",
         input.result ?? "Not yet recorded",
       ];
   const percent = Math.round(fractions.reduce((sum, f) => sum + f * 25, 0));
@@ -84,7 +91,7 @@ export function programProgressInput(p: QacProgram): ProgressInput {
       .filter((m) => m.response !== "rejected")
       .map((m) => {
         const rep = p.reports.find((r) => r.accreditorId === m.id);
-        return { name: m.name, accepted: m.response === "accepted", report: reportState(rep?.status), grandMean: rep?.grandMean ?? null };
+        return { name: m.name, accepted: m.response === "accepted", report: reportState(rep?.status), grandMean: rep?.grandMean ?? null, leader: m.leader, sent: Boolean(m.sentAt) };
       }),
     areas,
     result: p.result,

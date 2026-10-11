@@ -1,7 +1,7 @@
 import Letterhead from "./Letterhead";
 import { describeMean } from "@/lib/review-model";
 
-export type ReportRow = { roman: string; title: string; mean: number };
+export type ReportRow = { roman: string; title: string; mean: number; ratedBy?: string };
 
 export type ReportSigner = {
   name: string;
@@ -9,7 +9,11 @@ export type ReportSigner = {
   signatureUrl?: string | null;
   signedAt?: string | null;
   pending?: string;
+  /** Shown in place of a signature, e.g. the Assistant's "areas sent" line. */
+  note?: string;
 };
+
+export type ReportTeam = { leader: string; assistant: string | null; assistantAreas: string };
 
 export type ReportData = {
   program: string;
@@ -25,6 +29,7 @@ export type ReportData = {
   signers: ReportSigner[];
   docId?: string | null;
   signedFull?: string | null;
+  team?: ReportTeam;
 };
 
 const ROM = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
@@ -58,16 +63,42 @@ function Sig({ url }: { url?: string | null }) {
   );
 }
 
-/** The Internal Accreditor's Evaluation Report on the official PUP letterhead. */
+const TITLE = "INTERNAL ACCREDITOR’S EVALUATION REPORT";
+const TEAM_TITLE = "INTERNAL ACCREDITORS’ OVERALL EVALUATION REPORT";
+
+function AccreditorRows({ d }: { d: ReportData }) {
+  if (!d.team)
+    return (
+      <tr>
+        <td className="k">Internal Accreditor</td>
+        <td>{d.accreditor}</td>
+      </tr>
+    );
+  return (
+    <>
+      <tr>
+        <td className="k">Team Leader</td>
+        <td>{d.team.leader}</td>
+      </tr>
+      <tr>
+        <td className="k">Assistant Accreditor</td>
+        <td>{d.team.assistant ? `${d.team.assistant} (${d.team.assistantAreas})` : "—"}</td>
+      </tr>
+    </>
+  );
+}
+
+/** The Internal Accreditors' overall Evaluation Report on the official PUP letterhead. */
 export default function EvaluationReport({ d, variant = "ia" }: { d: ReportData; variant?: "ia" | "qac" }) {
   const gm = d.rows.length ? d.rows.reduce((s, r) => s + r.mean, 0) / d.rows.length : 0;
   const signed = Boolean(d.docId);
+  const rated = d.rows.some((r) => r.ratedBy);
 
   if (variant === "qac")
     return (
       <div className="paper">
         <Letterhead />
-        <div className="dtt">INTERNAL ACCREDITOR’S EVALUATION REPORT</div>
+        <div className="dtt">{d.team ? TEAM_TITLE : TITLE}</div>
         <div className="dst2">
           {d.levelName} · {d.visitLabel}
         </div>
@@ -81,10 +112,7 @@ export default function EvaluationReport({ d, variant = "ia" }: { d: ReportData;
               <td className="k">College / Campus</td>
               <td>{d.collegeCampus}</td>
             </tr>
-            <tr>
-              <td className="k">Internal Accreditor</td>
-              <td>{d.accreditor}</td>
-            </tr>
+            <AccreditorRows d={d} />
           </tbody>
         </table>
         <div className="sec2">I. Summary of Ratings</div>
@@ -95,6 +123,7 @@ export default function EvaluationReport({ d, variant = "ia" }: { d: ReportData;
               <th>Title</th>
               <th>Mean</th>
               <th>Description</th>
+              {rated && <th>Rated by</th>}
             </tr>
             {d.rows.map((r) => (
               <tr key={r.roman}>
@@ -102,6 +131,7 @@ export default function EvaluationReport({ d, variant = "ia" }: { d: ReportData;
                 <td style={{ textAlign: "left" }}>{r.title}</td>
                 <td>{r.mean.toFixed(2)}</td>
                 <td>{describeMean(r.mean)}</td>
+                {rated && <td>{r.ratedBy}</td>}
               </tr>
             ))}
             <tr className="tot">
@@ -110,6 +140,7 @@ export default function EvaluationReport({ d, variant = "ia" }: { d: ReportData;
               </td>
               <td>{gm.toFixed(2)}</td>
               <td>{describeMean(gm)}</td>
+              {rated && <td />}
             </tr>
           </tbody>
         </table>
@@ -120,7 +151,9 @@ export default function EvaluationReport({ d, variant = "ia" }: { d: ReportData;
         <div className="sg1">
           <Sig url={d.signers[0]?.signatureUrl} />
           <div>{d.accreditor.toUpperCase()}</div>
-          <small>Internal Accreditor · ✓ Signed electronically {d.evaluatedOn}</small>
+          <small>
+            {d.team ? "Team Leader" : "Internal Accreditor"} · ✓ Signed electronically {d.evaluatedOn}
+          </small>
           {d.docId && <small>Document ID {d.docId}</small>}
         </div>
       </div>
@@ -138,7 +171,7 @@ export default function EvaluationReport({ d, variant = "ia" }: { d: ReportData;
         </div>
         <img className="bp" src="/assets/portal/mockup/bagong-pilipinas.jpg" alt="" />
       </div>
-      <div className="doc-title">INTERNAL ACCREDITOR’S EVALUATION REPORT</div>
+      <div className="doc-title">{d.team ? TEAM_TITLE : TITLE}</div>
       <div className="doc-sub">{d.levelName}</div>
       <table className="info">
         <tbody>
@@ -156,10 +189,7 @@ export default function EvaluationReport({ d, variant = "ia" }: { d: ReportData;
               {d.levelName} ({d.visitLabel})
             </td>
           </tr>
-          <tr>
-            <td className="k">Internal Accreditor</td>
-            <td>{d.accreditor}</td>
-          </tr>
+          <AccreditorRows d={d} />
           <tr>
             <td className="k">Date of Evaluation</td>
             <td>{d.evaluatedOn ?? "—"}</td>
@@ -174,6 +204,7 @@ export default function EvaluationReport({ d, variant = "ia" }: { d: ReportData;
             <th>Title</th>
             <th style={{ width: 70 }}>Mean Rating</th>
             <th style={{ width: 110 }}>Description</th>
+            {rated && <th style={{ width: 96 }}>Rated by</th>}
           </tr>
           {d.rows.map((r) => (
             <tr key={r.roman}>
@@ -181,6 +212,7 @@ export default function EvaluationReport({ d, variant = "ia" }: { d: ReportData;
               <td>{r.title}</td>
               <td className="c">{r.mean.toFixed(2)}</td>
               <td className="c">{describeMean(r.mean)}</td>
+              {rated && <td className="c">{r.ratedBy}</td>}
             </tr>
           ))}
           <tr className="tot">
@@ -189,6 +221,7 @@ export default function EvaluationReport({ d, variant = "ia" }: { d: ReportData;
             </td>
             <td className="c">{gm.toFixed(2)}</td>
             <td className="c">{describeMean(gm)}</td>
+            {rated && <td />}
           </tr>
         </tbody>
       </table>
@@ -210,8 +243,13 @@ export default function EvaluationReport({ d, variant = "ia" }: { d: ReportData;
       <p>{d.recommendation}</p>
       <div className="sigs">
         {d.signers.map((s) => (
-          <div key={s.name} className={`sg${s.signedAt ? "" : " pend"}`}>
-            <div className="img">{s.signedAt ? <Sig url={s.signatureUrl} /> : s.pending}</div>
+          <div key={s.name} className={`sg${s.signedAt || s.note ? "" : " pend"}`}>
+            <div
+              className="img"
+              style={s.note ? { fontSize: 10.5, color: "#1d7a35", display: "flex", alignItems: "flex-end", justifyContent: "center" } : undefined}
+            >
+              {s.note ?? (s.signedAt ? <Sig url={s.signatureUrl} /> : s.pending)}
+            </div>
             <div className="ln">{s.name.toUpperCase()}</div>
             <small>{s.role}</small>
             {s.signedAt && <div className="ts">✓ Signed electronically {s.signedAt}</div>}

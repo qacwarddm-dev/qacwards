@@ -10,11 +10,13 @@ import Scope from "../../kit/Scope";
 import { useToast } from "../../kit/ToastProvider";
 import { areaMean, describeMean, includedAreas } from "@/lib/review-model";
 import { grandMean, iaStats, type IaAssignment } from "@/lib/ia-model";
-import { areaShort } from "@/lib/program-names";
+import { areaShort, areaTag, shortDate } from "@/lib/program-names";
 import { saveReportDraft, signAccreditorReport } from "@/lib/review-actions";
 
 const STEPS = ["Review ratings", "Preview report", "Sign", "Submitted"];
 const DEFAULT_REC = "The program is recommended to proceed to the next stage, subject to the revisions noted below.";
+
+const tlSigner = (n: string) => (n.includes(",") ? `${n.split(",")[1].trim()} ${n.split(",")[0]}` : n);
 
 export type Signer = { id: string; name: string; signatureUrl: string | null; signedAt: string | null; me: boolean };
 
@@ -42,6 +44,15 @@ export default function IaSubmit({
   const areas = includedAreas(r);
   const gm = grandMean(a);
   const s = iaStats(a);
+  const leader = a.role === "leader";
+  const lead = a.team.find((m) => m.leader);
+  const leadName = leader ? me.name : (a.mate?.name ?? lead?.name ?? me.name);
+  const asstName = leader ? (a.mate?.name ?? null) : me.name;
+  const mate = a.mate?.short ?? "your teammate";
+  const asstSlots = areas.filter((x) => (leader ? !a.mine.includes(x.refId) : a.mine.includes(x.refId)));
+  const asstAreas = asstSlots.map((x) => areaTag(r.levelCode, x.ordinal, x.name)).join(", ");
+  const asstSentAt = leader ? a.mateSentAt : a.mySentAt;
+  const first = (n: string) => n.split(",")[0];
   const signedFull = a.report?.signedAt
     ? new Date(a.report.signedAt).toLocaleString("en-US", { timeZone: "Asia/Manila", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })
     : null;
@@ -54,9 +65,13 @@ export default function IaSubmit({
     collegeCampus: `${a.collegeName} · ${a.campus}`,
     levelName: a.levelName,
     visitLabel: a.visitLabel,
-    accreditor: me.name,
+    accreditor: leadName,
     evaluatedOn: signedDate,
-    rows: areas.map((x) => ({ roman: roman(x.ordinal), title: areaShort(x.name), mean: areaMean(a.ratings[x.refId]) })),
+    team: { leader: leadName, assistant: asstName, assistantAreas: asstAreas },
+    rows: areas.map((x) => {
+      const byLeader = a.leaderAreaIds.includes(x.refId);
+      return { roman: roman(x.ordinal), title: areaShort(x.name), mean: areaMean(a.ratings[x.refId]), ratedBy: byLeader ? `${first(leadName)} (TL)` : first(asstName ?? "") };
+    }),
     improvements: areas
       .map((x) => ({
         roman: roman(x.ordinal),
@@ -66,15 +81,16 @@ export default function IaSubmit({
     findings: overall,
     recommendation: rec,
     signers: [
-      ...signers
-        .sort((x, y) => Number(y.me) - Number(x.me))
-        .map((x) => ({
-          name: x.name.includes(",") ? `${x.name.split(",")[1].trim()} ${x.name.split(",")[0]}` : x.name,
-          role: "Internal Accreditor",
-          signatureUrl: x.signatureUrl,
-          signedAt: x.me ? (signed ? signedFull : null) : x.signedAt,
-          pending: "Pending signature",
-        })),
+      {
+        name: tlSigner(leadName),
+        role: "Team Leader",
+        signatureUrl: signers.find((x) => x.id === lead?.id)?.signatureUrl ?? (leader ? me.signatureUrl : null),
+        signedAt: signed ? signedFull : null,
+        pending: "Pending signature",
+      },
+      ...(asstName
+        ? [{ name: tlSigner(asstName), role: "Assistant Accreditor", note: `✓ ${asstAreas} sent ${asstSentAt ? shortDate(asstSentAt) : "—"}` }]
+        : []),
       { name: "Director", role: "Quality Assurance Center", pending: "For acknowledgment" },
     ],
     docId: signed ? a.report?.code : null,
@@ -89,7 +105,7 @@ export default function IaSubmit({
   return (
     <Scope name="ia">
       <div className="crumb">
-        <Link href="/portal/evaluation">Programs</Link> › <Link href={`/portal/evaluation?a=${a.id}&st=req`}>{a.mid}</Link> › Submit evaluation
+        <Link href="/portal/evaluation">Programs</Link> › <Link href={`/portal/evaluation?a=${a.id}&st=req`}>{a.mid}</Link> › Overall report
       </div>
       <div className="steps">
         {STEPS.map((x, i) => (
@@ -102,13 +118,15 @@ export default function IaSubmit({
 
       {step === 0 && (
         <div className="card">
-          <h2>Submit evaluation · {a.mid}</h2>
-          <div className="sub">{a.levelName} · Check your ratings before signing</div>
+          <h2>Generate overall report · {a.mid}</h2>
+          <div className="sub">
+            {a.levelName} · Check the ratings before signing · combines your areas and {mate}’s areas
+          </div>
           <div className="sum">
             <div>
               <span>Areas rated</span>
               <b>
-                {s.evalN} / {s.areaTotal}
+                {s.evalN + s.mateN} / {s.areaTotal + s.mateTotal}
               </b>
             </div>
             <div>
@@ -128,10 +146,12 @@ export default function IaSubmit({
                 <th>Area</th>
                 <th>Mean rating</th>
                 <th>Description</th>
+                <th>Rated by</th>
                 <th />
               </tr>
               {areas.map((x) => {
                 const m = areaMean(a.ratings[x.refId]);
+                const own = a.mine.includes(x.refId);
                 return (
                   <tr key={x.refId}>
                     <td>{x.name}</td>
@@ -142,10 +162,15 @@ export default function IaSubmit({
                       {m.toFixed(2)}
                     </td>
                     <td>{describeMean(m)}</td>
+                    <td>{own ? "You" : mate}</td>
                     <td style={{ textAlign: "right" }}>
-                      <Link className="lnk" href={`/portal/evaluation?a=${a.id}&st=req&ar=${x.refId}`}>
-                        Edit
-                      </Link>
+                      {own ? (
+                        <Link className="lnk" href={`/portal/evaluation?a=${a.id}&st=req&ar=${x.refId}`}>
+                          Edit
+                        </Link>
+                      ) : (
+                        <span style={{ fontSize: 11.5, color: "var(--muted)" }}>View only</span>
+                      )}
                     </td>
                   </tr>
                 );
@@ -193,14 +218,14 @@ export default function IaSubmit({
 
       {step === 2 && (
         <div className="card">
-          <h2>Sign evaluation</h2>
+          <h2>Sign the overall report</h2>
           <div className="sub">Your saved e-signature will be placed on the report.</div>
           <div className="sigbox" style={{ display: "flex", gap: 18, alignItems: "center", marginTop: 12 }}>
             <div className="pre">{me.signatureUrl ? <img src={me.signatureUrl} alt="Your signature" style={{ maxWidth: 200, maxHeight: 66 }} /> : <span style={{ fontSize: 12, color: "var(--red)" }}>No saved signature</span>}</div>
             <div style={{ fontSize: 13, lineHeight: 1.6 }}>
               <b>{me.name}</b>
               <br />
-              Internal Accreditor
+              Team Leader
               <br />
               <span style={{ fontSize: 12, color: "var(--muted)" }}>From Profile → E-signature</span>
               <br />
@@ -230,7 +255,7 @@ export default function IaSubmit({
                 start(async () => {
                   const res = await signAccreditorReport({ assignmentId: a.id, findings: overall, recommendation: rec, grandMean: gm, password: pwd });
                   if (!res.ok) return toast.say(res.error, true);
-                  toast.say("Evaluation submitted to QAC");
+                  toast.say("Overall report submitted to the QAC Coordinator");
                   router.replace(`/portal/evaluation/submit?a=${a.id}&step=3`);
                   router.refresh();
                 })
@@ -247,18 +272,15 @@ export default function IaSubmit({
           <div className="card">
             <div className="done">
               <div className="ck">✓</div>
-              <h2>Evaluation signed and submitted</h2>
+              <h2>Overall report signed and submitted</h2>
               <p>
                 {a.mid} · {a.levelName} · {signedFull}
               </p>
               <div className="team">
-                {signers.map((x) => (
-                  <span key={x.id}>
-                    {x.me ? `✅ ${x.name} (you) · signed` : x.signedAt ? `✅ ${x.name} · signed` : `⏳ ${x.name} · pending`}
-                  </span>
-                ))}
+                <span>{leader ? `✅ ${me.name} (you) · signed` : `✅ ${leadName} · signed`}</span>
+                {asstName && <span>{leader ? `👁 ${asstName} (Assistant) · can view the report` : `👁 ${me.name} (you) · can view the report`}</span>}
               </div>
-              <p style={{ marginTop: 12 }}>QAC will be notified once all accreditors have signed. The report is now locked.</p>
+              <p style={{ marginTop: 12 }}>Sent to the QAC Coordinator for acknowledgment. The report is now locked.</p>
             </div>
             <div className="acts noprint" style={{ justifyContent: "center" }}>
               <Btn variant="o" onClick={() => window.print()}>

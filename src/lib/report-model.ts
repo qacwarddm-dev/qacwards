@@ -1,5 +1,5 @@
 import { campusTitle, certTable, filterCert, type CertSource } from "@/lib/cert-model";
-import { LVS, SOON_DAYS, daysTo, levelName, qacStatus, type QacProgram } from "@/lib/qac-model";
+import { LVS, SOON_DAYS, daysTo, levelName, overallReport, qacStatus, type QacProgram } from "@/lib/qac-model";
 import { shortDate } from "@/lib/program-names";
 
 export type ReportType = "copc" | "valid" | "expired" | "level" | "eval" | "cert";
@@ -68,13 +68,16 @@ export function reportData(type: ReportType, f: ReportFilters, programs: QacProg
     case "eval": {
       const O = L.filter((p) => p.inproc);
       return {
-        h: ["Program", "Level", "Visit", "Accreditors", "Reports", "Status"],
+        h: ["Program", "Level", "Visit", "Accreditors", "Overall report", "Status"],
         rows: O.map((p) => [
           p.name,
           p.levelName,
           p.visitLabel,
-          p.team.filter((m) => m.response !== "rejected").map((m) => m.name).join("; ") || "None",
-          `${p.reports.filter((r) => r.status === "submitted" || r.status === "acknowledged").length}/2`,
+          p.team.filter((m) => m.response !== "rejected").map((m) => `${m.name} (${m.leader ? "Team Leader" : "Assistant"})`).join("; ") || "None",
+          (() => {
+            const r = overallReport(p);
+            return r && r.status !== "draft" ? { submitted: "Submitted", acknowledged: "Acknowledged", returned: "Returned" }[r.status] : "Not submitted";
+          })(),
           qacStatus(p, today).t,
         ]),
         sum: `${O.length} programs in process`,

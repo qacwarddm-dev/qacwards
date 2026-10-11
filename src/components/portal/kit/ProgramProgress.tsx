@@ -16,7 +16,7 @@ const AREA_PILL: Record<DocState, [string, PillTone]> = {
 const REPORT_PILL: Record<ReportState, [string, PillTone]> = {
   ack: ["Acknowledged by QAC", "ok"],
   submitted: ["Submitted · for QAC review", "blue"],
-  returned: ["Returned to accreditor", "ret"],
+  returned: ["Returned to Team Leader", "ret"],
   none: ["Not submitted", "miss"],
 };
 
@@ -39,6 +39,8 @@ export default function ProgramProgress({
   documentsHref?: string;
 }) {
   const snap = computeProgress(input);
+  const leader = input.accreditors.find((a) => a.leader) ?? null;
+  const assistant = input.accreditors.find((a) => !a.leader) ?? null;
   const staff = perspective === "staff";
   const each = +(25 / snap.total).toFixed(1);
 
@@ -58,12 +60,14 @@ export default function ProgramProgress({
         <tbody>
           <tr>
             <th>Internal accreditor</th>
+            <th>Role</th>
             <th>Status</th>
           </tr>
           {input.accreditors.length ? (
             input.accreditors.map((a) => (
               <tr key={a.name}>
                 <td>{a.name}</td>
+                <td>{a.leader ? "Team Leader" : "Assistant"}</td>
                 <td>
                   <Pill tone={a.accepted ? "ok" : "pend"}>{a.accepted ? "Accepted" : "Awaiting acceptance"}</Pill>
                 </td>
@@ -71,7 +75,7 @@ export default function ProgramProgress({
             ))
           ) : (
             <tr>
-              <td colSpan={2} style={{ color: "var(--red)" }}>
+              <td colSpan={3} style={{ color: "var(--red)" }}>
                 No accreditors assigned yet
               </td>
             </tr>
@@ -114,32 +118,37 @@ export default function ProgramProgress({
     </table>,
 
     staff ? (
-      <table key="2">
-        <tbody>
-          <tr>
-            <th>Accreditor</th>
-            <th>Report</th>
-          </tr>
-          {input.accreditors.length ? (
-            input.accreditors.map((a) => (
-              <tr key={a.name}>
-                <td>{a.name}</td>
+      <div key="2">
+        <table>
+          <tbody>
+            <tr>
+              <th>Team Leader</th>
+              <th>Overall report</th>
+            </tr>
+            {leader ? (
+              <tr>
+                <td>{leader.name}</td>
                 <td>
-                  <Pill tone={REPORT_PILL[a.report][1]}>{REPORT_PILL[a.report][0]}</Pill>
-                  {a.grandMean != null && <small> grand mean {a.grandMean.toFixed(2)}</small>}
+                  <Pill tone={REPORT_PILL[leader.report][1]}>{REPORT_PILL[leader.report][0]}</Pill>
+                  {leader.grandMean != null && <small> grand mean {leader.grandMean.toFixed(2)}</small>}
                 </td>
               </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={2}>No accreditors yet</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            ) : (
+              <tr>
+                <td colSpan={2}>No accreditors yet</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+        {assistant && (
+          <div className="sub" style={{ marginTop: 10 }}>
+            Assistant {assistant.name}: {assistant.sent ? "areas sent to the Team Leader ✓" : "still rating own areas"}
+          </div>
+        )}
+      </div>
     ) : (
       <div key="2" className="empty">
-        After all documents are accepted, the internal accreditors submit their signed evaluation reports and QAC acknowledges them. You will get a notification at each step.
+        After all documents are accepted, the <b>Team Leader</b> combines both accreditors’ ratings into one overall evaluation report, signs it and submits it to QAC for acknowledgment. You will get a notification at each step.
       </div>
     ),
 
@@ -152,7 +161,7 @@ export default function ProgramProgress({
     ) : (
       <div key="3" className="empty">
         {staff ? (
-          "The result is recorded after both reports are acknowledged and the visit is done."
+          "The result is recorded after the overall report is acknowledged and the visit is done."
         ) : (
           <>
             QAC records the result after the survey visit. The finished accreditation then moves to the <b>Accreditation Archive</b>.

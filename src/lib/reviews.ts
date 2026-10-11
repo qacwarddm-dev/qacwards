@@ -299,15 +299,17 @@ export function emptyReview(
 
 // ----------------------------------------------------------- ratings
 
-export async function getAreaRatings(assignmentId: string, accreditorId: string): Promise<AreaRatings> {
+/** Every area's ratings, each taken from the accreditor who owns that area. */
+export async function getTeamRatings(assignmentId: string, ownerOf: (areaId: string) => string | null): Promise<AreaRatings> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("area_ratings")
-    .select("requirement_area_id, indicator, rating, remark")
-    .eq("assignment_id", assignmentId)
-    .eq("accreditor_id", accreditorId);
+    .select("requirement_area_id, accreditor_id, indicator, rating, remark")
+    .eq("assignment_id", assignmentId);
   const out: AreaRatings = {};
   for (const r of data ?? []) {
+    const owner = ownerOf(r.requirement_area_id);
+    if (owner && r.accreditor_id !== owner) continue;
     (out[r.requirement_area_id] ??= {})[r.indicator] = { rating: r.rating, remark: r.remark ?? "" };
   }
   return out;
