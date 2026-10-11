@@ -42,7 +42,7 @@ export function Indicators({
   set,
   disabled,
   readOnly,
-  placeholder = "Remarks for the report (optional)",
+  placeholder = "Remarks for the report (required)",
 }: {
   areaNo: number;
   areaId: string;
@@ -116,7 +116,7 @@ export function ReviewFullScreen({
       {kind === "area" && (
         <>
           <Indicators areaNo={areaNo ?? 1} areaId={slot.refId} ratings={ratings} set={set} disabled={locked} readOnly={locked} />
-          <div style={{ fontSize: 11, color: "var(--muted)" }}>Rated {ratedCount(ratings[slot.refId])}/3 · saved automatically</div>
+          <div style={{ fontSize: 11, color: "var(--muted)" }}>Completed {ratedCount(ratings[slot.refId])}/3 · each needs a rating and a remark · saved automatically</div>
         </>
       )}
     </>

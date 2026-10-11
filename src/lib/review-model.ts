@@ -101,7 +101,7 @@ export const INDICATORS = [
 
 export function ratedCount(r: Record<number, IndicatorRating> | undefined) {
   if (!r) return 0;
-  return [1, 2, 3].filter((i) => r[i]?.rating).length;
+  return [1, 2, 3].filter((i) => r[i]?.rating && r[i].remark.trim()).length;
 }
 
 export function areaMean(r: Record<number, IndicatorRating> | undefined) {

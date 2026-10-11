@@ -120,7 +120,7 @@ export async function getQacOverview(): Promise<QacOverview> {
       areaMeans[m.id] = Object.fromEntries([...byArea].map(([k, v]) => [k, v.reduce((a, b) => a + b, 0) / v.length]));
       remarks[m.id] = {};
       for (const r of mine) if (r.remark?.trim()) (remarks[m.id][r.requirement_area_id] ??= []).push(r.remark.trim());
-      const rows = (ratings ?? []).filter((r) => r.assignment_id === asg?.id && r.accreditor_id === m.id && r.rating);
+      const rows = (ratings ?? []).filter((r) => r.assignment_id === asg?.id && r.accreditor_id === m.id && r.rating && r.remark?.trim());
       const perArea = new Map<string, number>();
       for (const r of rows) perArea.set(r.requirement_area_id, (perArea.get(r.requirement_area_id) ?? 0) + 1);
       rated[m.id] = [...perArea.values()].filter((n) => n >= 3).length;

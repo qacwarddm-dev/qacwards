@@ -307,7 +307,7 @@ function ReqCard({ a, signed, meId }: { a: IaAssignment; signed: boolean; meId: 
                 ) : (
                   <>
                     {x.file} · {x.size} · {x.date}
-                    {x.version > 1 ? ` · v${x.version}` : ""} · <span style={{ color: n === 3 ? "#1d7a35" : "inherit" }}>Rated {n}/3</span>
+                    {x.version > 1 ? ` · v${x.version}` : ""} · <span style={{ color: n === 3 ? "#1d7a35" : "inherit" }}>Completed {n}/3</span>
                   </>
                 )
               }
@@ -378,6 +378,8 @@ function ReqCard({ a, signed, meId }: { a: IaAssignment; signed: boolean; meId: 
   );
 }
 
+const INCOMPLETE_MSG = "Rate all three indicators and add a remark to each before leaving this area";
+
 function AreaView({ a, slot, crumbs, signed: reportSigned, meId }: { a: IaAssignment; slot: Slot; crumbs: Crumb[]; signed: boolean; meId: string }) {
   const router = useNav();
   const toast = useToast();
@@ -394,6 +396,7 @@ function AreaView({ a, slot, crumbs, signed: reportSigned, meId }: { a: IaAssign
   const own = a.mine.includes(slot.refId);
   const sent = sentLocked(a);
   const signed = reportSigned || !own || sent;
+  const incomplete = !signed && slot.state === "approved" && ratedCount(ratings[slot.refId]) < 3;
   const mate = a.mate?.short ?? mateRole(a);
   return (
     <>
@@ -505,12 +508,13 @@ function AreaView({ a, slot, crumbs, signed: reportSigned, meId }: { a: IaAssign
               <span />
               <span style={{ display: "flex", gap: 8 }}>
                 {next && (
-                  <Btn variant="o" href={href(a.id, { st: "req", ar: next.refId })}>
+                  <Btn variant="o" onClick={() => (incomplete ? toast.say(INCOMPLETE_MSG, true) : router.push(href(a.id, { st: "req", ar: next.refId })))}>
                     Next area ›
                   </Btn>
                 )}
                 <Btn
                   onClick={() => {
+                    if (incomplete) return toast.say(INCOMPLETE_MSG, true);
                     if (!signed) toast.say("Area saved");
                     router.push(href(a.id, { st: "req" }));
                   }}
