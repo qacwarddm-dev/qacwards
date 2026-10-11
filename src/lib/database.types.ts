@@ -5,6 +5,7 @@ export type Json =
   | null
   | { [key: string]: Json | undefined }
   | Json[]
+
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
@@ -387,30 +388,30 @@ export type Database = {
       }
       assignment_accreditors: {
         Row: {
-          areas_sent_at: string | null
-          is_team_leader: boolean
           acting_reason: string | null
+          areas_sent_at: string | null
           assignment_id: string
+          is_team_leader: boolean
           profile_id: string
           rejection_note: string | null
           responded_at: string | null
           response: Database["public"]["Enums"]["accreditor_response"]
         }
         Insert: {
-          areas_sent_at?: string | null
-          is_team_leader?: boolean
           acting_reason?: string | null
+          areas_sent_at?: string | null
           assignment_id: string
+          is_team_leader?: boolean
           profile_id: string
           rejection_note?: string | null
           responded_at?: string | null
           response?: Database["public"]["Enums"]["accreditor_response"]
         }
         Update: {
-          areas_sent_at?: string | null
-          is_team_leader?: boolean
           acting_reason?: string | null
+          areas_sent_at?: string | null
           assignment_id?: string
+          is_team_leader?: boolean
           profile_id?: string
           rejection_note?: string | null
           responded_at?: string | null
@@ -435,36 +436,36 @@ export type Database = {
       }
       assignments: {
         Row: {
-          leader_area_ids: string[]
           assigned_by: string | null
           created_at: string
           cycle_id: string
           due_date: string | null
           id: string
+          leader_area_ids: string[]
           site_visit_date: string | null
           status: Database["public"]["Enums"]["assignment_status"]
           submission_id: string
           updated_at: string
         }
         Insert: {
-          leader_area_ids?: string[]
           assigned_by?: string | null
           created_at?: string
           cycle_id: string
           due_date?: string | null
           id?: string
+          leader_area_ids?: string[]
           site_visit_date?: string | null
           status?: Database["public"]["Enums"]["assignment_status"]
           submission_id: string
           updated_at?: string
         }
         Update: {
-          leader_area_ids?: string[]
           assigned_by?: string | null
           created_at?: string
           cycle_id?: string
           due_date?: string | null
           id?: string
+          leader_area_ids?: string[]
           site_visit_date?: string | null
           status?: Database["public"]["Enums"]["assignment_status"]
           submission_id?: string
@@ -605,14 +606,15 @@ export type Database = {
       }
       common_documents: {
         Row: {
-          change_note: string | null
-          content_text: string | null
-          deleted_at: string | null
           category: string
+          change_note: string | null
           college_codes: string[]
+          content_text: string | null
           created_at: string
+          deleted_at: string | null
           file_size: number | null
           id: string
+          search_tsv: unknown
           storage_path: string
           title: string
           updated_at: string
@@ -622,14 +624,15 @@ export type Database = {
           visible_to: string
         }
         Insert: {
-          change_note?: string | null
-          content_text?: string | null
-          deleted_at?: string | null
           category?: string
+          change_note?: string | null
           college_codes?: string[]
+          content_text?: string | null
           created_at?: string
+          deleted_at?: string | null
           file_size?: number | null
           id?: string
+          search_tsv?: unknown
           storage_path: string
           title: string
           updated_at?: string
@@ -639,14 +642,15 @@ export type Database = {
           visible_to?: string
         }
         Update: {
-          change_note?: string | null
-          content_text?: string | null
-          deleted_at?: string | null
           category?: string
+          change_note?: string | null
           college_codes?: string[]
+          content_text?: string | null
           created_at?: string
+          deleted_at?: string | null
           file_size?: number | null
           id?: string
+          search_tsv?: unknown
           storage_path?: string
           title?: string
           updated_at?: string
@@ -697,6 +701,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_reviews_submission_document_id_fkey"
+            columns: ["submission_document_id"]
+            isOneToOne: false
+            referencedRelation: "cycle_documents"
+            referencedColumns: ["document_id"]
           },
           {
             foreignKeyName: "document_reviews_submission_document_id_fkey"
@@ -828,6 +839,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "requirement_areas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evaluation_items_submission_document_id_fkey"
+            columns: ["submission_document_id"]
+            isOneToOne: false
+            referencedRelation: "cycle_documents"
+            referencedColumns: ["document_id"]
           },
           {
             foreignKeyName: "evaluation_items_submission_document_id_fkey"
@@ -1336,8 +1354,8 @@ export type Database = {
           avatar_path: string | null
           campus_id: string | null
           college_id: string | null
-          deleted_at: string | null
           created_at: string
+          deleted_at: string | null
           given_name: string
           id: string
           is_active: boolean
@@ -1357,8 +1375,8 @@ export type Database = {
           avatar_path?: string | null
           campus_id?: string | null
           college_id?: string | null
-          deleted_at?: string | null
           created_at?: string
+          deleted_at?: string | null
           given_name: string
           id: string
           is_active?: boolean
@@ -1378,8 +1396,8 @@ export type Database = {
           avatar_path?: string | null
           campus_id?: string | null
           college_id?: string | null
-          deleted_at?: string | null
           created_at?: string
+          deleted_at?: string | null
           given_name?: string
           id?: string
           is_active?: boolean
@@ -1617,11 +1635,56 @@ export type Database = {
         }
         Relationships: []
       }
+      registration_otps: {
+        Row: {
+          attempts: number
+          code_hash: string
+          created_at: string
+          email: string
+          expires_at: string
+          ip: string | null
+          last_sent_at: string
+          payload: Json
+          send_count: number
+          token_hash: string | null
+          verified_at: string | null
+          window_start: string
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          created_at?: string
+          email: string
+          expires_at: string
+          ip?: string | null
+          last_sent_at?: string
+          payload: Json
+          send_count?: number
+          token_hash?: string | null
+          verified_at?: string | null
+          window_start?: string
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          ip?: string | null
+          last_sent_at?: string
+          payload?: Json
+          send_count?: number
+          token_hash?: string | null
+          verified_at?: string | null
+          window_start?: string
+        }
+        Relationships: []
+      }
       repository_files: {
         Row: {
-          content_text: string | null
           archived_at: string | null
           cert_status: string | null
+          content_text: string | null
           created_at: string
           doc_uuid: string
           file_size: number | null
@@ -1630,6 +1693,7 @@ export type Database = {
           is_archived: boolean
           level_id: string | null
           program_id: string
+          search_tsv: unknown
           storage_path: string
           title: string
           unit_id: string | null
@@ -1638,9 +1702,9 @@ export type Database = {
           valid_until: string | null
         }
         Insert: {
-          content_text?: string | null
           archived_at?: string | null
           cert_status?: string | null
+          content_text?: string | null
           created_at?: string
           doc_uuid?: string
           file_size?: number | null
@@ -1649,6 +1713,7 @@ export type Database = {
           is_archived?: boolean
           level_id?: string | null
           program_id: string
+          search_tsv?: unknown
           storage_path: string
           title: string
           unit_id?: string | null
@@ -1657,9 +1722,9 @@ export type Database = {
           valid_until?: string | null
         }
         Update: {
-          content_text?: string | null
           archived_at?: string | null
           cert_status?: string | null
+          content_text?: string | null
           created_at?: string
           doc_uuid?: string
           file_size?: number | null
@@ -1668,6 +1733,7 @@ export type Database = {
           is_archived?: boolean
           level_id?: string | null
           program_id?: string
+          search_tsv?: unknown
           storage_path?: string
           title?: string
           unit_id?: string | null
@@ -1975,6 +2041,13 @@ export type Database = {
             foreignKeyName: "submission_cycle_history_submission_id_fkey"
             columns: ["submission_id"]
             isOneToOne: false
+            referencedRelation: "submission_readiness"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "submission_cycle_history_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
             referencedRelation: "submissions"
             referencedColumns: ["id"]
           },
@@ -1991,6 +2064,7 @@ export type Database = {
           page_count: number | null
           phase_document_id: string | null
           requirement_area_id: string | null
+          search_tsv: unknown
           storage_path: string
           submission_id: string
           supersedes_id: string | null
@@ -2010,6 +2084,7 @@ export type Database = {
           page_count?: number | null
           phase_document_id?: string | null
           requirement_area_id?: string | null
+          search_tsv?: unknown
           storage_path: string
           submission_id: string
           supersedes_id?: string | null
@@ -2029,6 +2104,7 @@ export type Database = {
           page_count?: number | null
           phase_document_id?: string | null
           requirement_area_id?: string | null
+          search_tsv?: unknown
           storage_path?: string
           submission_id?: string
           supersedes_id?: string | null
@@ -2066,6 +2142,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "submissions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submission_documents_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "cycle_documents"
+            referencedColumns: ["document_id"]
           },
           {
             foreignKeyName: "submission_documents_supersedes_id_fkey"
@@ -2304,8 +2387,8 @@ export type Database = {
       }
       templates: {
         Row: {
-          content_text: string | null
           change_note: string | null
+          content_text: string | null
           created_at: string
           group_key: string | null
           id: string
@@ -2313,6 +2396,7 @@ export type Database = {
           level_id: string | null
           phase_document_id: string | null
           requirement_area_id: string | null
+          search_tsv: unknown
           storage_path: string
           title: string
           updated_at: string
@@ -2320,8 +2404,8 @@ export type Database = {
           version: number
         }
         Insert: {
-          content_text?: string | null
           change_note?: string | null
+          content_text?: string | null
           created_at?: string
           group_key?: string | null
           id?: string
@@ -2329,6 +2413,7 @@ export type Database = {
           level_id?: string | null
           phase_document_id?: string | null
           requirement_area_id?: string | null
+          search_tsv?: unknown
           storage_path: string
           title: string
           updated_at?: string
@@ -2336,8 +2421,8 @@ export type Database = {
           version?: number
         }
         Update: {
-          content_text?: string | null
           change_note?: string | null
+          content_text?: string | null
           created_at?: string
           group_key?: string | null
           id?: string
@@ -2345,6 +2430,7 @@ export type Database = {
           level_id?: string | null
           phase_document_id?: string | null
           requirement_area_id?: string | null
+          search_tsv?: unknown
           storage_path?: string
           title?: string
           updated_at?: string
@@ -2687,11 +2773,6 @@ export type Database = {
       }
     }
     Functions: {
-      archive_detail: { Args: { p_assignment: string }; Returns: Json }
-      public_accreditation_status: {
-        Args: never
-        Returns: { level_code: string; programs: number }[]
-      }
       accepted_on_submission: {
         Args: { p_submission: string }
         Returns: boolean
@@ -2701,25 +2782,6 @@ export type Database = {
         Args: { p_session?: string; p_user?: string }
         Returns: number
       }
-      admin_purge_program: { Args: { p_id: string }; Returns: undefined }
-      admin_purge_user: { Args: { p_id: string }; Returns: undefined }
-      register_issue_otp: {
-        Args: { p_email: string; p_data: Json; p_expertise: string; p_ip: string }
-        Returns: Json
-      }
-      register_discard_otp: { Args: { p_email: string }; Returns: undefined }
-      register_verify_otp: {
-        Args: { p_email: string; p_code: string }
-        Returns: Json
-      }
-      register_check_token: {
-        Args: { p_email: string; p_token: string }
-        Returns: boolean
-      }
-      register_complete: {
-        Args: { p_email: string; p_token: string; p_password: string }
-        Returns: Json
-      }
       admin_last_activity: {
         Args: never
         Returns: {
@@ -2727,6 +2789,8 @@ export type Database = {
           profile_id: string
         }[]
       }
+      admin_purge_program: { Args: { p_id: string }; Returns: undefined }
+      admin_purge_user: { Args: { p_id: string }; Returns: undefined }
       admin_queue_email: {
         Args: { p_body: string; p_subject: string; p_to: string }
         Returns: undefined
@@ -2742,37 +2806,25 @@ export type Database = {
         }[]
       }
       admin_storage_usage: { Args: never; Returns: number }
+      archive_detail: { Args: { p_assignment: string }; Returns: Json }
+      area_is_evaluated: {
+        Args: { p_area: string; p_assignment: string }
+        Returns: boolean
+      }
+      area_locked: {
+        Args: { p_assignment: string; p_profile?: string }
+        Returns: boolean
+      }
       auth_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      can_see_common_doc: { Args: { p_colleges: string[] }; Returns: boolean }
       check_rate_limit: {
         Args: { p_max_count: number; p_route: string; p_window_seconds: number }
         Returns: boolean
       }
       count_common_document_view: { Args: { p_id: string }; Returns: undefined }
-      default_leader_areas: { Args: { p_level: string }; Returns: string[] }
-      included_areas: { Args: { p_assignment: string }; Returns: string[] }
-      owns_area: { Args: { p_area: string; p_assignment: string; p_profile?: string }; Returns: boolean }
-      area_locked: { Args: { p_assignment: string; p_profile?: string }; Returns: boolean }
-      area_is_evaluated: { Args: { p_area: string; p_assignment: string }; Returns: boolean }
-      may_review_document: { Args: { p_doc: string }; Returns: boolean }
-      set_team_roles: { Args: { p_areas: string[]; p_assignment: string; p_leader: string }; Returns: undefined }
-      send_areas_to_leader: { Args: { p_assignment: string }; Returns: undefined }
-      publish_common_document_version: {
-        Args: {
-          p_category: string
-          p_colleges: string[]
-          p_document: string
-          p_file_size: number
-          p_note: string
-          p_path: string
-          p_title: string
-          p_visible_to: string
-        }
-        Returns: number
-      }
-      restore_common_document_version: { Args: { p_version: string }; Returns: number }
       create_event: {
         Args: {
           p_description?: string
@@ -2784,17 +2836,21 @@ export type Database = {
         }
         Returns: string
       }
+      cycle_accepts_work: { Args: { p_cycle: string }; Returns: boolean }
+      default_leader_areas: { Args: { p_level: string }; Returns: string[] }
       event_visible_to_caller: {
         Args: { p_event_id: string }
         Returns: boolean
       }
       has_nda: { Args: never; Returns: boolean }
+      included_areas: { Args: { p_assignment: string }; Returns: string[] }
       is_active_user: { Args: never; Returns: boolean }
       is_qac: { Args: never; Returns: boolean }
       log_self_event: {
         Args: { p_detail?: string; p_kind: string }
         Returns: undefined
       }
+      may_review_document: { Args: { p_doc: string }; Returns: boolean }
       my_assigned_submission_ids: { Args: never; Returns: string[] }
       my_assignment_ids: { Args: never; Returns: string[] }
       my_program_ids: { Args: never; Returns: string[] }
@@ -2811,11 +2867,61 @@ export type Database = {
         }
         Returns: string
       }
+      owns_area: {
+        Args: { p_area: string; p_assignment: string; p_profile?: string }
+        Returns: boolean
+      }
       patch_evaluation_sheet: {
         Args: { p_assignment: string; p_patch: Json }
         Returns: Json
       }
+      public_accreditation_status: {
+        Args: never
+        Returns: {
+          level_code: string
+          programs: number
+        }[]
+      }
+      publish_common_document_version: {
+        Args: {
+          p_category: string
+          p_colleges: string[]
+          p_document: string
+          p_file_size: number
+          p_note: string
+          p_path: string
+          p_title: string
+          p_visible_to: string
+        }
+        Returns: number
+      }
       readiness_band: { Args: { percent: number }; Returns: string }
+      register_check_token: {
+        Args: { p_email: string; p_token: string }
+        Returns: boolean
+      }
+      register_complete: {
+        Args: { p_email: string; p_password: string; p_token: string }
+        Returns: Json
+      }
+      register_discard_otp: { Args: { p_email: string }; Returns: undefined }
+      register_issue_otp: {
+        Args: {
+          p_data: Json
+          p_email: string
+          p_expertise: string
+          p_ip: string
+        }
+        Returns: Json
+      }
+      register_verify_otp: {
+        Args: { p_code: string; p_email: string }
+        Returns: Json
+      }
+      restore_common_document_version: {
+        Args: { p_version: string }
+        Returns: number
+      }
       return_submission: {
         Args: { p_assignment: string; p_note: string }
         Returns: undefined
@@ -2825,24 +2931,32 @@ export type Database = {
         Returns: {
           id: string
           kind: string
-          level: string | null
-          program: string | null
+          level: string
+          program: string
           rank: number
-          ref_id: string | null
-          snippet: string | null
+          ref_id: string
+          snippet: string
           title: string
         }[]
+      }
+      send_areas_to_leader: {
+        Args: { p_assignment: string }
+        Returns: undefined
       }
       send_reminder: {
         Args: { p_link?: string; p_profile: string; p_title: string }
         Returns: undefined
       }
-      show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
       set_document_text: {
         Args: { p_id: string; p_kind: string; p_text: string }
         Returns: undefined
       }
+      set_team_roles: {
+        Args: { p_areas: string[]; p_assignment: string; p_leader: string }
+        Returns: undefined
+      }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       sign_accreditor_report: {
         Args: {
           p_assignment: string
@@ -2904,8 +3018,11 @@ export type Database = {
     }
   }
 }
+
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
 type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
@@ -2934,6 +3051,7 @@ export type Tables<
       ? R
       : never
     : never
+
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
@@ -2958,6 +3076,7 @@ export type TablesInsert<
       ? I
       : never
     : never
+
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
@@ -2982,6 +3101,7 @@ export type TablesUpdate<
       ? U
       : never
     : never
+
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
@@ -2998,6 +3118,7 @@ export type Enums<
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
+
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
@@ -3014,6 +3135,7 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
 export const Constants = {
   public: {
     Enums: {
