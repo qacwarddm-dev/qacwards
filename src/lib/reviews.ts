@@ -299,7 +299,8 @@ export function emptyReview(
 
 // ----------------------------------------------------------- ratings
 
-/** Every area's ratings, each taken from the accreditor who owns that area. */
+/** Every area's ratings, taken from the accreditor who owns the area. Ratings made before roles
+ *  existed sit with whoever filled them in, so they stand in until the owner has rated. */
 export async function getTeamRatings(assignmentId: string, ownerOf: (areaId: string) => string | null): Promise<AreaRatings> {
   const supabase = await createClient();
   const { data } = await supabase
@@ -307,11 +308,8 @@ export async function getTeamRatings(assignmentId: string, ownerOf: (areaId: str
     .select("requirement_area_id, accreditor_id, indicator, rating, remark")
     .eq("assignment_id", assignmentId);
   const out: AreaRatings = {};
-  for (const r of data ?? []) {
-    const owner = ownerOf(r.requirement_area_id);
-    if (owner && r.accreditor_id !== owner) continue;
-    (out[r.requirement_area_id] ??= {})[r.indicator] = { rating: r.rating, remark: r.remark ?? "" };
-  }
+  const rows = [...(data ?? [])].sort((a, b) => Number(ownerOf(a.requirement_area_id) === a.accreditor_id) - Number(ownerOf(b.requirement_area_id) === b.accreditor_id));
+  for (const r of rows) (out[r.requirement_area_id] ??= {})[r.indicator] = { rating: r.rating, remark: r.remark ?? "" };
   return out;
 }
 

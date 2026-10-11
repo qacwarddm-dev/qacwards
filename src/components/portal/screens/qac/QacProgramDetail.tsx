@@ -415,7 +415,8 @@ export default function QacProgramDetail({ p, today, initialStage }: { p: QacPro
               rows: areas.map((x) => {
                 const mine = p.leaderAreaIds.includes(x.refId);
                 const owner = mine ? viewing : asst;
-                return { roman: roman(x.ordinal), title: areaShort(x.name), mean: (owner && p.areaMeans[owner.id]?.[x.refId]) || 0, ratedBy: mine ? `${viewing.surname} (TL)` : (asst?.surname ?? "") };
+                const mean = (owner && p.areaMeans[owner.id]?.[x.refId]) || Object.values(p.areaMeans).map((m) => m[x.refId]).find(Boolean) || 0;
+                return { roman: roman(x.ordinal), title: areaShort(x.name), mean, ratedBy: mine ? `${viewing.surname} (TL)` : (asst?.surname ?? "") };
               }),
               improvements: [],
               findings: vr.findings,
