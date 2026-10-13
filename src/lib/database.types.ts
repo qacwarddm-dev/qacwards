@@ -684,18 +684,29 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          parent_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
+          parent_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
+          parent_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "common_folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "common_folders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       document_reviews: {
         Row: {

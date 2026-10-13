@@ -38,6 +38,7 @@ export { default as FileGrid } from "./FileGrid";
 export { default as FileViewModal } from "./FileViewModal";
 export { default as FilterPills } from "./FilterPills";
 export { default as FolderIcon } from "./FolderIcon";
+export { default as FolderPath } from "./FolderPath";
 export { default as FolderTile } from "./FolderTile";
 export { default as FolderTable, type FolderRowItem } from "./FolderTable";
 export type { MenuItem } from "./ItemMenu";

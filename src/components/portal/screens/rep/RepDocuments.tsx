@@ -9,6 +9,7 @@ import Empty from "../../kit/Empty";
 import FileGrid from "../../kit/FileGrid";
 import FileViewModal from "../../kit/FileViewModal";
 import FolderIcon from "../../kit/FolderIcon";
+import FolderPath from "../../kit/FolderPath";
 import FolderTable from "../../kit/FolderTable";
 import Icon from "../../kit/Icon";
 import Pill from "../../kit/Pill";
@@ -17,7 +18,7 @@ import { MiniRing } from "../../kit/Spinner";
 import StepsReminder from "../../kit/StepsReminder";
 import { useToast } from "../../kit/ToastProvider";
 import useContentMatches from "../../kit/useContentMatches";
-import { TemplatePreview } from "../../kit/UploadFlow";
+import { childrenOf, trailOf } from "@/lib/common-folders";
 import type { RepDocumentsData, TemplateGroup } from "@/lib/rep-documents";
 import { countCommonView, getOwnNdaUrl, myNdaFileIds, uploadNda } from "@/lib/document-actions";
 import type { NdaFields } from "@/lib/nda-scan";
@@ -68,14 +69,14 @@ function MiniPage({ title }: { title: string }) {
 
 function Templates({ groups, me }: { groups: TemplateGroup[]; me: string }) {
   const [open, setOpen] = useState<TemplateGroup | null>(null);
-  const [preview, setPreview] = useState<{ name: string; id: string | null; pdf: boolean } | null>(null);
+  const [preview, setPreview] = useState<{ name: string; id: string; pdf: boolean } | null>(null);
   if (!open)
     return (
       <>
         <div className="lvhint">Click a level to view its toolkit.</div>
         <div className="lvg">
           {groups.map((g) => {
-            const n = g.sections.reduce((s, x) => s + x.items.length, 0);
+            const n = g.sections.reduce((s, x) => s + x.items.filter((t) => t.templateId).length, 0);
             return (
               <div key={g.key} className="lvk" tabIndex={0} role="button" onClick={() => setOpen(g)} onKeyDown={(e) => e.key === "Enter" && setOpen(g)}>
                 <div className="ph" style={{ backgroundImage: "url(/assets/portal/mockup/building.jpg)" }}>
@@ -119,33 +120,34 @@ function Templates({ groups, me }: { groups: TemplateGroup[]; me: string }) {
           )}
           <div className="tgrid" style={{ marginBottom: 22 }}>
             {s.items.map((t) => (
-              <div key={t.name} className="tpl" title={t.name} onClick={() => setPreview({ name: t.name, id: t.templateId, pdf: t.isPdf })}>
+              <div key={t.name} className="tpl" title={t.name} onClick={() => t.templateId && setPreview({ name: t.name, id: t.templateId, pdf: t.isPdf })}>
                 <div className="tt">
-                  <span className="docxi">DOCX</span>
+                  <span className={t.isPdf ? "pdfi" : "docxi"}>{t.isPdf ? "PDF" : "DOCX"}</span>
                   <span>{t.name}</span>
                 </div>
                 <MiniPage title={t.name} />
                 <div className="ta">
-                  <Btn
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPreview({ name: t.name, id: t.templateId, pdf: t.isPdf });
-                    }}
-                  >
-                    👁 View toolkit
-                  </Btn>
+                  {t.templateId ? (
+                    <Btn
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPreview({ name: t.name, id: t.templateId!, pdf: t.isPdf });
+                      }}
+                    >
+                      👁 View toolkit
+                    </Btn>
+                  ) : (
+                    <Btn variant="gh" disabled>
+                      Not uploaded yet
+                    </Btn>
+                  )}
                 </div>
               </div>
             ))}
           </div>
         </Fragment>
       ))}
-      {preview &&
-        (preview.id && preview.pdf ? (
-          <FileViewModal title={preview.name} src={dl("template", preview.id)} viewer={me} onClose={() => setPreview(null)} />
-        ) : (
-          <TemplatePreview tpl={{ name: preview.name, url: null }} viewer={me} goHref="/portal/submission" onClose={() => setPreview(null)} />
-        ))}
+      {preview && <FileViewModal title={`${preview.name}.${preview.pdf ? "pdf" : "docx"}`} src={dl("template", preview.id)} viewer={me} onClose={() => setPreview(null)} />}
     </>
   );
 }
@@ -182,6 +184,7 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
   const [view, setView] = useState<{ title: string; src: string | null; own?: boolean } | null>(null);
   const [folder, setFolder] = useState<string | null>(null);
   const docs = data.common.filter((c) => c.folderId === folder);
+  const subfolders = childrenOf(data.commonFolders, folder);
   const [pending, start] = useBusy();
   const [opening, setOpening] = useState(false);
   const [reminder, setReminder] = useState(false);
@@ -271,21 +274,9 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
           </div>
           <Pill tone="ok">✓ NDA verified</Pill>
         </div>
-        {data.commonFolders.length > 0 && !folder && (
-          <FolderTable rows={data.commonFolders.map((f) => ({ key: f.id, name: f.name, n: data.common.filter((c) => c.folderId === f.id).length, open: () => setFolder(f.id) }))} />
-        )}
-        {folder && (
-          <div className="ch" style={{ margin: "4px 0 10px" }}>
-            <div className="crumb" style={{ margin: 0 }}>
-              <a role="button" onClick={() => setFolder(null)}>
-                Common Documents
-              </a>{" "}
-              › {data.commonFolders.find((f) => f.id === folder)?.name}
-            </div>
-            <BackLink to="Folders" onClick={() => setFolder(null)} />
-          </div>
-        )}
-        {(folder || docs.length > 0 || data.commonFolders.length === 0) && (
+        {folder && <FolderPath root="Common Documents" trail={trailOf(data.commonFolders, folder)} onGo={setFolder} />}
+        {subfolders.length > 0 && <FolderTable rows={subfolders.map((f) => ({ key: f.id, name: f.name, n: f.n, open: () => setFolder(f.id) }))} />}
+        {(docs.length > 0 || subfolders.length === 0) && (
           <table>
             <tbody>
               <tr>

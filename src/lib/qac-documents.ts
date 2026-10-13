@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { areaLabel, fileSize, personName, shortDate } from "@/lib/program-names";
+import { subtreeIds } from "@/lib/common-folders";
 import { getNdaQueue, type NdaItem } from "@/lib/qac-portal";
 
 export type TplGroupKey = "areas" | "l3" | "l4" | "gen";
@@ -20,7 +21,7 @@ export type TplRow = {
   history: TplVersion[];
 };
 export type TplGroup = { key: TplGroupKey; label: string; rows: TplRow[] };
-export type CommonFolder = { id: string; name: string; n: number };
+export type CommonFolder = { id: string; name: string; parentId: string | null; n: number };
 export type CommonVersion = { id: string | null; ver: number; title: string; ext: "pdf" | "docx"; date: string; size: string; note: string; by: string; cur?: boolean };
 export type CommonDoc = {
   id: string;
@@ -60,7 +61,7 @@ export async function getQacDocuments(): Promise<QacDocumentsData> {
       .from("common_document_versions")
       .select("id, document_id, version, title, file_size, change_note, uploaded_at, storage_path, profiles:uploaded_by(surname, given_name)")
       .order("version", { ascending: false }),
-    supabase.from("common_folders").select("id, name").order("name"),
+    supabase.from("common_folders").select("id, name, parent_id").order("name"),
     supabase.from("nda_issuances").select("file_id", { count: "exact", head: true }),
     getNdaQueue(),
     supabase.from("colleges").select("code, name").order("code"),
@@ -132,7 +133,11 @@ export async function getQacDocuments(): Promise<QacDocumentsData> {
   return {
     groups,
     common: (common ?? []).filter((c) => !c.deleted_at).map(toCommon),
-    folders: (folders ?? []).map((f) => ({ id: f.id, name: f.name, n: (common ?? []).filter((c) => !c.deleted_at && c.folder_id === f.id).length })),
+    folders: (folders ?? []).map((f) => {
+      const nodes = (folders ?? []).map((x) => ({ id: x.id, name: x.name, parentId: x.parent_id }));
+      const inside = subtreeIds(nodes, f.id);
+      return { id: f.id, name: f.name, parentId: f.parent_id, n: (common ?? []).filter((c) => !c.deleted_at && c.folder_id && inside.has(c.folder_id)).length };
+    }),
     commonDeleted: (common ?? []).filter((c) => c.deleted_at).sort((a, b) => b.deleted_at!.localeCompare(a.deleted_at!)).map(toCommon),
     ndaForm: {
       id: nda?.id ?? null,

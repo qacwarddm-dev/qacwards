@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getMyPrograms } from "@/lib/submissions";
+import { subtreeIds } from "@/lib/common-folders";
 import { areaLabel, fileSize, shortDate } from "@/lib/program-names";
 
 export type TemplateTile = { name: string; templateId: string | null; isPdf: boolean };
@@ -11,7 +12,7 @@ export type RepDocumentsData = {
   templates: TemplateGroup[];
   nda: { status: "none" | "review" | "verified" | "returned"; fileId: string | null; note: string | null; path: string | null };
   common: { id: string; title: string; version: number; date: string; size: string; ext: "pdf" | "docx"; folderId: string | null }[];
-  commonFolders: { id: string; name: string }[];
+  commonFolders: { id: string; name: string; parentId: string | null; n: number }[];
   folders: RepFolderView[];
 };
 
@@ -35,7 +36,7 @@ export async function getRepDocuments(userId: string): Promise<RepDocumentsData>
       supabase.from("templates").select("id, title, storage_path, requirement_area_id, level_id, group_key, is_published").eq("is_published", true).order("created_at"),
       supabase.from("ndas").select("status, file_id, review_note, storage_path").eq("profile_id", userId).maybeSingle(),
       supabase.from("common_documents").select("id, title, version, updated_at, created_at, file_size, storage_path, folder_id").order("title"),
-      supabase.from("common_folders").select("id, name").order("name"),
+      supabase.from("common_folders").select("id, name, parent_id").order("name"),
       supabase.from("repository_folders").select("id, slug, name, ordinal").order("ordinal"),
       ids.length
         ? supabase.from("repository_files").select("id, title, folder_id, created_at, file_size, program_id, programs(name)").in("program_id", ids).eq("is_archived", false).order("created_at", { ascending: false })
@@ -97,7 +98,13 @@ export async function getRepDocuments(userId: string): Promise<RepDocumentsData>
       ext: c.storage_path.toLowerCase().endsWith(".docx") ? ("docx" as const) : ("pdf" as const),
       folderId: c.folder_id,
     })),
-    commonFolders: (commonFolders ?? []).filter((f) => (common ?? []).some((c) => c.folder_id === f.id)),
+    commonFolders: (commonFolders ?? [])
+      .map((f) => {
+        const nodes = (commonFolders ?? []).map((x) => ({ id: x.id, name: x.name, parentId: x.parent_id }));
+        const inside = subtreeIds(nodes, f.id);
+        return { id: f.id, name: f.name, parentId: f.parent_id, n: (common ?? []).filter((c) => c.folder_id && inside.has(c.folder_id)).length };
+      })
+      .filter((f) => f.n > 0),
     folders: folderViews,
   };
 }

@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import Btn from "../../kit/Btn";
-import BackLink from "../../kit/BackLink";
 import Card, { CardHead } from "../../kit/Card";
 import DocViewer from "../../kit/DocViewer";
 import FileDrop from "../../kit/FileDrop";
 import FilterPills from "../../kit/FilterPills";
+import FolderPath from "../../kit/FolderPath";
 import FolderTable from "../../kit/FolderTable";
 import FullScreenViewer from "../../kit/FullScreenViewer";
 import Modal from "../../kit/Modal";
@@ -18,6 +18,7 @@ import SegTabs from "../../kit/SegTabs";
 import SumRows from "../../kit/SumRows";
 import useAct from "../../kit/useAct";
 import useContentMatches from "../../kit/useContentMatches";
+import { childrenOf, folderOptions, subtreeIds, trailOf } from "@/lib/common-folders";
 import type { CommonDoc, CommonFolder, CommonVersion, QacDocumentsData, TplGroupKey, TplRow } from "@/lib/qac-documents";
 import type { NdaItem } from "@/lib/qac-portal";
 import { safeName, uploadDirect } from "@/lib/upload-client";
@@ -26,6 +27,7 @@ import {
   deleteCommonDoc,
   deleteCommonFolder,
   moveCommonDoc,
+  moveCommonFolder,
   renameCommonFolder,
   replaceNdaForm,
   restoreTemplateVersion,
@@ -341,7 +343,7 @@ function Common({ docs, folders, deleted, colleges }: { docs: CommonDoc[]; folde
   const text = useContentMatches(["common"], q);
   const [folder, setFolder] = useState<string | null>(null);
   const [modal, setModal] = useState<
-    null | { k: "up"; d?: CommonDoc } | { k: "del" | "view" | "hist" | "move"; d: CommonDoc } | { k: "vview"; d: CommonDoc; v: CommonVersion } | { k: "folder"; f?: CommonFolder } | { k: "delf"; f: CommonFolder }
+    null | { k: "up"; d?: CommonDoc } | { k: "del" | "view" | "hist" | "move"; d: CommonDoc } | { k: "vview"; d: CommonDoc; v: CommonVersion } | { k: "folder"; f?: CommonFolder; parent?: string | null } | { k: "delf" | "movef"; f: CommonFolder }
   >(null);
   const { busy, run } = useAct();
   const ql = q.toLowerCase();
@@ -355,32 +357,23 @@ function Common({ docs, folders, deleted, colleges }: { docs: CommonDoc[]; folde
         </div>
         <div className="rbtns">
           <SearchBox variant="r-sm" value={q} onChange={setQ} placeholder="Search documents" />
-          <Btn variant="o" onClick={() => setModal({ k: "folder" })}>
+          <Btn variant="o" onClick={() => setModal({ k: "folder", parent: open?.id ?? null })}>
             ＋ New folder
           </Btn>
           <Btn onClick={() => setModal({ k: "up" })}>⬆ Upload document</Btn>
         </div>
       </div>
-      {open && !ql && (
-        <div className="ch" style={{ margin: "4px 0 10px" }}>
-          <div className="crumb" style={{ margin: 0 }}>
-            <a role="button" onClick={() => setFolder(null)}>
-              Common Documents
-            </a>{" "}
-            › {open.name}
-          </div>
-          <BackLink to="Folders" onClick={() => setFolder(null)} />
-        </div>
-      )}
-      {!open && !ql && folders.length > 0 && (
+      {open && !ql && <FolderPath root="Common Documents" trail={trailOf(folders, open.id)} onGo={setFolder} />}
+      {!ql && childrenOf(folders, open?.id ?? null).length > 0 && (
         <FolderTable
-          rows={folders.map((f) => ({
+          rows={childrenOf(folders, open?.id ?? null).map((f) => ({
             key: f.id,
             name: f.name,
             n: f.n,
             open: () => setFolder(f.id),
             items: [
               { label: "Rename", onClick: () => setModal({ k: "folder", f }) },
+              { label: "Move", onClick: () => setModal({ k: "movef", f }) },
               { label: "Delete folder", danger: true, onClick: () => setModal({ k: "delf", f }) },
             ],
           }))}
@@ -439,16 +432,17 @@ function Common({ docs, folders, deleted, colleges }: { docs: CommonDoc[]; folde
           </table>
         </div>
       ) : (
-        <div className="empty">
-          {ql ? (text.pending ? "Searching inside files…" : "No documents match.") : open ? "This folder is empty." : docs.length ? "No unfiled documents." : "No common documents uploaded yet."}
-        </div>
+        (ql || !childrenOf(folders, open?.id ?? null).length) && (
+          <div className="empty">{ql ? (text.pending ? "Searching inside files…" : "No documents match.") : open ? "This folder is empty." : "No common documents uploaded yet."}</div>
+        )
       )}
       <div className="sub" style={{ fontSize: 11.5, marginTop: 10 }}>
         🔒 View only for program reps: watermarked with their name, no download or print. Each view is logged.
       </div>
       <RecentlyDeleted items={deleted.map((d) => ({ id: d.id, title: d.title, sub: d.category, deletedAt: d.deletedAt! }))} onRestore={restoreCommonDoc} />
       {modal?.k === "up" && <CommonUpload d={modal.d} folders={folders} folder={open?.id ?? null} colleges={colleges} onClose={() => setModal(null)} />}
-      {modal?.k === "folder" && <FolderForm f={modal.f} onClose={() => setModal(null)} />}
+      {modal?.k === "folder" && <FolderForm f={modal.f} parent={modal.parent ?? null} folders={folders} onClose={() => setModal(null)} />}
+      {modal?.k === "movef" && <MoveFolder f={modal.f} folders={folders} onClose={() => setModal(null)} />}
       {modal?.k === "move" && <MoveDoc d={modal.d} folders={folders} onClose={() => setModal(null)} />}
       {modal?.k === "delf" && (
         <Modal
@@ -466,7 +460,7 @@ function Common({ docs, folders, deleted, colleges }: { docs: CommonDoc[]; folde
                     () => deleteCommonFolder(modal.f.id),
                     "Folder deleted",
                     () => {
-                      if (folder === modal.f.id) setFolder(null);
+                      if (folder && subtreeIds(folders, modal.f.id).has(folder)) setFolder(null);
                       setModal(null);
                     },
                   )
@@ -479,7 +473,7 @@ function Common({ docs, folders, deleted, colleges }: { docs: CommonDoc[]; folde
         >
           <Result tone="danger" icon="🗑" title={`Delete the folder “${modal.f.name}”?`}>
             <p>
-              The {modal.f.n} document{modal.f.n === 1 ? "" : "s"} inside will not be deleted. They move out of the folder to the main Common Documents list.
+              Any folders inside it are deleted too. The {modal.f.n} document{modal.f.n === 1 ? "" : "s"} inside will not be deleted. They move out to the main Common Documents list.
             </p>
           </Result>
         </Modal>
@@ -660,9 +654,9 @@ function CommonUpload({ d, folders, folder, colleges, onClose }: { d?: CommonDoc
           </label>
           <select className="inp" value={dest} onChange={(e) => setDest(e.target.value)}>
             <option value="">No folder</option>
-            {folders.map((f) => (
+            {folderOptions(folders).map((f) => (
               <option key={f.id} value={f.id}>
-                {f.name}
+                {f.label}
               </option>
             ))}
           </select>
@@ -698,16 +692,17 @@ function CommonUpload({ d, folders, folder, colleges, onClose }: { d?: CommonDoc
   );
 }
 
-function FolderForm({ f, onClose }: { f?: CommonFolder; onClose: () => void }) {
+function FolderForm({ f, parent, folders, onClose }: { f?: CommonFolder; parent: string | null; folders: CommonFolder[]; onClose: () => void }) {
   const [name, setName] = useState(f?.name ?? "");
   const { busy, run, toast } = useAct();
   const save = () => {
     if (!name.trim()) return toast.say("Enter a folder name", true);
-    return run(() => (f ? renameCommonFolder(f.id, name) : createCommonFolder(name)), f ? "Folder renamed" : "Folder created", onClose);
+    return run(() => (f ? renameCommonFolder(f.id, name) : createCommonFolder(name, parent)), f ? "Folder renamed" : "Folder created", onClose);
   };
   return (
     <Modal
       title={f ? "Rename folder" : "New folder"}
+      sub={!f && parent ? `Inside ${trailOf(folders, parent).map((x) => x.name).join(" › ")}` : undefined}
       onClose={onClose}
       locked={busy}
       footer={
@@ -723,6 +718,42 @@ function FolderForm({ f, onClose }: { f?: CommonFolder; onClose: () => void }) {
     >
       <label className="fl">Folder name *</label>
       <input className="inp" autoFocus maxLength={80} value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && save()} placeholder="e.g. Student Handbooks" />
+    </Modal>
+  );
+}
+
+function MoveFolder({ f, folders, onClose }: { f: CommonFolder; folders: CommonFolder[]; onClose: () => void }) {
+  const [dest, setDest] = useState(f.parentId ?? "");
+  const { busy, run } = useAct();
+  const blocked = subtreeIds(folders, f.id);
+  return (
+    <Modal
+      title="Move folder"
+      sub={f.name}
+      onClose={onClose}
+      locked={busy}
+      footer={
+        <>
+          <Btn variant="gh" onClick={onClose}>
+            Cancel
+          </Btn>
+          <Btn disabled={busy || dest === (f.parentId ?? "")} onClick={() => run(() => moveCommonFolder(f.id, dest || null), "Folder moved", onClose)}>
+            Move
+          </Btn>
+        </>
+      }
+    >
+      <label className="fl">Move into</label>
+      <select className="inp" value={dest} onChange={(e) => setDest(e.target.value)}>
+        <option value="">Top level (Common Documents)</option>
+        {folderOptions(folders)
+          .filter((o) => !blocked.has(o.id))
+          .map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.label}
+            </option>
+          ))}
+      </select>
     </Modal>
   );
 }
@@ -750,9 +781,9 @@ function MoveDoc({ d, folders, onClose }: { d: CommonDoc; folders: CommonFolder[
       <label className="fl">Folder</label>
       <select className="inp" value={dest} onChange={(e) => setDest(e.target.value)}>
         <option value="">No folder (main list)</option>
-        {folders.map((f) => (
+        {folderOptions(folders).map((f) => (
           <option key={f.id} value={f.id}>
-            {f.name}
+            {f.label}
           </option>
         ))}
       </select>

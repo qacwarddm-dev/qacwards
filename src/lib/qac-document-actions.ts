@@ -5,6 +5,7 @@ import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { BUCKETS, checkUploaded } from "@/lib/storage";
+import { subtreeIds } from "@/lib/common-folders";
 import { indexDocument } from "@/lib/doc-index";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
@@ -181,13 +182,13 @@ export async function saveCommonDoc(fd: FormData): Promise<ActionResult> {
   return { ok: true };
 }
 
-export async function createCommonFolder(name: string): Promise<ActionResult> {
+export async function createCommonFolder(name: string, parentId: string | null = null): Promise<ActionResult> {
   if (!(await qac())) return { ok: false, error: "Only QAC can manage common documents." };
   const clean = name.trim();
   if (!clean) return { ok: false, error: "Enter a folder name" };
   if (clean.length > 80) return { ok: false, error: "Folder name is too long (80 characters max)." };
   const supabase = await createClient();
-  const { error } = await supabase.from("common_folders").insert({ name: clean });
+  const { error } = await supabase.from("common_folders").insert({ name: clean, parent_id: parentId });
   if (error) return { ok: false, error: error.code === "23505" ? "A folder with that name already exists." : error.message };
   refresh();
   return { ok: true };
@@ -201,6 +202,20 @@ export async function renameCommonFolder(id: string, name: string): Promise<Acti
   const supabase = await createClient();
   const { data, error } = await supabase.from("common_folders").update({ name: clean }).eq("id", id).select("id");
   if (error) return { ok: false, error: error.code === "23505" ? "A folder with that name already exists." : error.message };
+  if (!data?.length) return { ok: false, error: "That folder no longer exists." };
+  refresh();
+  return { ok: true };
+}
+
+export async function moveCommonFolder(id: string, parentId: string | null): Promise<ActionResult> {
+  if (!(await qac())) return { ok: false, error: "Only QAC can manage common documents." };
+  const supabase = await createClient();
+  const { data: all, error: lErr } = await supabase.from("common_folders").select("id, name, parent_id");
+  if (lErr || !all) return { ok: false, error: lErr?.message ?? "Could not load folders." };
+  const nodes = all.map((f) => ({ id: f.id, name: f.name, parentId: f.parent_id }));
+  if (parentId && subtreeIds(nodes, id).has(parentId)) return { ok: false, error: "A folder can’t be moved into itself or one of its own subfolders." };
+  const { data, error } = await supabase.from("common_folders").update({ parent_id: parentId }).eq("id", id).select("id");
+  if (error) return { ok: false, error: error.code === "23505" ? "A folder with that name already exists there." : error.message };
   if (!data?.length) return { ok: false, error: "That folder no longer exists." };
   refresh();
   return { ok: true };
