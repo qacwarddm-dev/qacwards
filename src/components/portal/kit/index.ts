@@ -23,6 +23,7 @@ export { default as Crumbs } from "./Crumbs";
 export type { Crumb } from "./Crumbs";
 export { default as DocDetailModal } from "./DocDetailModal";
 export { default as DocRow } from "./DocRow";
+export { default as DocxFrame, isDocx } from "./DocxFrame";
 export { default as DocViewer } from "./DocViewer";
 export { useDocUrl, pdfSrc } from "./DocViewer";
 export { default as Donut } from "./Donut";

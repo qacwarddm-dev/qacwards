@@ -232,3 +232,8 @@
 @media (max-width:760px){.qp .trole,.qp .tgrid2,.qp .teamc{grid-template-columns:1fr}}
 .qp .ia .chip .rl{font-size:10px;color:var(--muted);font-weight:600;margin-left:2px}
 .qp .rate button:disabled{color:rgba(16,16,16,.3);cursor:default}
+.qp .docxview{position:absolute;inset:0;overflow:auto;background:#e9e9e9}
+.qp .docxview-host .docx-wrapper{background:#e9e9e9;padding:12px 0}
+.qp .docxview-host .docx-wrapper>section.docx{margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.18)}
+.qp .docxview-err{padding:40px 20px;text-align:center;color:#666;font-size:13px}
+.qp .fsp .docxview{position:static;flex:1;min-height:100%}

@@ -6,6 +6,7 @@ import { Scoped } from "./Scope";
 import { getLayer } from "./Modal";
 import useClientValue from "./useClientValue";
 import { pdfSrc, useDocUrl } from "./DocViewer";
+import DocxFrame, { isDocx } from "./DocxFrame";
 import PdfFrame from "./PdfFrame";
 import Spinner from "./Spinner";
 
@@ -41,6 +42,7 @@ export default function FullScreenViewer({
   const [showPanel, setShowPanel] = useState(() => typeof window !== "undefined" && window.innerWidth > 820);
   const layer = useClientValue(getLayer, null);
   const total = pages ?? null;
+  const docx = isDocx(file);
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -70,23 +72,25 @@ export default function FullScreenViewer({
     <div className="fsview show" role="dialog" aria-modal="true" aria-label={file}>
       <div className="fsbar">
         <div className="fn">
-          <span className="pdfi2">PDF</span>
+          <span className="pdfi2">{docx ? "DOCX" : "PDF"}</span>
           <div>
             <b>{file}</b>
             <small>{meta}</small>
           </div>
         </div>
-        <div className="fsg">
-          <button type="button" onClick={() => go(page - 1)} title="Previous page">
-            ‹
-          </button>
-          <span>
-            <input value={page} onChange={(e) => go(parseInt(e.target.value) || 1)} aria-label="Page" /> / {total ?? "—"}
-          </span>
-          <button type="button" onClick={() => go(page + 1)} title="Next page">
-            ›
-          </button>
-        </div>
+        {!docx && (
+          <div className="fsg">
+            <button type="button" onClick={() => go(page - 1)} title="Previous page">
+              ‹
+            </button>
+            <span>
+              <input value={page} onChange={(e) => go(parseInt(e.target.value) || 1)} aria-label="Page" /> / {total ?? "—"}
+            </span>
+            <button type="button" onClick={() => go(page + 1)} title="Next page">
+              ›
+            </button>
+          </div>
+        )}
         <div className="fsg zm">
           <button type="button" onClick={() => setZoom(Math.max(50, zoom - 25))} title="Zoom out">
             −
@@ -120,7 +124,9 @@ export default function FullScreenViewer({
       </div>
       <div className="fsb">
         <div className="fsp" style={{ padding: 0, alignItems: "stretch", position: "relative" }}>
-          {url ? (
+          {url && docx ? (
+            <DocxFrame src={url} zoom={zoom} />
+          ) : url ? (
             <PdfFrame src={pdfSrc(url, page, zoom === 100 ? undefined : zoom)} title={file} style={{ flex: 1, minHeight: "100%" }} />
           ) : (
             <div style={{ margin: "auto" }}>

@@ -10,7 +10,8 @@ export type RepFolderView = { id: string; name: string; org: "AACCUP" | "CHED" |
 export type RepDocumentsData = {
   templates: TemplateGroup[];
   nda: { status: "none" | "review" | "verified" | "returned"; fileId: string | null; note: string | null; path: string | null };
-  common: { id: string; title: string; version: number; date: string; size: string }[];
+  common: { id: string; title: string; version: number; date: string; size: string; ext: "pdf" | "docx"; folderId: string | null }[];
+  commonFolders: { id: string; name: string }[];
   folders: RepFolderView[];
 };
 
@@ -27,13 +28,14 @@ export async function getRepDocuments(userId: string): Promise<RepDocumentsData>
   const supabase = await createClient();
   const programs = await getMyPrograms();
   const ids = programs.map((p) => p.id);
-  const [{ data: levels }, { data: areas }, { data: templates }, { data: nda }, { data: common }, { data: folders }, { data: files }] =
+  const [{ data: levels }, { data: areas }, { data: templates }, { data: nda }, { data: common }, { data: commonFolders }, { data: folders }, { data: files }] =
     await Promise.all([
       supabase.from("accreditation_levels").select("id, code, name").order("ordinal"),
       supabase.from("requirement_areas").select("id, level_id, name, ordinal, is_optional").order("ordinal"),
-      supabase.from("templates").select("id, title, storage_path, requirement_area_id, level_id, is_published").eq("is_published", true),
+      supabase.from("templates").select("id, title, storage_path, requirement_area_id, level_id, group_key, is_published").eq("is_published", true).order("created_at"),
       supabase.from("ndas").select("status, file_id, review_note, storage_path").eq("profile_id", userId).maybeSingle(),
-      supabase.from("common_documents").select("id, title, version, updated_at, created_at, file_size").order("title"),
+      supabase.from("common_documents").select("id, title, version, updated_at, created_at, file_size, storage_path, folder_id").order("title"),
+      supabase.from("common_folders").select("id, name").order("name"),
       supabase.from("repository_folders").select("id, slug, name, ordinal").order("ordinal"),
       ids.length
         ? supabase.from("repository_files").select("id, title, folder_id, created_at, file_size, program_id, programs(name)").in("program_id", ids).eq("is_archived", false).order("created_at", { ascending: false })
@@ -46,9 +48,13 @@ export async function getRepDocuments(userId: string): Promise<RepDocumentsData>
     return { name: areaLabel(a.name), templateId: t?.id ?? null, isPdf: Boolean(t?.storage_path.toLowerCase().endsWith(".pdf")) };
   };
   const areasOf = (code: string) => (areas ?? []).filter((a) => a.level_id === byCode(code)?.id);
+  const extras = (group: string) =>
+    (templates ?? [])
+      .filter((t) => t.group_key === group && !t.requirement_area_id)
+      .map((t) => ({ name: t.title, templateId: t.id, isPdf: t.storage_path.toLowerCase().endsWith(".pdf") }));
   const l3 = areasOf("III");
   const tplGroups: TemplateGroup[] = [
-    { key: "l12", name: "PSV – LEVEL II", chip: "PSV · L1–L2", label: "PSV - Level II", full: "Preliminary Survey Visit, Level I & Level II", sections: [{ items: areasOf("PSV").map(tile) }] },
+    { key: "l12", name: "PSV – LEVEL II", chip: "PSV · L1–L2", label: "PSV - Level II", full: "Preliminary Survey Visit, Level I & Level II", sections: [{ items: [...areasOf("PSV").map(tile), ...extras("areas")] }] },
     {
       key: "l3",
       name: "LEVEL III",
@@ -58,10 +64,12 @@ export async function getRepDocuments(userId: string): Promise<RepDocumentsData>
       sections: [
         { h: "MANDATORY", sub: "Required for every program", items: l3.filter((a) => !a.is_optional).map(tile) },
         { h: "CHOOSE TWO (2)", sub: "Your program submits any 2 of these 5 areas", items: l3.filter((a) => a.is_optional).map(tile) },
+        ...(extras("l3").length ? [{ h: "ADDITIONAL", items: extras("l3") }] : []),
       ],
     },
-    { key: "l4", name: "LEVEL IV", chip: "L4", label: "Level IV", full: "Level IV", sections: [{ items: areasOf("IV").map(tile) }] },
+    { key: "l4", name: "LEVEL IV", chip: "L4", label: "Level IV", full: "Level IV", sections: [{ items: [...areasOf("IV").map(tile), ...extras("l4")] }] },
   ];
+  if (extras("gen").length) tplGroups.push({ key: "gen", name: "GENERAL", chip: "General", label: "General", full: "General", sections: [{ items: extras("gen") }] });
 
   const folderViews: RepFolderView[] = (folders ?? []).map((f) => ({
     id: f.id,
@@ -80,7 +88,16 @@ export async function getRepDocuments(userId: string): Promise<RepDocumentsData>
       note: nda?.review_note ?? null,
       path: nda?.storage_path ?? null,
     },
-    common: (common ?? []).map((c) => ({ id: c.id, title: c.title, version: c.version, date: shortDate(c.updated_at ?? c.created_at), size: fileSize(c.file_size) })),
+    common: (common ?? []).map((c) => ({
+      id: c.id,
+      title: c.title,
+      version: c.version,
+      date: shortDate(c.updated_at ?? c.created_at),
+      size: fileSize(c.file_size),
+      ext: c.storage_path.toLowerCase().endsWith(".docx") ? ("docx" as const) : ("pdf" as const),
+      folderId: c.folder_id,
+    })),
+    commonFolders: (commonFolders ?? []).filter((f) => (common ?? []).some((c) => c.folder_id === f.id)),
     folders: folderViews,
   };
 }

@@ -23,6 +23,7 @@
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.3",
+    "docx-preview": "^0.4.1",
     "fflate": "^0.8.3",
     "jsqr": "^1.4.0",
     "lucide-react": "^1.25.0",

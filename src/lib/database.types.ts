@@ -613,6 +613,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           file_size: number | null
+          folder_id: string | null
           id: string
           search_tsv: unknown
           storage_path: string
@@ -631,6 +632,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           file_size?: number | null
+          folder_id?: string | null
           id?: string
           search_tsv?: unknown
           storage_path: string
@@ -649,6 +651,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           file_size?: number | null
+          folder_id?: string | null
           id?: string
           search_tsv?: unknown
           storage_path?: string
@@ -661,6 +664,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "common_documents_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "common_folders"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "common_documents_uploaded_by_fkey"
             columns: ["uploaded_by"]
             isOneToOne: false
@@ -668,6 +678,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      common_folders: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
       document_reviews: {
         Row: {

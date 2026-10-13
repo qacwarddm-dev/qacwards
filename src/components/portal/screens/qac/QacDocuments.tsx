@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import Btn from "../../kit/Btn";
+import BackLink from "../../kit/BackLink";
 import Card, { CardHead } from "../../kit/Card";
 import DocViewer from "../../kit/DocViewer";
 import FileDrop from "../../kit/FileDrop";
 import FilterPills from "../../kit/FilterPills";
+import FolderTable from "../../kit/FolderTable";
 import FullScreenViewer from "../../kit/FullScreenViewer";
 import Modal from "../../kit/Modal";
 import Pill from "../../kit/Pill";
@@ -16,11 +18,15 @@ import SegTabs from "../../kit/SegTabs";
 import SumRows from "../../kit/SumRows";
 import useAct from "../../kit/useAct";
 import useContentMatches from "../../kit/useContentMatches";
-import type { CommonDoc, CommonVersion, QacDocumentsData, TplGroupKey, TplRow } from "@/lib/qac-documents";
+import type { CommonDoc, CommonFolder, CommonVersion, QacDocumentsData, TplGroupKey, TplRow } from "@/lib/qac-documents";
 import type { NdaItem } from "@/lib/qac-portal";
 import { safeName, uploadDirect } from "@/lib/upload-client";
 import {
+  createCommonFolder,
   deleteCommonDoc,
+  deleteCommonFolder,
+  moveCommonDoc,
+  renameCommonFolder,
   replaceNdaForm,
   restoreTemplateVersion,
   restoreCommonDoc,
@@ -54,7 +60,7 @@ export default function QacDocuments({ data, initialTab, verify }: { data: QacDo
         ]}
       />
       {tab === "tpl" && <Templates data={data} />}
-      {tab === "common" && <Common docs={data.common} deleted={data.commonDeleted} colleges={data.colleges} />}
+      {tab === "common" && <Common docs={data.common} folders={data.folders} deleted={data.commonDeleted} colleges={data.colleges} />}
       {tab === "nda" && <Nda data={data} verify={verify} />}
     </Card>
   );
@@ -330,13 +336,17 @@ function TemplateHistory({ row, onClose }: { row: TplRow; onClose: () => void })
   );
 }
 
-function Common({ docs, deleted, colleges }: { docs: CommonDoc[]; deleted: CommonDoc[]; colleges: [string, string][] }) {
+function Common({ docs, folders, deleted, colleges }: { docs: CommonDoc[]; folders: CommonFolder[]; deleted: CommonDoc[]; colleges: [string, string][] }) {
   const [q, setQ] = useState("");
   const text = useContentMatches(["common"], q);
-  const [modal, setModal] = useState<null | { k: "up"; d?: CommonDoc } | { k: "del" | "view" | "hist"; d: CommonDoc } | { k: "vview"; d: CommonDoc; v: CommonVersion }>(null);
+  const [folder, setFolder] = useState<string | null>(null);
+  const [modal, setModal] = useState<
+    null | { k: "up"; d?: CommonDoc } | { k: "del" | "view" | "hist" | "move"; d: CommonDoc } | { k: "vview"; d: CommonDoc; v: CommonVersion } | { k: "folder"; f?: CommonFolder } | { k: "delf"; f: CommonFolder }
+  >(null);
   const { busy, run } = useAct();
   const ql = q.toLowerCase();
-  const L = docs.filter((d) => !ql || text.ids.has(d.id) || `${d.title}${d.category}`.toLowerCase().includes(ql));
+  const open = folders.find((f) => f.id === folder) ?? null;
+  const L = docs.filter((d) => (ql ? text.ids.has(d.id) || `${d.title}${d.category}`.toLowerCase().includes(ql) : d.folderId === (open?.id ?? null)));
   return (
     <>
       <div className="rtool r2">
@@ -345,9 +355,37 @@ function Common({ docs, deleted, colleges }: { docs: CommonDoc[]; deleted: Commo
         </div>
         <div className="rbtns">
           <SearchBox variant="r-sm" value={q} onChange={setQ} placeholder="Search documents" />
+          <Btn variant="o" onClick={() => setModal({ k: "folder" })}>
+            ＋ New folder
+          </Btn>
           <Btn onClick={() => setModal({ k: "up" })}>⬆ Upload document</Btn>
         </div>
       </div>
+      {open && !ql && (
+        <div className="ch" style={{ margin: "4px 0 10px" }}>
+          <div className="crumb" style={{ margin: 0 }}>
+            <a role="button" onClick={() => setFolder(null)}>
+              Common Documents
+            </a>{" "}
+            › {open.name}
+          </div>
+          <BackLink to="Folders" onClick={() => setFolder(null)} />
+        </div>
+      )}
+      {!open && !ql && folders.length > 0 && (
+        <FolderTable
+          rows={folders.map((f) => ({
+            key: f.id,
+            name: f.name,
+            n: f.n,
+            open: () => setFolder(f.id),
+            items: [
+              { label: "Rename", onClick: () => setModal({ k: "folder", f }) },
+              { label: "Delete folder", danger: true, onClick: () => setModal({ k: "delf", f }) },
+            ],
+          }))}
+        />
+      )}
       {L.length ? (
         <div className="tscroll">
           <table>
@@ -366,7 +404,7 @@ function Common({ docs, deleted, colleges }: { docs: CommonDoc[]; deleted: Commo
               {L.map((d) => (
                 <tr key={d.id}>
                   <td>
-                    <span className="pdfi">PDF</span> <b style={{ fontWeight: 600 }}>{d.title}</b>
+                    <span className={d.ext === "docx" ? "docxi" : "pdfi"}>{d.ext.toUpperCase()}</span> <b style={{ fontWeight: 600 }}>{d.title}</b>
                     <small>{d.size}</small>
                   </td>
                   <td>v{d.version}</td>
@@ -384,6 +422,13 @@ function Common({ docs, deleted, colleges }: { docs: CommonDoc[]; deleted: Commo
                     <Btn variant="gh" sm onClick={() => setModal({ k: "hist", d })}>
                       History
                     </Btn>{" "}
+                    {folders.length > 0 && (
+                      <>
+                        <Btn variant="gh" sm onClick={() => setModal({ k: "move", d })}>
+                          Move
+                        </Btn>{" "}
+                      </>
+                    )}
                     <Btn variant="gh" sm title="Delete" onClick={() => setModal({ k: "del", d })}>
                       🗑
                     </Btn>
@@ -394,13 +439,51 @@ function Common({ docs, deleted, colleges }: { docs: CommonDoc[]; deleted: Commo
           </table>
         </div>
       ) : (
-        <div className="empty">{docs.length ? (text.pending ? "Searching inside files…" : "No documents match.") : "No common documents uploaded yet."}</div>
+        <div className="empty">
+          {ql ? (text.pending ? "Searching inside files…" : "No documents match.") : open ? "This folder is empty." : docs.length ? "No unfiled documents." : "No common documents uploaded yet."}
+        </div>
       )}
       <div className="sub" style={{ fontSize: 11.5, marginTop: 10 }}>
         🔒 View only for program reps: watermarked with their name, no download or print. Each view is logged.
       </div>
       <RecentlyDeleted items={deleted.map((d) => ({ id: d.id, title: d.title, sub: d.category, deletedAt: d.deletedAt! }))} onRestore={restoreCommonDoc} />
-      {modal?.k === "up" && <CommonUpload d={modal.d} colleges={colleges} onClose={() => setModal(null)} />}
+      {modal?.k === "up" && <CommonUpload d={modal.d} folders={folders} folder={open?.id ?? null} colleges={colleges} onClose={() => setModal(null)} />}
+      {modal?.k === "folder" && <FolderForm f={modal.f} onClose={() => setModal(null)} />}
+      {modal?.k === "move" && <MoveDoc d={modal.d} folders={folders} onClose={() => setModal(null)} />}
+      {modal?.k === "delf" && (
+        <Modal
+          onClose={() => setModal(null)}
+          footer={
+            <>
+              <Btn variant="gh" onClick={() => setModal(null)}>
+                Cancel
+              </Btn>
+              <Btn
+                variant="danger"
+                disabled={busy}
+                onClick={() =>
+                  run(
+                    () => deleteCommonFolder(modal.f.id),
+                    "Folder deleted",
+                    () => {
+                      if (folder === modal.f.id) setFolder(null);
+                      setModal(null);
+                    },
+                  )
+                }
+              >
+                Delete folder
+              </Btn>
+            </>
+          }
+        >
+          <Result tone="danger" icon="🗑" title={`Delete the folder “${modal.f.name}”?`}>
+            <p>
+              The {modal.f.n} document{modal.f.n === 1 ? "" : "s"} inside will not be deleted. They move out of the folder to the main Common Documents list.
+            </p>
+          </Result>
+        </Modal>
+      )}
       {modal?.k === "del" && (
         <Modal
           onClose={() => setModal(null)}
@@ -426,7 +509,7 @@ function Common({ docs, deleted, colleges }: { docs: CommonDoc[]; deleted: Commo
         <FullScreenViewer
           url={dl("common", modal.d.id)}
           downloadHref={dl("common", modal.d.id, true)}
-          file={`${modal.d.title}.pdf`}
+          file={`${modal.d.title}.${modal.d.ext}`}
           meta={`Common Documents · ${modal.d.category} · v${modal.d.version}`}
           note="Watermarked for program reps, who can only view this file"
           onClose={() => setModal(null)}
@@ -437,7 +520,7 @@ function Common({ docs, deleted, colleges }: { docs: CommonDoc[]; deleted: Commo
         <FullScreenViewer
           url={modal.v.id ? dl("common_version", modal.v.id) : dl("common", modal.d.id)}
           downloadHref={modal.v.id ? dl("common_version", modal.v.id, true) : dl("common", modal.d.id, true)}
-          file={`${modal.v.title} v${modal.v.ver}.pdf`}
+          file={`${modal.v.title} v${modal.v.ver}.${modal.v.ext}`}
           meta={`Common Documents · v${modal.v.ver}`}
           note="Earlier versions are only visible to the QA Center"
           onClose={() => setModal({ k: "hist", d: modal.d })}
@@ -495,7 +578,7 @@ function CommonHistory({ d, onView, onClose }: { d: CommonDoc; onView: (v: Commo
   );
 }
 
-function CommonUpload({ d, colleges, onClose }: { d?: CommonDoc; colleges: [string, string][]; onClose: () => void }) {
+function CommonUpload({ d, folders, folder, colleges, onClose }: { d?: CommonDoc; folders: CommonFolder[]; folder: string | null; colleges: [string, string][]; onClose: () => void }) {
   const initial = d && d.visibleTo !== ALL ? d.visibleTo.replace(/ only$/, "").split(/,\s*/) : [];
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState(d?.title ?? "");
@@ -504,9 +587,10 @@ function CommonUpload({ d, colleges, onClose }: { d?: CommonDoc; colleges: [stri
   const [sel, setSel] = useState<string[]>(initial);
   const [note, setNote] = useState("");
   const [notify, setNotify] = useState(true);
+  const [dest, setDest] = useState(folder ?? "");
   const { busy, run, toast } = useAct();
   const save = () => {
-    if (!file) return toast.say("Choose a PDF first.", true);
+    if (!file) return toast.say("Choose a PDF or Word file first.", true);
     if (!title.trim()) return toast.say("Enter a title", true);
     if (scope === "sel" && !sel.length) return toast.say("Pick at least one college", true);
     const fd = new FormData();
@@ -519,10 +603,11 @@ function CommonUpload({ d, colleges, onClose }: { d?: CommonDoc; colleges: [stri
     fd.set("visibleTo", scope === "all" ? ALL : `${sel.join(", ")} only`);
     fd.set("colleges", scope === "all" ? "" : sel.join(","));
     fd.set("note", note);
+    fd.set("folderId", dest);
     fd.set("notify", notify ? "1" : "");
     return run(
       async () => {
-        const up = await uploadDirect("common-docs", path, file, "application/pdf");
+        const up = await uploadDirect("common-docs", path, file, /\.docx$/i.test(file.name) ? DOCX : "application/pdf");
         return up.ok ? saveCommonDoc(fd) : up;
       },
       d ? "New version uploaded" : "Document uploaded",
@@ -546,7 +631,7 @@ function CommonUpload({ d, colleges, onClose }: { d?: CommonDoc; colleges: [stri
         </>
       }
     >
-      <FileDrop exts={[".pdf"]} className="dmdrop" hint="PDF only · max 25 MB" file={file} onFile={setFile} />
+      <FileDrop exts={[".pdf", ".docx"]} className="dmdrop" hint="PDF or Word (.docx) · max 25 MB" file={file} onFile={setFile} />
       <label className="fl" style={{ marginTop: 12 }}>
         Title *
       </label>
@@ -568,6 +653,21 @@ function CommonUpload({ d, colleges, onClose }: { d?: CommonDoc; colleges: [stri
           </select>
         </div>
       </div>
+      {!d && folders.length > 0 && (
+        <>
+          <label className="fl" style={{ marginTop: 12 }}>
+            Folder
+          </label>
+          <select className="inp" value={dest} onChange={(e) => setDest(e.target.value)}>
+            <option value="">No folder</option>
+            {folders.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.name}
+              </option>
+            ))}
+          </select>
+        </>
+      )}
       {scope === "sel" && (
         <div className="pills" style={{ marginTop: 10 }}>
           {colleges.map(([c, n]) => (
@@ -594,6 +694,68 @@ function CommonUpload({ d, colleges, onClose }: { d?: CommonDoc; colleges: [stri
       <label className="chk2" style={{ marginTop: 10 }}>
         <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} /> Notify users who can see it
       </label>
+    </Modal>
+  );
+}
+
+function FolderForm({ f, onClose }: { f?: CommonFolder; onClose: () => void }) {
+  const [name, setName] = useState(f?.name ?? "");
+  const { busy, run, toast } = useAct();
+  const save = () => {
+    if (!name.trim()) return toast.say("Enter a folder name", true);
+    return run(() => (f ? renameCommonFolder(f.id, name) : createCommonFolder(name)), f ? "Folder renamed" : "Folder created", onClose);
+  };
+  return (
+    <Modal
+      title={f ? "Rename folder" : "New folder"}
+      onClose={onClose}
+      locked={busy}
+      footer={
+        <>
+          <Btn variant="gh" onClick={onClose}>
+            Cancel
+          </Btn>
+          <Btn disabled={busy} onClick={save}>
+            {f ? "Rename" : "Create folder"}
+          </Btn>
+        </>
+      }
+    >
+      <label className="fl">Folder name *</label>
+      <input className="inp" autoFocus maxLength={80} value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && save()} placeholder="e.g. Student Handbooks" />
+    </Modal>
+  );
+}
+
+function MoveDoc({ d, folders, onClose }: { d: CommonDoc; folders: CommonFolder[]; onClose: () => void }) {
+  const [dest, setDest] = useState(d.folderId ?? "");
+  const { busy, run } = useAct();
+  return (
+    <Modal
+      title="Move document"
+      sub={d.title}
+      onClose={onClose}
+      locked={busy}
+      footer={
+        <>
+          <Btn variant="gh" onClick={onClose}>
+            Cancel
+          </Btn>
+          <Btn disabled={busy || dest === (d.folderId ?? "")} onClick={() => run(() => moveCommonDoc(d.id, dest || null), "Document moved", onClose)}>
+            Move
+          </Btn>
+        </>
+      }
+    >
+      <label className="fl">Folder</label>
+      <select className="inp" value={dest} onChange={(e) => setDest(e.target.value)}>
+        <option value="">No folder (main list)</option>
+        {folders.map((f) => (
+          <option key={f.id} value={f.id}>
+            {f.name}
+          </option>
+        ))}
+      </select>
     </Modal>
   );
 }

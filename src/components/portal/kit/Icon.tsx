@@ -6,6 +6,12 @@ const PATHS = {
     </>
   ),
   trash: <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />,
+  restore: (
+    <>
+      <path d="M4 12a8 8 0 1 0 2.3-5.7L4 8" />
+      <path d="M4 3v5h5" />
+    </>
+  ),
   dash: (
     <>
       <rect x="3" y="3" width="7" height="8" rx="1.5" />

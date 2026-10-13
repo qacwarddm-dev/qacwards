@@ -53,14 +53,8 @@ export default function RecentlyDeleted({
                   <td style={{ whiteSpace: "nowrap" }}>{shortDate(x.deletedAt)}</td>
                   <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                     <span style={{ display: "inline-flex", gap: 8 }}>
-                      <Btn variant="o" sm disabled={busy} onClick={() => run(() => onRestore(x.id), `“${x.title}” restored`)}>
-                        Restore
-                      </Btn>
-                      {onDelete && (
-                        <Btn variant="d" sm disabled={busy} onClick={() => setDel(x)}>
-                          Delete
-                        </Btn>
-                      )}
+                      <Btn variant="o" sm icon="restore" label={`Restore “${x.title}”`} disabled={busy} onClick={() => run(() => onRestore(x.id), `“${x.title}” restored`)} />
+                      {onDelete && <Btn variant="d" sm icon="trash" label={`Delete “${x.title}” permanently`} disabled={busy} onClick={() => setDel(x)} />}
                     </span>
                   </td>
                 </tr>

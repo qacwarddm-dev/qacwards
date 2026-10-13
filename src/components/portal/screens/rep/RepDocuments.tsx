@@ -9,6 +9,7 @@ import Empty from "../../kit/Empty";
 import FileGrid from "../../kit/FileGrid";
 import FileViewModal from "../../kit/FileViewModal";
 import FolderIcon from "../../kit/FolderIcon";
+import FolderTable from "../../kit/FolderTable";
 import Icon from "../../kit/Icon";
 import Pill from "../../kit/Pill";
 import SegTabs from "../../kit/SegTabs";
@@ -179,6 +180,8 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
   const autoFilled = useRef(new Set<keyof NdaFields>());
   const [drag, setDrag] = useState(false);
   const [view, setView] = useState<{ title: string; src: string | null; own?: boolean } | null>(null);
+  const [folder, setFolder] = useState<string | null>(null);
+  const docs = data.common.filter((c) => c.folderId === folder);
   const [pending, start] = useBusy();
   const [opening, setOpening] = useState(false);
   const [reminder, setReminder] = useState(false);
@@ -268,46 +271,62 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
           </div>
           <Pill tone="ok">✓ NDA verified</Pill>
         </div>
-        <table>
-          <tbody>
-            <tr>
-              <th>Document</th>
-              <th>Version</th>
-              <th>Updated</th>
-              <th>Size</th>
-              <th />
-            </tr>
-            {data.common.map((c) => (
-              <tr key={c.id}>
-                <td>
-                  <span className="pdfi">PDF</span> {c.title}
-                </td>
-                <td>v{c.version}</td>
-                <td>{c.date}</td>
-                <td>{c.size}</td>
-                <td style={{ textAlign: "right" }}>
-                  <Btn
-                    variant="o"
-                    sm
-                    onClick={() => {
-                      countCommonView(c.id);
-                      setView({ title: `${c.title}.pdf`, src: dl("common", c.id) });
-                    }}
-                  >
-                    View
-                  </Btn>
-                </td>
-              </tr>
-            ))}
-            {!data.common.length && (
+        {data.commonFolders.length > 0 && !folder && (
+          <FolderTable rows={data.commonFolders.map((f) => ({ key: f.id, name: f.name, n: data.common.filter((c) => c.folderId === f.id).length, open: () => setFolder(f.id) }))} />
+        )}
+        {folder && (
+          <div className="ch" style={{ margin: "4px 0 10px" }}>
+            <div className="crumb" style={{ margin: 0 }}>
+              <a role="button" onClick={() => setFolder(null)}>
+                Common Documents
+              </a>{" "}
+              › {data.commonFolders.find((f) => f.id === folder)?.name}
+            </div>
+            <BackLink to="Folders" onClick={() => setFolder(null)} />
+          </div>
+        )}
+        {(folder || docs.length > 0 || data.commonFolders.length === 0) && (
+          <table>
+            <tbody>
               <tr>
-                <td colSpan={5}>
-                  <Empty>The QA Center hasn’t shared any common documents yet.</Empty>
-                </td>
+                <th>Document</th>
+                <th>Version</th>
+                <th>Updated</th>
+                <th>Size</th>
+                <th />
               </tr>
-            )}
-          </tbody>
-        </table>
+              {docs.map((c) => (
+                <tr key={c.id}>
+                  <td>
+                    <span className={c.ext === "docx" ? "docxi" : "pdfi"}>{c.ext.toUpperCase()}</span> {c.title}
+                  </td>
+                  <td>v{c.version}</td>
+                  <td>{c.date}</td>
+                  <td>{c.size}</td>
+                  <td style={{ textAlign: "right" }}>
+                    <Btn
+                      variant="o"
+                      sm
+                      onClick={() => {
+                        countCommonView(c.id);
+                        setView({ title: `${c.title}.${c.ext}`, src: dl("common", c.id) });
+                      }}
+                    >
+                      View
+                    </Btn>
+                  </td>
+                </tr>
+              ))}
+              {!docs.length && (
+                <tr>
+                  <td colSpan={5}>
+                    <Empty>{folder ? "This folder is empty." : "The QA Center hasn’t shared any common documents yet."}</Empty>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
         {view && <FileViewModal title={view.title} src={view.src} viewer={me} onClose={() => setView(null)} />}
       </>
     );

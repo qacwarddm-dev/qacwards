@@ -1,6 +1,7 @@
 "use client";
 
 import Btn from "./Btn";
+import DocxFrame, { isDocx } from "./DocxFrame";
 import Modal from "./Modal";
 import PdfFrame from "./PdfFrame";
 
@@ -48,8 +49,8 @@ export default function FileViewModal({
         </>
       }
     >
-      <div className="vwrap" style={{ maxWidth: 720, height: "70vh" }} onContextMenu={(e) => e.preventDefault()}>
-        {src ? <PdfFrame src={`${src}${src.includes("#") ? "" : "#toolbar=0&navpanes=0"}`} title={title} /> : <img src="/assets/portal/mockup/preview.jpg" alt="" draggable={false} />}
+      <div className="vwrap" style={{ maxWidth: isDocx(title) ? 900 : 720, height: "70vh" }} onContextMenu={(e) => e.preventDefault()}>
+        {src && isDocx(title) ? <DocxFrame src={src} /> : src ? <PdfFrame src={`${src}${src.includes("#") ? "" : "#toolbar=0&navpanes=0"}`} title={title} /> : <img src="/assets/portal/mockup/preview.jpg" alt="" draggable={false} />}
         {!own && !downloadHref && viewer && (
           <div className="wm">
             {Array.from({ length: 6 }, (_, i) => (
