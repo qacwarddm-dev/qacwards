@@ -21,6 +21,7 @@ export default function FullScreenViewer({
   panel,
   note = "View only · program files can’t be downloaded or printed from here",
   downloadHref,
+  viewer,
   onClose,
 }: {
   docId?: string | null;
@@ -33,6 +34,7 @@ export default function FullScreenViewer({
   panel?: React.ReactNode;
   note?: string;
   downloadHref?: string;
+  viewer?: string;
   onClose: () => void;
 }) {
   const { url: fetched, error } = useDocUrl(directUrl ? null : (docId ?? null));
@@ -42,6 +44,7 @@ export default function FullScreenViewer({
   const [showPanel, setShowPanel] = useState(() => typeof window !== "undefined" && window.innerWidth > 820);
   const layer = useClientValue(getLayer, null);
   const total = pages ?? null;
+  const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   const docx = isDocx(file);
 
   useEffect(() => {
@@ -131,6 +134,17 @@ export default function FullScreenViewer({
           ) : (
             <div style={{ margin: "auto" }}>
               {error ? <span style={{ color: "#bbb" }}>{error}</span> : <Spinner label="Loading document…" />}
+            </div>
+          )}
+          {viewer && (
+            <div className="fswm" aria-hidden>
+              <div className="wm">
+                {Array.from({ length: 12 }, (_, i) => (
+                  <span key={i}>
+                    VIEW ONLY · {viewer} · {today}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
         </div>

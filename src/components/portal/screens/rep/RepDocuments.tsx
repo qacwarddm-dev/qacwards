@@ -8,6 +8,7 @@ import Btn from "../../kit/Btn";
 import Empty from "../../kit/Empty";
 import FileGrid from "../../kit/FileGrid";
 import FileViewModal from "../../kit/FileViewModal";
+import FullScreenViewer from "../../kit/FullScreenViewer";
 import FolderIcon from "../../kit/FolderIcon";
 import FolderPath from "../../kit/FolderPath";
 import FolderTable from "../../kit/FolderTable";
@@ -42,7 +43,7 @@ export default function RepDocuments({ data, me, initialTab }: { data: RepDocume
         ]}
       />
       {tab === "templates" && <Templates groups={data.templates} me={me} />}
-      {tab === "common" && <Common data={data} me={me} />}
+      {tab === "common" && <Common data={data} />}
       {tab === "reports" && <Reports data={data} me={me} />}
     </div>
   );
@@ -147,7 +148,16 @@ function Templates({ groups, me }: { groups: TemplateGroup[]; me: string }) {
           </div>
         </Fragment>
       ))}
-      {preview && <FileViewModal title={`${preview.name}.${preview.pdf ? "pdf" : "docx"}`} src={dl("template", preview.id)} viewer={me} onClose={() => setPreview(null)} />}
+      {preview && (
+        <FullScreenViewer
+          url={dl("template", preview.id)}
+          file={`${preview.name}.${preview.pdf ? "pdf" : "docx"}`}
+          meta="Toolkit · from the Quality Assurance Center"
+          note="View only · toolkit files can’t be downloaded or printed from here"
+          viewer={me}
+          onClose={() => setPreview(null)}
+        />
+      )}
     </>
   );
 }
@@ -172,7 +182,7 @@ function NdaTracker({ step }: { step: number }) {
   );
 }
 
-function Common({ data, me }: { data: RepDocumentsData; me: string }) {
+function Common({ data }: { data: RepDocumentsData }) {
   const [downloaded, setDownloaded] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [f, setF] = useState<NdaFields>({ id: "", atty: "", doc: "", page: "", book: "", series: "" });
@@ -181,7 +191,7 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
   const scanRun = useRef(0);
   const autoFilled = useRef(new Set<keyof NdaFields>());
   const [drag, setDrag] = useState(false);
-  const [view, setView] = useState<{ title: string; src: string | null; own?: boolean } | null>(null);
+  const [view, setView] = useState<{ title: string; src: string | null; own?: boolean; download?: string } | null>(null);
   const [folder, setFolder] = useState<string | null>(null);
   const docs = data.common.filter((c) => c.folderId === folder);
   const subfolders = childrenOf(data.commonFolders, folder);
@@ -270,7 +280,7 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
         <div className="ch" style={{ marginTop: 14 }}>
           <div>
             <h2>Common Documents</h2>
-            <div className="sub">Shared university documents · view only</div>
+            <div className="sub">Shared university documents · view and download</div>
           </div>
           <Pill tone="ok">✓ NDA verified</Pill>
         </div>
@@ -300,7 +310,7 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
                       sm
                       onClick={() => {
                         countCommonView(c.id);
-                        setView({ title: `${c.title}.${c.ext}`, src: dl("common", c.id) });
+                        setView({ title: `${c.title}.${c.ext}`, src: dl("common", c.id), download: dl("common", c.id, true) });
                       }}
                     >
                       View
@@ -318,7 +328,16 @@ function Common({ data, me }: { data: RepDocumentsData; me: string }) {
             </tbody>
           </table>
         )}
-        {view && <FileViewModal title={view.title} src={view.src} viewer={me} onClose={() => setView(null)} />}
+        {view && (
+          <FullScreenViewer
+            url={view.src}
+            file={view.title}
+            meta="Common Documents · from the Quality Assurance Center"
+            note="From the Quality Assurance Center · for your program’s accreditation use"
+            downloadHref={view.download}
+            onClose={() => setView(null)}
+          />
+        )}
       </>
     );
 

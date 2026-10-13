@@ -505,7 +505,7 @@ function Common({ docs, folders, deleted, colleges }: { docs: CommonDoc[]; folde
           downloadHref={dl("common", modal.d.id, true)}
           file={`${modal.d.title}.${modal.d.ext}`}
           meta={`Common Documents · ${modal.d.category} · v${modal.d.version}`}
-          note="Watermarked for program reps, who can only view this file"
+          note="Program reps can view and download this file"
           onClose={() => setModal(null)}
         />
       )}
