@@ -39,6 +39,7 @@ const NOTICE_RULES: { test: RegExp; eyebrow: string; tone: keyof typeof TONES; l
   { test: /^NDA for review:\s*/i, eyebrow: "NDA for review", tone: "gold", strip: true, lede: "A signed non-disclosure agreement was uploaded and needs verification." },
   { test: /^Evaluation submitted:\s*/i, eyebrow: "Evaluation submitted", tone: "green", strip: true, lede: "An accreditor signed and submitted their evaluation report." },
   { test: /^New program added:\s*/i, eyebrow: "New program", tone: "maroon", strip: true, lede: "A new academic program was added to QAC-WARDS." },
+  { test: /^QAC started /i, eyebrow: "New accreditation", tone: "maroon", lede: "The Quality Assurance Center opened an accreditation for your program. Open it in the portal to follow its progress." },
   { test: /result has been released/i, eyebrow: "Result released", tone: "green", lede: "The Quality Assurance Center has released the outcome of your program&rsquo;s accreditation." },
   { test: /new accreditation assignment/i, eyebrow: "New assignment", tone: "maroon", lede: "You were named an accreditor for the program below. Accept or decline it from your assignments." },
   { test: / accepted an assignment$/i, eyebrow: "Assignment accepted", tone: "green", lede: "Your accreditor confirmed the assignment. The evaluation can proceed." },

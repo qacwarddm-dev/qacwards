@@ -2877,6 +2877,7 @@ export type Database = {
       }
       cycle_accepts_work: { Args: { p_cycle: string }; Returns: boolean }
       default_leader_areas: { Args: { p_level: string }; Returns: string[] }
+      delete_accreditation: { Args: { p_submission: string }; Returns: undefined }
       event_visible_to_caller: {
         Args: { p_event_id: string }
         Returns: boolean

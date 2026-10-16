@@ -239,3 +239,6 @@
 .qp .fsp .docxview{position:static;flex:1;min-height:100%}
 
 .qp .fswm{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.qp .prw.d{grid-template-columns:minmax(0,2.2fr) 110px minmax(0,1.5fr) 150px 170px 34px 16px}
+@media (max-width:1100px){.qp .prw.d{grid-template-columns:minmax(0,1fr) 100px 150px 34px 16px}.qp .prw.d>div:nth-child(3),.qp .prw.d>div:nth-child(4){display:none}}
+@media (max-width:820px){.qp .prw.d{grid-template-columns:minmax(0,1fr) 16px}.qp .prw.d>*:not(:first-child):not(.chev):not(.pill){display:none}}

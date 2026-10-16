@@ -108,11 +108,9 @@ export const PROGRAM_POSITIONS = [
   "Faculty",
 ] as const;
 
-/** OtherContext.txt "QAC PERSONNELS POSITION" — shown to QAC Personnel
- *  registrants. The register frame only ever drew the Academic Program state, so
- *  these nine had no field to live in until now. */
+/** OtherContext.txt "QAC PERSONNELS POSITION" minus Director, which is
+ *  provisioned rather than self-registered. */
 export const QAC_POSITIONS = [
-  "Director",
   "Asst. Director for Program Quality Assurance and Curriculum Development",
   "Asst. Director for Institutional and International Quality Assurance",
   "Chief, Quality Assurance for Main Campus",

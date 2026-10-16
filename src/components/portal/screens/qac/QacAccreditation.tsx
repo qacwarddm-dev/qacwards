@@ -11,7 +11,10 @@ import Modal from "../../kit/Modal";
 import Pill from "../../kit/Pill";
 import SearchBox from "../../kit/SearchBox";
 import SegTabs from "../../kit/SegTabs";
+import Result from "../../kit/Result";
 import SumRows from "../../kit/SumRows";
+import useAct from "../../kit/useAct";
+import { deleteAccreditation } from "@/lib/qac-actions";
 import { LVS, SOON_DAYS, daysTo, qacStatus, readiness, type QacProgram } from "@/lib/qac-model";
 import { shortDate } from "@/lib/program-names";
 
@@ -24,6 +27,8 @@ export default function QacAccreditation({ programs, today, monthLabel }: { prog
   const [camp, setCamp] = useState("all");
   const [q, setQ] = useState("");
   const [acc, setAcc] = useState<QacProgram | null>(null);
+  const [del, setDel] = useState<QacProgram | null>(null);
+  const { busy, run } = useAct();
   const inp = programs.filter((p) => p.inproc);
   const done = programs.filter((p) => !p.inproc);
   const campuses = [...new Set(programs.map((p) => p.campus))];
@@ -104,7 +109,7 @@ export default function QacAccreditation({ programs, today, monthLabel }: { prog
               const d = daysTo(p.to, today);
               const r = readiness(p);
               return (
-                <div key={p.id} className="prw" role="link" onClick={() => (p.inproc ? router.push(`/portal/assignment?id=${p.id}`) : setAcc(p))}>
+                <div key={p.id} className="prw d" role="link" onClick={() => (p.inproc ? router.push(`/portal/assignment?id=${p.id}`) : setAcc(p))}>
                   <div>
                     <b>{p.name}</b>
                     <small>
@@ -131,6 +136,21 @@ export default function QacAccreditation({ programs, today, monthLabel }: { prog
                     />
                   )}
                   <Pill tone={s.c}>{s.t}</Pill>
+                  {p.submissionId ? (
+                    <Btn
+                      variant="gh"
+                      sm
+                      title="Delete accreditation"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDel(p);
+                      }}
+                    >
+                      🗑
+                    </Btn>
+                  ) : (
+                    <span />
+                  )}
                   <span className="chev">›</span>
                 </div>
               );
@@ -140,6 +160,27 @@ export default function QacAccreditation({ programs, today, monthLabel }: { prog
           <Empty>No programs match your filters.</Empty>
         )}
       </Card>
+      {del?.submissionId && (
+        <Modal
+          onClose={() => setDel(null)}
+          footer={
+            <>
+              <Btn variant="gh" onClick={() => setDel(null)}>
+                Cancel
+              </Btn>
+              <Btn variant="danger" disabled={busy} onClick={() => run(() => deleteAccreditation(del.submissionId!), "Accreditation deleted", () => setDel(null))}>
+                Delete
+              </Btn>
+            </>
+          }
+        >
+          <Result tone="danger" icon="🗑" title={`Delete ${del.levelName} for ${del.short}?`}>
+            <p>
+              This removes the accreditation with its assignment, team and every document uploaded for it. <b>It cannot be undone.</b>
+            </p>
+          </Result>
+        </Modal>
+      )}
       {acc && <AccreditedModal p={acc} today={today} onClose={() => setAcc(null)} />}
     </>
   );

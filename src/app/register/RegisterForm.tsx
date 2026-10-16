@@ -102,11 +102,11 @@ export default function RegisterForm({ invitedWebmail = "" }: { invitedWebmail?:
   const isProgramRep = role === ACADEMIC_PROGRAM_LABEL;
   const isAccreditor = role === INTERNAL_ACCREDITOR_LABEL;
   const showCollege = isProgramRep && campus === MAIN_CAMPUS;
-  const showPosition = isProgramRep && campus !== "";
+  const isQacPersonnel = role === QAC_PERSONNEL_LABEL;
+  const showPosition = (isProgramRep && campus !== "") || isQacPersonnel;
 
   /** OtherContext.txt keeps two position lists, one per role. */
-  const positions =
-    role === QAC_PERSONNEL_LABEL ? QAC_POSITIONS : PROGRAM_POSITIONS;
+  const positions = isQacPersonnel ? QAC_POSITIONS : PROGRAM_POSITIONS;
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -120,7 +120,7 @@ export default function RegisterForm({ invitedWebmail = "" }: { invitedWebmail?:
     if (isProgramRep && campus === "") next.campus = "Choose your campus.";
     if (isAccreditor && expertise === "") next.expertise = "Choose your field of expertise.";
     if (showCollege && college === "") next.college = "Choose your college or department.";
-    if (showPosition && position === "") next.position = "Choose your PUP position.";
+    if (showPosition && position === "") next.position = isQacPersonnel ? "Choose your QAC position." : "Choose your PUP position.";
 
     setErrors(next);
     if (Object.keys(next).length > 0) {
@@ -278,7 +278,7 @@ export default function RegisterForm({ invitedWebmail = "" }: { invitedWebmail?:
 
             {showPosition && (
               <AuthSelect
-                label="PUP Position"
+                label={isQacPersonnel ? "QAC Position" : "PUP Position"}
                 options={positions}
                 value={position}
                 onChange={setPosition}
