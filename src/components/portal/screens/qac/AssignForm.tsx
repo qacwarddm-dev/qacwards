@@ -16,6 +16,9 @@ import { relevantExpertise } from "@/lib/expertise-disciplines";
 import { saveAssignment, startAccreditation } from "@/lib/qac-actions";
 import { evalDeadline, teamAreaKey } from "@/lib/settings-model";
 import { areaLabel, areaTag } from "@/lib/program-names";
+import { CAMPUSES } from "@/lib/reference/campuses";
+
+const MAIN_CAMPUS = CAMPUSES.find((c) => c.isMain)!.name;
 
 const REASONS = [
   "No available internal accreditor with matching expertise",
@@ -31,7 +34,7 @@ export default function AssignForm({ data, edit, from, preset }: { data: Data; e
   const base = edit ?? from ?? preset;
   const lock = Boolean(edit);
   const [camp, setCamp] = useState(base?.campus ?? data.campuses[0] ?? "");
-  const [col, setCol] = useState(base?.college ?? data.colleges[0]?.code ?? "NA");
+  const [col, setCol] = useState(base?.college ?? (camp === MAIN_CAMPUS ? (data.colleges[0]?.code ?? "NA") : "NA"));
   const [prog, setProg] = useState(base?.id ?? "");
   const [lv, setLv] = useState(() => data.levels.find((l) => l.code === (base?.levelCode || "PSV"))?.id ?? data.levels[0]?.id ?? "");
   const [vd, setVd] = useState(edit?.visit ?? "");
@@ -117,7 +120,7 @@ export default function AssignForm({ data, edit, from, preset }: { data: Data; e
         <div className="fg2">
           <div>
             <label className="fl">Campus</label>
-            <select className="inp" disabled={lock} value={camp} onChange={(e) => (setCamp(e.target.value), setProg(""), setSel([]))}>
+            <select className="inp" disabled={lock} value={camp} onChange={(e) => (setCamp(e.target.value), setCol(e.target.value === MAIN_CAMPUS ? (data.colleges[0]?.code ?? "NA") : "NA"), setProg(""), setSel([]))}>
               {data.campuses.map((c) => (
                 <option key={c}>{c}</option>
               ))}
@@ -125,13 +128,14 @@ export default function AssignForm({ data, edit, from, preset }: { data: Data; e
           </div>
           <div>
             <label className="fl">Department</label>
-            <select className="inp" disabled={lock} value={col} onChange={(e) => (setCol(e.target.value), setProg(""), setSel([]))}>
-              {data.colleges.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.name}
-                </option>
-              ))}
-              <option value="NA">Not Applicable</option>
+            <select className="inp" disabled={lock || camp !== MAIN_CAMPUS} value={col} onChange={(e) => (setCol(e.target.value), setProg(""), setSel([]))}>
+              {camp === MAIN_CAMPUS &&
+                data.colleges.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.name}
+                  </option>
+                ))}
+              {(camp !== MAIN_CAMPUS || col === "NA") && <option value="NA">Not Applicable</option>}
             </select>
           </div>
         </div>
