@@ -208,13 +208,13 @@ export async function getDocumentUrl(
 
   const { data: doc } = await supabase
     .from("submission_documents")
-    .select("storage_path")
+    .select("storage_path, common_document_id")
     .eq("id", documentId)
     .maybeSingle();
 
   if (!doc) return { ok: false, error: "That document could not be found." };
 
-  const signed = await signedUrl(supabase, BUCKETS.submissions, doc.storage_path);
+  const signed = await signedUrl(supabase, doc.common_document_id ? BUCKETS.commonDocs : BUCKETS.submissions, doc.storage_path);
   if (signed.data === null) return { ok: false, error: signed.error };
 
   return { ok: true, url: signed.data };

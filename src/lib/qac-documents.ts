@@ -35,6 +35,7 @@ export type CommonDoc = {
   version: number;
   ext: "pdf" | "docx";
   folderId: string | null;
+  linkArea: number | null;
   history: CommonVersion[];
 };
 export type NdaForm = { id: string | null; file: string; ver: number; date: string; dl: number };
@@ -55,7 +56,7 @@ export async function getQacDocuments(): Promise<QacDocumentsData> {
     supabase.from("template_versions").select("id, template_id, version, file_name, created_at, profiles:uploaded_by(surname, given_name)").order("version", { ascending: false }),
     supabase
       .from("common_documents")
-      .select("id, title, category, visible_to, view_count, file_size, created_at, updated_at, deleted_at, version, change_note, storage_path, folder_id, profiles:uploaded_by(surname, given_name)")
+      .select("id, title, category, visible_to, view_count, file_size, created_at, updated_at, deleted_at, version, change_note, storage_path, folder_id, link_area_ordinal, profiles:uploaded_by(surname, given_name)")
       .order("updated_at", { ascending: false }),
     supabase
       .from("common_document_versions")
@@ -122,6 +123,7 @@ export async function getQacDocuments(): Promise<QacDocumentsData> {
     version: c.version,
     ext: extOf(c.storage_path),
     folderId: c.folder_id,
+      linkArea: c.link_area_ordinal,
     history: [
       { id: null, ver: c.version, title: c.title, ext: extOf(c.storage_path), date: shortDate(c.updated_at ?? c.created_at), size: fileSize(c.file_size), note: c.change_note ?? "", by: c.profiles ? personName(c.profiles) : "—", cur: true },
       ...(commonHist ?? [])

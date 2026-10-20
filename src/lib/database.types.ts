@@ -606,6 +606,7 @@ export type Database = {
       }
       common_documents: {
         Row: {
+          link_area_ordinal: number | null
           category: string
           change_note: string | null
           college_codes: string[]
@@ -625,6 +626,7 @@ export type Database = {
           visible_to: string
         }
         Insert: {
+          link_area_ordinal?: number | null
           category?: string
           change_note?: string | null
           college_codes?: string[]
@@ -644,6 +646,7 @@ export type Database = {
           visible_to?: string
         }
         Update: {
+          link_area_ordinal?: number | null
           category?: string
           change_note?: string | null
           college_codes?: string[]
@@ -2094,6 +2097,7 @@ export type Database = {
       }
       submission_documents: {
         Row: {
+          common_document_id: string | null
           content_text: string | null
           doc_uuid: string
           file_size: number
@@ -2114,6 +2118,7 @@ export type Database = {
           version: number
         }
         Insert: {
+          common_document_id?: string | null
           content_text?: string | null
           doc_uuid?: string
           file_size: number
@@ -2134,6 +2139,7 @@ export type Database = {
           version?: number
         }
         Update: {
+          common_document_id?: string | null
           content_text?: string | null
           doc_uuid?: string
           file_size?: number

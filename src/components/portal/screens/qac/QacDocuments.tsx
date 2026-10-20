@@ -1,5 +1,6 @@
 "use client";
 
+import { LINK_AREAS } from "@/lib/common-link-areas";
 import { useState } from "react";
 import Btn from "../../kit/Btn";
 import Card, { CardHead } from "../../kit/Card";
@@ -399,6 +400,7 @@ function Common({ docs, folders, deleted, colleges }: { docs: CommonDoc[]; folde
                   <td>
                     <span className={d.ext === "docx" ? "docxi" : "pdfi"}>{d.ext.toUpperCase()}</span> <b style={{ fontWeight: 600 }}>{d.title}</b>
                     <small>{d.size}</small>
+                    {d.linkArea && <small>Auto-fills {LINK_AREAS[d.linkArea - 1]}</small>}
                   </td>
                   <td>v{d.version}</td>
                   <td>{d.category}</td>
@@ -582,6 +584,7 @@ function CommonUpload({ d, folders, folder, colleges, onClose }: { d?: CommonDoc
   const [note, setNote] = useState("");
   const [notify, setNotify] = useState(true);
   const [dest, setDest] = useState(folder ?? "");
+  const [area, setArea] = useState(d?.linkArea ? String(d.linkArea) : "");
   const { busy, run, toast } = useAct();
   const save = () => {
     if (!file) return toast.say("Choose a PDF or Word file first.", true);
@@ -598,6 +601,7 @@ function CommonUpload({ d, folders, folder, colleges, onClose }: { d?: CommonDoc
     fd.set("colleges", scope === "all" ? "" : sel.join(","));
     fd.set("note", note);
     fd.set("folderId", dest);
+    fd.set("linkArea", area);
     fd.set("notify", notify ? "1" : "");
     return run(
       async () => {
@@ -677,6 +681,20 @@ function CommonUpload({ d, folders, folder, colleges, onClose }: { d?: CommonDoc
           ))}
         </div>
       )}
+      <label className="fl" style={{ marginTop: 12 }}>
+        Auto-fill into Area
+      </label>
+      <select className="inp" value={area} onChange={(e) => setArea(e.target.value)}>
+        <option value="">Don’t auto-fill</option>
+        {LINK_AREAS.map((a, i) => (
+          <option key={a} value={i + 1}>
+            {a}
+          </option>
+        ))}
+      </select>
+      <div className="sub" style={{ fontSize: 11.5, marginTop: 4 }}>
+        University-level files only. Counts as uploaded for this Area in every PSV, Level I and Level II accreditation, and follows the newest version.
+      </div>
       {d && (
         <>
           <label className="fl" style={{ marginTop: 12 }}>

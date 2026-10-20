@@ -141,11 +141,22 @@ export async function saveCommonDoc(fd: FormData): Promise<ActionResult> {
   const collegeCodes = String(fd.get("colleges") ?? "").split(",").map((c) => c.trim()).filter(Boolean);
   const note = String(fd.get("note") ?? "").trim();
   const folderId = String(fd.get("folderId") ?? "") || null;
+  const linkArea = Number(fd.get("linkArea")) || null;
   if (!title) return { ok: false, error: "Enter a title" };
 
   const supabase = await createClient();
   const up = await checkUploaded(supabase, BUCKETS.commonDocs, { path, prefix: "", name: fileName, exts: [".pdf", ".docx"], max: MAX });
   if ("error" in up) return { ok: false, error: up.error };
+
+  const linkTaken = async (own: string | null) => {
+    if (!linkArea) return false;
+    const { data } = await supabase.from("common_documents").select("id").eq("link_area_ordinal", linkArea).is("deleted_at", null).limit(1).maybeSingle();
+    return Boolean(data && data.id !== own);
+  };
+  if (await linkTaken(id)) {
+    await supabase.storage.from(BUCKETS.commonDocs).remove([path]);
+    return { ok: false, error: "Another common document already fills that Area. Remove its Area link first." };
+  }
 
   let version = 1;
   if (id) {
@@ -168,7 +179,7 @@ export async function saveCommonDoc(fd: FormData): Promise<ActionResult> {
   } else {
     const { data: created, error } = await supabase
       .from("common_documents")
-      .insert({ title, category, visible_to: visibleTo, college_codes: collegeCodes, storage_path: path, file_size: up.size, uploaded_by: user.id, folder_id: folderId })
+      .insert({ title, category, visible_to: visibleTo, college_codes: collegeCodes, storage_path: path, file_size: up.size, uploaded_by: user.id, folder_id: folderId, link_area_ordinal: linkArea })
       .select("id")
       .single();
     if (error) {
@@ -176,6 +187,10 @@ export async function saveCommonDoc(fd: FormData): Promise<ActionResult> {
       return { ok: false, error: error.message };
     }
     after(() => indexDocument(supabase, "common", created.id));
+  }
+  if (id) {
+    const { error } = await supabase.from("common_documents").update({ link_area_ordinal: linkArea }).eq("id", id);
+    if (error) return { ok: false, error: error.message };
   }
   if (fd.get("notify") === "1") await notifyReps(`${id ? `Updated (v${version})` : "New"} common document: ${title}`, "/portal/documents?tab=common", collegeCodes);
   refresh();

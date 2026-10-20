@@ -69,9 +69,9 @@ export async function GET(request: NextRequest) {
   const titled = !("titled" in src);
   const { data: row } = await supabase
     .from(src.table as "templates")
-    .select(titled ? "storage_path, title" : "storage_path")
+    .select(source === "submission" ? "storage_path, title, common_document_id" : titled ? "storage_path, title" : "storage_path")
     .eq(key as "id", id)
-    .maybeSingle<{ storage_path: string; title?: string }>();
+    .maybeSingle<{ storage_path: string; title?: string; common_document_id?: string | null }>();
 
   // Zero rows is what RLS returns to someone who may not read this — so a
   // forbidden document and a missing one are the same 404, and the response never
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
   const fileName = title ? (title.toLowerCase().endsWith(ext.toLowerCase()) ? title : `${title}${ext}`) : true;
   const signed = await signedUrl(
     supabase,
-    src.bucket as BucketName,
+    (row.common_document_id ? BUCKETS.commonDocs : src.bucket) as BucketName,
     row.storage_path,
     undefined,
     asAttachment ? fileName : false,

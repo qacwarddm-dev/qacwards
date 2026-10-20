@@ -44,11 +44,11 @@ export async function GET(request: NextRequest) {
 
   const idsOf = (source: CycleFile["source"]) => files.filter((f) => f.source === source).map((f) => f.id);
   const [subs, repo] = await Promise.all([
-    supabase.from("submission_documents").select("id, storage_path").in("id", idsOf("submission")),
+    supabase.from("submission_documents").select("id, storage_path, common_document_id").in("id", idsOf("submission")),
     supabase.from("repository_files").select("id, storage_path").in("id", idsOf("repository")),
   ]);
   const located = [
-    ...(subs.data ?? []).map((r) => ({ id: r.id, bucket: BUCKETS.submissions as BucketName, path: r.storage_path })),
+    ...(subs.data ?? []).map((r) => ({ id: r.id, bucket: (r.common_document_id ? BUCKETS.commonDocs : BUCKETS.submissions) as BucketName, path: r.storage_path })),
     ...(repo.data ?? []).map((r) => ({ id: r.id, bucket: BUCKETS.repository as BucketName, path: r.storage_path })),
   ];
   const where = new Map(located.map((l) => [l.id, l]));
