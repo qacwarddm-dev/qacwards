@@ -185,6 +185,19 @@ function seedIfEmpty() {
   }
 }
 
+// An earlier demo-data.sql gave accreditor2-4 an empty password (see the note in that file). A database that
+// was already loaded keeps them, so any of these accounts still holding the empty password gets the demo one.
+// An empty password is never legitimate, so this touches nothing anyone set on purpose.
+function repairDemoPasswords() {
+  const r = psql(
+    `update auth.users set encrypted_password = extensions.crypt('${DEMO_PASSWORD}', extensions.gen_salt('bf')), updated_at = now() ` +
+      `where email in ('accreditor2@pup.edu.ph','accreditor3@pup.edu.ph','accreditor4@pup.edu.ph') ` +
+      `and encrypted_password = extensions.crypt('', encrypted_password) returning email`,
+  );
+  const fixed = (r.stdout ?? "").trim();
+  if (r.status === 0 && fixed) say(`Repaired the demo password for: ${fixed.split(/\s+/).join(", ")}`);
+}
+
 function needsBuild(stamp) {
   const f = join(ROOT, ".next", ".defense-build");
   return !existsSync(join(ROOT, ".next", "BUILD_ID")) || !existsSync(f) || readFileSync(f, "utf8") !== stamp;
@@ -272,6 +285,7 @@ async function start(flags) {
   verifyGrants();
   writeEnv(sb);
   seedIfEmpty();
+  repairDemoPasswords();
   build(`${sb.API_URL}|${sb.ANON_KEY}`, flags.includes("--rebuild"));
   await startApp();
   banner();

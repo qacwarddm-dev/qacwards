@@ -5,11 +5,13 @@
 -- These are sample records, not recovered production data. Pass the shared demo
 -- password in: psql -v devpw=... -f defense/demo-data.sql
 
+begin;
+
+-- Inside the transaction: set_config(..., true) lasts only until the transaction ends, so run before
+-- `begin` it was already gone when the accounts below were created and they got an EMPTY password.
 \o /dev/null
 select set_config('app.devpw', :'devpw', true);
 \o
-
-begin;
 
 do $$
 declare
