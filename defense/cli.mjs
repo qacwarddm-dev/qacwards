@@ -33,12 +33,13 @@ const fail = (m) => {
 };
 
 function run(cmd, args, opts = {}) {
-  // On Windows the shell splits an unquoted path at its first space, so "C:\Program Files\nodejs\node.exe"
-  // would run as "C:\Program".
-  const shell = opts.shell ?? WIN;
-  const bin = shell && args.length && /\s/.test(cmd) && !cmd.startsWith('"') ? `"${cmd}"` : cmd;
-  const r = spawnSync(bin, args, { cwd: ROOT, shell: WIN, encoding: "utf8", maxBuffer: 1 << 28, ...opts });
-  return r;
+  // docker and node are real executables and take their arguments as they are. Through cmd.exe, which is what
+  // `shell: true` means on Windows, the arguments are glued into one unquoted line: a path with a space splits
+  // ("C:\Program Files\nodejs\node.exe" runs as "C:\Program"), SQL splits at its spaces, and `>` in
+  // `setTimeout(()=>{})` becomes a file redirect. Only npx (npx.cmd) and the findstr/grep line need a shell.
+  const native = cmd === "docker" || cmd === process.execPath;
+  const shell = opts.shell ?? (WIN && !native);
+  return spawnSync(cmd, args, { cwd: ROOT, encoding: "utf8", maxBuffer: 1 << 28, ...opts, shell });
 }
 
 function must(cmd, args, opts = {}) {
@@ -123,9 +124,14 @@ function migrate() {
 
 function verifyGrants() {
   const r = psql("select has_table_privilege('authenticated','public.profiles','select')");
-  if (r.stdout.trim() !== "t") {
-    fail("The database was created without Data API grants, so the app cannot read any table. This database predates `auto_expose_new_tables = true` in supabase/config.toml. Back up, then recreate it: `npx supabase db reset --local`, and start again.");
+  const answer = (r.stdout ?? "").trim();
+  if (answer === "t") return;
+  // Anything but t/f means the check itself did not run, which is a different problem from missing grants.
+  if (answer !== "f") {
+    const why = ((r.stderr ?? "").trim() || answer || `exit ${r.status}`).slice(0, 400);
+    fail(`Could not check the database (${why}). Is Docker running, and is the ${DB} container up? Try \`node defense/cli.mjs doctor\`.`);
   }
+  fail("The database was created without Data API grants, so the app cannot read any table. Apply the pending migrations (`npx --no-install supabase migration up --local`) and start again.");
 }
 
 function cronSecret() {
