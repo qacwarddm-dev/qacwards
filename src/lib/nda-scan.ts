@@ -115,9 +115,13 @@ function readQr(canvas: HTMLCanvasElement): string | null {
   return null;
 }
 
+const OFFLINE = process.env.NEXT_PUBLIC_OFFLINE_ASSETS === "1";
+
 export async function scanNda(file: File, issued: string[], onProgress?: (pct: number) => void): Promise<Partial<NdaFields>> {
   const pdfjs = await import("pdfjs-dist");
-  pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+  pdfjs.GlobalWorkerOptions.workerSrc = OFFLINE
+    ? "/offline/pdf.worker.min.mjs"
+    : `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
   const doc = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
   const pages = Math.min(doc.numPages, MAX_PAGES);
   const candidates: string[] = [];
@@ -138,6 +142,11 @@ export async function scanNda(file: File, issued: string[], onProgress?: (pct: n
       if (!worker) {
         const { createWorker } = await import("tesseract.js");
         worker = await createWorker("eng", 1, {
+          ...(OFFLINE && {
+            workerPath: "/offline/tesseract/worker.min.js",
+            corePath: "/offline/tesseract",
+            langPath: "/offline/tesseract",
+          }),
           logger: (m) => {
             if (m.status === "recognizing text") onProgress?.(Math.round(((current + m.progress) / pages) * 100));
           },

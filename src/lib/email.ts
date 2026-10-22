@@ -22,7 +22,10 @@ function transport(): Transporter | null {
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
 
-  if (!host || !user || !pass) {
+  // SMTP_AUTH=none is for the local Mailpit catcher, which takes unauthenticated mail.
+  const anonymous = process.env.SMTP_AUTH === "none";
+
+  if (!host || (!anonymous && (!user || !pass))) {
     cached = null;
     return cached;
   }
@@ -35,7 +38,7 @@ function transport(): Transporter | null {
     // 465 is implicit TLS; 587 upgrades with STARTTLS. Deriving it from the port
     // rather than asking for a third variable removes a way to misconfigure it.
     secure: port === 465,
-    auth: { user, pass },
+    ...(anonymous ? { ignoreTLS: true } : { auth: { user, pass } }),
   });
 
   return cached;

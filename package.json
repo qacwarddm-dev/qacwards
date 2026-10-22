@@ -18,7 +18,8 @@
     "gen:types": "supabase gen types typescript --local > src/lib/database.types.ts",
     "gen:seed": "tsc -p scripts/tsconfig.seed.json && node .seed-build/scripts/gen-seed.js",
     "check:seed": "tsc -p scripts/tsconfig.seed.json && node .seed-build/scripts/gen-seed.js --check",
-    "check:embeds": "node scripts/check-embeds.mjs"
+    "check:embeds": "node scripts/check-embeds.mjs",
+    "offline:assets": "node scripts/offline-assets.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
@@ -40,6 +41,7 @@
   "devDependencies": {
     "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
+    "@tesseract.js-data/eng": "1.0.0",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.1",
     "@types/qrcode": "^1.5.6",
