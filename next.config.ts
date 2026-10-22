@@ -10,7 +10,13 @@ const nextConfig: NextConfig = {
   // "Setting up fake worker failed" inside server actions.
   serverExternalPackages: ["pdf-parse", "pdfjs-dist"],
   // Only the accreditor signature upload still posts a file to a server action.
-  experimental: { serverActions: { bodySizeLimit: "11mb" } },
+  experimental: {
+    serverActions: { bodySizeLimit: "11mb" },
+    // Pages are rendered per user, so by default every click re-runs the server. Keeping a visited page for
+    // 30 seconds makes going back and forth instant; saving anything (a server action or router.refresh)
+    // clears it, so what is on screen never lags behind the person's own changes.
+    staleTimes: { dynamic: 30, static: 180 },
+  },
   outputFileTracingIncludes: {
     "/api/documents/nda-template": ["./templates/qac-nda.pdf"],
     "/api/evaluations/[id]/sheet": ["./public/assets/logos/pup.png"],

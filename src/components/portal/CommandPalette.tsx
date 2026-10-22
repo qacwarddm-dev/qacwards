@@ -5,10 +5,17 @@ import useNav from "./kit/nav";
 import Modal from "./kit/Modal";
 import Empty from "./kit/Empty";
 import Spinner, { MiniRing } from "./kit/Spinner";
+import Btn from "./kit/Btn";
+import FilterPills from "./kit/FilterPills";
+import FullScreenViewer from "./kit/FullScreenViewer";
+import { useToast } from "./kit/ToastProvider";
 import { flatNav, navForUser, type PortalUser } from "./portal-nav";
-import { searchPortal, type SearchHit } from "@/lib/search-actions";
+import { locateMatch, searchPortal, type SearchHit } from "@/lib/search-actions";
 
 type Hit = SearchHit & { key: string };
+
+/** A document hit opened straight in its file. */
+type Opened = { hit: SearchHit; url: string; fileName: string; page: number | null; pages: number | null; words: string[] };
 
 export default function CommandPalette({ user }: { user: PortalUser }) {
   const [open, setOpen] = useState(false);
@@ -16,14 +23,20 @@ export default function CommandPalette({ user }: { user: PortalUser }) {
   const [sel, setSel] = useState(0);
   const [remote, setRemote] = useState<SearchHit[]>([]);
   const [found, setFound] = useState("");
+  const recent = useRef(new Map<string, { at: number; hits: SearchHit[] }>());
+  const [scope, setScope] = useState<"all" | SearchHit["group"]>("all");
+  const [opened, setOpened] = useState<Opened | null>(null);
+  const [opening, setOpening] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const router = useNav();
+  const toast = useToast();
 
   const reset = () => {
     setQ("");
     setSel(0);
     setRemote([]);
     setFound("");
+    setScope("all");
     setOpen(true);
   };
 
@@ -63,7 +76,10 @@ export default function CommandPalette({ user }: { user: PortalUser }) {
     if (term.length < 2) return;
     let live = true;
     const t = setTimeout(async () => {
-      const hits = await searchPortal(term);
+      // Retyping or backspacing to a term seen in the last minute needs no new round trip.
+      const seen = recent.current.get(term.toLowerCase());
+      const hits = seen && Date.now() - seen.at < 60_000 ? seen.hits : await searchPortal(term);
+      recent.current.set(term.toLowerCase(), { at: Date.now(), hits });
       if (!live) return;
       setRemote(hits);
       setFound(term);
@@ -77,22 +93,68 @@ export default function CommandPalette({ user }: { user: PortalUser }) {
   const results: Hit[] = useMemo(() => {
     const term = q.toLowerCase().trim();
     const p = term ? pages.filter((x) => `${x.title} ${x.sub}`.toLowerCase().includes(term)) : pages;
-    return [...p, ...(term.length >= 2 ? remote : [])].slice(0, 14).map((h, i) => ({ ...h, key: `${h.group}${i}${h.href}` }));
-  }, [q, pages, remote]);
+    return [...p, ...(term.length >= 2 ? remote : [])]
+      .filter((h) => scope === "all" || h.group === scope)
+      .slice(0, 14)
+      .map((h, i) => ({ ...h, key: `${h.group}${i}${h.href}` }));
+  }, [q, pages, remote, scope]);
 
   const searching = q.trim().length >= 2 && found !== q.trim();
 
-  function go(i: number) {
+  async function go(i: number) {
     const h = results[i];
-    if (!h) return;
+    if (!h || opening) return;
+    if (!h.file) {
+      setOpen(false);
+      router.push(h.href);
+      return;
+    }
+    setOpening(true);
+    const res = await locateMatch(h.file.kind, h.file.id, q).catch(() => null);
+    setOpening(false);
+    if (!res || !res.ok) {
+      toast.say(res && !res.ok ? res.error : "Could not open that file.", true);
+      return;
+    }
     setOpen(false);
-    router.push(h.href);
+    setOpened({ hit: h, url: `/api/documents/download?source=${res.source}&id=${res.id}`, fileName: res.fileName, page: res.page, pages: res.pages, words: res.words });
   }
 
-  if (!open) return null;
+  const viewer = opened && (
+    <FullScreenViewer
+      url={opened.url}
+      file={opened.fileName}
+      meta={[opened.hit.title, opened.hit.sub, opened.page ? `Page ${opened.page}${opened.pages ? ` of ${opened.pages}` : ""} · first match` : null].filter(Boolean).join(" · ")}
+      pages={opened.pages}
+      startPage={opened.page}
+      highlight={opened.words}
+      panelLabel="Where it lives"
+      panel={
+        <>
+          <h4>FOUND FOR “{opened.words.join(" ")}”</h4>
+          <div className="sub">{opened.hit.sub || opened.hit.title}</div>
+          <Btn
+            variant="o"
+            onClick={() => {
+              const href = opened.hit.href;
+              setOpened(null);
+              router.push(href);
+            }}
+          >
+            Open where it is filed ›
+          </Btn>
+        </>
+      }
+      onClose={() => setOpened(null)}
+    />
+  );
+
+  if (!open) return viewer || null;
 
   let group = "";
   return (
+    <>
+    {viewer}
     <Modal onClose={() => setOpen(false)} size="pal">
       <div className="pal" style={{ margin: "-18px -24px" }}>
         <div className="pi">
@@ -111,11 +173,27 @@ export default function CommandPalette({ user }: { user: PortalUser }) {
                 const n = results.length || 1;
                 setSel((sel + (e.key === "ArrowDown" ? 1 : -1) + n) % n);
               }
-              if (e.key === "Enter") go(sel);
+              if (e.key === "Enter") void go(sel);
             }}
           />
-          {searching && <MiniRing />}
+          {(searching || opening) && <MiniRing />}
           <kbd style={{ fontSize: 10, border: "1px solid #ccc", borderRadius: 4, padding: "1px 5px", color: "#777" }}>Esc</kbd>
+        </div>
+        <div style={{ padding: "8px 16px 0" }}>
+          <FilterPills
+            flush
+            value={scope}
+            onChange={(k) => {
+              setScope(k);
+              setSel(0);
+            }}
+            items={[
+              { key: "all", label: "All" },
+              { key: "Pages", label: "Pages" },
+              { key: "Documents", label: "Documents" },
+              { key: "Events", label: "Events" },
+            ]}
+          />
         </div>
         <div style={{ maxHeight: "60vh", overflow: "auto", paddingBottom: 8 }}>
           {results.length ? (
@@ -124,7 +202,7 @@ export default function CommandPalette({ user }: { user: PortalUser }) {
               return (
                 <div key={r.key}>
                   {head}
-                  <div className={`pr2${i === sel ? " k" : ""}`} onClick={() => go(i)}>
+                  <div className={`pr2${i === sel ? " k" : ""}`} onClick={() => void go(i)}>
                     {r.group === "Documents" ? "📄" : r.group === "Events" ? "🗓" : "↗"}{" "}
                     <span>
                       {r.title}
@@ -147,5 +225,6 @@ export default function CommandPalette({ user }: { user: PortalUser }) {
         </div>
       </div>
     </Modal>
+    </>
   );
 }

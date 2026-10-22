@@ -12,7 +12,7 @@ import UpcomingEvents from "../../kit/UpcomingEvents";
 import { MON, cdTxt, daysUntil, evEnd, nextDeadline, parseDay, type CalEvent } from "../../kit/calendar";
 import { evalTitle, pendingOf, useEvaluations } from "../../kit/useEvaluations";
 import { allPhaseSlots, countSlots, includedAreas } from "@/lib/review-model";
-import { currentLevel, levelCounts, levelStatus, type RepProgram } from "@/lib/rep-model";
+import { currentLevel, levelCounts, levelPercent, levelStatus, type RepProgram } from "@/lib/rep-model";
 import { programMid, programShort } from "@/lib/program-names";
 import type { CompletedVisit } from "@/lib/visit-evaluations";
 
@@ -40,6 +40,7 @@ export default function RepDashboard({
   const T = countSlots(all);
   const main = current[0];
   const mc = main ? levelCounts(main.l) : null;
+  const mainPct = main ? levelPercent(main.p, main.l) : 0;
   const t0 = parseDay(today);
   const visit = main ? events.find((e) => e.type === "visit" && e.prog.includes(programShort(main.p.name)) && evEnd(e) >= t0) : undefined;
   const nd = nextDeadline(events, today);
@@ -100,7 +101,7 @@ export default function RepDashboard({
           <p>
             {main ? (
               <>
-                {programMid(main.p.name)} · {main.l.name} is <b>{mc?.pct ?? 0}% ready</b>
+                {programMid(main.p.name)} · {main.l.name} is <b>{mainPct}% complete</b>
                 {visit && (
                   <>
                     {" "}
@@ -122,7 +123,7 @@ export default function RepDashboard({
         </div>
       </div>
       <StatGrid>
-        <StatTile label="Completion rate" icon="📊" iconBg="#f6eaea" value={`${T.pct}%`} sub={`${T.up} of ${T.req} documents · ${programs.length} program${programs.length === 1 ? "" : "s"}`} href="/portal/submission" />
+        <StatTile label="Completion rate" icon="📊" iconBg="#f6eaea" value={`${T.pct}%`} sub={`${T.ap} of ${T.req} documents approved · ${programs.length} program${programs.length === 1 ? "" : "s"}`} href="/portal/submission" />
         <StatTile label="Needs revision" icon="↺" iconBg="#fdecec" value={T.re} valueColor="var(--red)" sub={T.re ? "Returned by accreditors · resubmit" : "Nothing to fix"} href="/portal/feedback" />
         <StatTile label="For review" icon="⏳" iconBg="#fff6d6" value={T.pe} valueColor="#b58f00" sub="Waiting for accreditors" href={mainHref} />
         <StatTile
@@ -139,7 +140,7 @@ export default function RepDashboard({
         <Card>
           <CardHead title="My Programs" sub="Current level and readiness" right={<Link className="lnk" href="/portal/submission">Open Accreditation ›</Link>} />
           {current.map(({ p, l }) => {
-            const s = levelCounts(l);
+            const pct = levelPercent(p, l);
             const ls = levelStatus(p, l);
             return (
               <div key={p.id} className="plist">
@@ -150,8 +151,8 @@ export default function RepDashboard({
                       {l.name} · <Pill tone={ls.tone}>{ls.t}</Pill> · {ls.sub}
                     </small>
                   </div>
-                  <Bar pct={s.pct} color="var(--gold)" />
-                  <b style={{ textAlign: "right" }}>{s.pct}%</b>
+                  <Bar pct={pct} color="var(--gold)" />
+                  <b style={{ textAlign: "right" }}>{pct}%</b>
                   <span style={{ color: "#aaa" }}>›</span>
                 </Link>
               </div>
@@ -185,10 +186,10 @@ export default function RepDashboard({
             nd && ndDate && main
               ? {
                   days: daysUntil(nd, today),
-                  ringPct: mc?.pct ?? 0,
+                  ringPct: mainPct,
                   kicker: `Next deadline · ${MON[ndDate.getMonth()]} ${ndDate.getDate()}`,
                   title: nd.title.replace("Deadline: ", ""),
-                  text: `${programShort(main.p.name)} ${main.l.name} is ${mc?.pct ?? 0}% ready · ${mc?.miss ?? 0} documents to upload${mc?.re ? `, ${mc.re} to revise` : ""}.`,
+                  text: `${programShort(main.p.name)} ${main.l.name} is ${mainPct}% complete · ${mc?.miss ?? 0} documents to upload${mc?.re ? `, ${mc.re} to revise` : ""}.`,
                   action: { label: main.l.closed ? "View ›" : "Continue uploading ›", href: mainHref },
                 }
               : null

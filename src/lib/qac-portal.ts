@@ -72,15 +72,16 @@ export async function getQacOverview(): Promise<QacOverview> {
   const assignmentIds = [...active.values()]
     .map((s) => (Array.isArray(s.assignments) ? s.assignments[0] : s.assignments)?.id)
     .filter((x): x is string => Boolean(x));
-  const [{ data: reports }, { data: ratings }] = assignmentIds.length
+  const [{ data: reports }, { data: ratings }, { data: comments }] = assignmentIds.length
     ? await Promise.all([
         supabase
           .from("accreditor_reports")
           .select("assignment_id, accreditor_id, status, grand_mean, signed_at, doc_code, qac_note, overall_findings, recommendation")
           .in("assignment_id", assignmentIds),
-        supabase.from("area_ratings").select("assignment_id, accreditor_id, requirement_area_id, rating, remark").in("assignment_id", assignmentIds),
+        supabase.from("area_ratings").select("assignment_id, accreditor_id, requirement_area_id, rating").in("assignment_id", assignmentIds),
+        supabase.from("area_comments").select("assignment_id, accreditor_id, requirement_area_id, remark").in("assignment_id", assignmentIds),
       ])
-    : [{ data: [] as never[] }, { data: [] as never[] }];
+    : [{ data: [] as never[] }, { data: [] as never[] }, { data: [] as never[] }];
 
   const out: QacProgram[] = [];
   for (const p of programs ?? []) {
@@ -119,11 +120,12 @@ export async function getQacOverview(): Promise<QacOverview> {
       for (const r of mine) if (r.rating) byArea.set(r.requirement_area_id, [...(byArea.get(r.requirement_area_id) ?? []), r.rating]);
       areaMeans[m.id] = Object.fromEntries([...byArea].map(([k, v]) => [k, v.reduce((a, b) => a + b, 0) / v.length]));
       remarks[m.id] = {};
-      for (const r of mine) if (r.remark?.trim()) (remarks[m.id][r.requirement_area_id] ??= []).push(r.remark.trim());
-      const rows = (ratings ?? []).filter((r) => r.assignment_id === asg?.id && r.accreditor_id === m.id && r.rating && r.remark?.trim());
+      const notes = (comments ?? []).filter((c) => c.assignment_id === asg?.id && c.accreditor_id === m.id && c.remark.trim());
+      for (const c of notes) remarks[m.id][c.requirement_area_id] = [c.remark.trim()];
+      const commented = new Set(notes.map((c) => c.requirement_area_id));
       const perArea = new Map<string, number>();
-      for (const r of rows) perArea.set(r.requirement_area_id, (perArea.get(r.requirement_area_id) ?? 0) + 1);
-      rated[m.id] = [...perArea.values()].filter((n) => n >= 3).length;
+      for (const r of mine) if (r.rating) perArea.set(r.requirement_area_id, (perArea.get(r.requirement_area_id) ?? 0) + 1);
+      rated[m.id] = [...perArea].filter(([area, n]) => n >= 3 && commented.has(area)).length;
     }
     const ev = asg ? (Array.isArray(asg.evaluations) ? asg.evaluations[0] : asg.evaluations) : null;
     const lvl = s?.accreditation_levels ?? current?.accreditation_levels;

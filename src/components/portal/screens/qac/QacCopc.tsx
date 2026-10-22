@@ -18,6 +18,7 @@ import Modal from "../../kit/Modal";
 import Pill from "../../kit/Pill";
 import RecentlyDeleted from "../../kit/RecentlyDeleted";
 import Result from "../../kit/Result";
+import FilterSelects, { optionsOf } from "../../kit/FilterSelects";
 import SearchBox from "../../kit/SearchBox";
 import useAct from "../../kit/useAct";
 import useContentMatches from "../../kit/useContentMatches";
@@ -35,6 +36,11 @@ type Nav = { loc: RepoLoc | null; unit: string | null; type: RepoType | null };
 export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: Nav; today: string }) {
   const router = useNav();
   const [q, setQ] = useState("");
+  const [fLoc, setFLoc] = useState("all");
+  const [fType, setFType] = useState("all");
+  const [fYear, setFYear] = useState("all");
+  const [fProg, setFProg] = useState("all");
+  const [fHas, setFHas] = useState("all");
   const text = useContentMatches(["repository"], q);
   const [folderMode, setFolderMode] = useState<"grid" | "list">("grid");
   const [fileMode, setFileMode] = useState<"grid" | "list">("list");
@@ -50,6 +56,11 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
     if (next.loc && next.unit) sp.set("unit", next.unit);
     if (next.loc && next.unit && next.type) sp.set("type", next.type);
     setQ("");
+    setFLoc("all");
+    setFType("all");
+    setFYear("all");
+    setFProg("all");
+    setFHas("all");
     router.push(`/portal/aaccup-copc${sp.size ? `?${sp}` : ""}`);
   };
 
@@ -81,17 +92,36 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
   if (!nav.loc) {
     const main = repo.units.filter((u) => u.loc === "main" && u.college);
     const camp = repo.units.filter((u) => u.loc === "camp" && !u.customId);
-    const hits = q.trim()
-      ? repo.files.filter((f) => text.ids.has(f.id) || `${f.title} ${f.program} ${f.unit} ${f.uploadedAt.slice(0, 4)}`.toLowerCase().includes(q.trim().toLowerCase()))
-      : [];
+    const filtering = fLoc !== "all" || fType !== "all" || fYear !== "all";
+    const hits =
+      q.trim() || filtering
+        ? repo.files.filter(
+            (f) =>
+              (!q.trim() || text.ids.has(f.id) || `${f.title} ${f.program} ${f.unit} ${f.uploadedAt.slice(0, 4)}`.toLowerCase().includes(q.trim().toLowerCase())) &&
+              (fLoc === "all" || f.loc === fLoc) &&
+              (fType === "all" || f.type === fType) &&
+              (fYear === "all" || f.uploadedAt.slice(0, 4) === fYear),
+          )
+        : [];
     return (
       <div className="card">
         <CardHead
           title="AACCUP & COPC"
           sub="Certificates, AACCUP reports and CHED COPC files for every program"
-          right={<SearchBox variant="r-sm" value={q} onChange={setQ} placeholder="Search all files" />}
+          right={
+            <div className="ftools">
+              <SearchBox variant="r-sm" value={q} onChange={setQ} placeholder="Search all files" />
+              <FilterSelects
+                filters={[
+                  { label: "Location", all: "All locations", value: fLoc, onChange: setFLoc, options: [{ value: "main", label: LOCN.main }, { value: "camp", label: LOCN.camp }] },
+                  { label: "File type", value: fType, onChange: setFType, options: FTYPES.map((t) => ({ value: t.key, label: t.name })) },
+                  { label: "Year", value: fYear, onChange: setFYear, options: optionsOf(repo.files.map((f) => f.uploadedAt.slice(0, 4))).reverse() },
+                ]}
+              />
+            </div>
+          }
         />
-        {q.trim() ? (
+        {q.trim() || filtering ? (
           hits.length ? (
             <table>
               <tbody>
@@ -101,7 +131,7 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
                   <th>Uploaded</th>
                 </tr>
                 {hits.map((h) => (
-                  <tr key={h.id} className="click" onClick={() => go({ loc: h.loc, unit: h.unit, type: h.type })}>
+                  <tr key={h.id} className="click" onClick={() => setModal({ k: "view", f: h })}>
                     <td>
                       <span className="pdfi">PDF</span> {h.title}
                     </td>
@@ -114,7 +144,7 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
               </tbody>
             </table>
           ) : (
-            <div className="empty">{text.pending ? "Searching inside files…" : `No files match “${q}”.`}</div>
+            <div className="empty">{text.pending ? "Searching inside files…" : q.trim() ? `No files match “${q}”.` : "No files match these filters."}</div>
           )
         ) : (
           <div className="ccards">
@@ -146,6 +176,16 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
           </div>
         )}
         {gone}
+        {modal?.k === "view" && (
+          <FullScreenViewer
+            url={fileUrl(modal.f.id)}
+            downloadHref={fileUrl(modal.f.id, true)}
+            file={modal.f.title}
+            meta={`${modal.f.unit} · ${FTYPES.find((t) => t.key === modal.f.type)!.name}${modal.f.type === "oth" ? "" : ` · ${modal.f.program}`}`}
+            note="Program reps can view this file in their Documents → Reports"
+            onClose={() => setModal(null)}
+          />
+        )}
       </div>
     );
   }
@@ -170,6 +210,7 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
     const L = repo.files
       .filter((f) => f.unit === nav.unit && f.type === T.key)
       .filter((f) => !ql || text.ids.has(f.id) || `${f.title} ${f.program} ${f.uploadedAt.slice(0, 4)}`.toLowerCase().includes(ql))
+      .filter((f) => (fProg === "all" || f.program === fProg) && (fYear === "all" || f.uploadedAt.slice(0, 4) === fYear))
       .sort((a, b) => (sort === "name" ? a.title.localeCompare(b.title) : b.uploadedAt.localeCompare(a.uploadedAt)));
     body = L.length && fv === "grid" ? (
       <FileGrid items={L.map((x) => ({ id: x.id, name: x.title, sub: shortDate(x.uploadedAt), menu: fileMenu(x) }))} onOpen={(id) => setModal({ k: "view", f: L.find((x) => x.id === id)! })} />
@@ -249,7 +290,7 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
       </div>
     );
   } else if (nav.unit) {
-    const L = FTYPES.filter((t) => !ql || t.name.toLowerCase().includes(ql));
+    const L = FTYPES.filter((t) => !ql || t.name.toLowerCase().includes(ql)).filter((t) => fHas === "all" || (count(nav.unit!, t.key) > 0) === (fHas === "files"));
     body =
       fv === "grid" ? (
         <div className="fgrid">
@@ -269,7 +310,7 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
       );
   } else {
     const units = repo.units
-      .filter((u) => u.loc === nav.loc && (!ql || u.name.toLowerCase().includes(ql)))
+      .filter((u) => u.loc === nav.loc && (!ql || u.name.toLowerCase().includes(ql)) && (fHas === "all" || (count(u.key) > 0) === (fHas === "files")))
       .sort((a, b) => (sort === "date" ? count(b.key) - count(a.key) : 0));
     body = !units.length ? (
       <div className="empty">No folders match “{q}”.</div>
@@ -313,7 +354,19 @@ export default function QacCopc({ repo, nav, today }: { repo: Repository; nav: N
               </>
             )}
           </div>
-          <SearchBox variant="r-sm" value={q} onChange={setQ} placeholder={T ? "Search files" : "Search folders"} />
+          <div className="ftools">
+            <SearchBox variant="r-sm" value={q} onChange={setQ} placeholder={T ? "Search files" : "Search folders"} />
+            <FilterSelects
+              filters={
+                T
+                  ? [
+                      { label: "Program", value: fProg, onChange: setFProg, options: optionsOf(repo.files.filter((f) => f.unit === nav.unit && f.type === T.key).map((f) => f.program)) },
+                      { label: "Year", value: fYear, onChange: setFYear, options: optionsOf(repo.files.filter((f) => f.unit === nav.unit && f.type === T.key).map((f) => f.uploadedAt.slice(0, 4))).reverse() },
+                    ]
+                  : [{ label: "Contents", all: "All folders", value: fHas, onChange: setFHas, options: [{ value: "files", label: "With files" }, { value: "empty", label: "Empty" }] }]
+              }
+            />
+          </div>
           <div className="rbtns">
             <button className={`vbtn${fv === "list" ? " on" : ""}`} onClick={() => setFv("list")} title="List view">
               ☰

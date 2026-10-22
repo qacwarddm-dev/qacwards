@@ -23,7 +23,7 @@ export async function getRepPrograms(): Promise<RepProgram[]> {
     supabase.from("accreditation_levels").select("id, code, name, ordinal").order("ordinal"),
     supabase
       .from("submissions")
-      .select("id, program_id, level_id, status, attempt, accreditation_cycles!submissions_cycle_id_fkey(status, end_date), assignments(id, assignment_accreditors(profile_id, response, is_team_leader, profiles(surname, given_name, middle_initial)))")
+      .select("id, program_id, level_id, status, attempt, accreditation_cycles!submissions_cycle_id_fkey(status, end_date), assignments(id, evaluations(outcome, released_at), assignment_accreditors(profile_id, response, is_team_leader, profiles(surname, given_name, middle_initial)))")
       .in("program_id", programs.map((p) => p.id))
       .order("attempt", { ascending: false }),
     supabase
@@ -35,7 +35,7 @@ export async function getRepPrograms(): Promise<RepProgram[]> {
   ]);
   const today = manilaDay();
   const live = acceptsWork(openCycle, today);
-  const latest = new Map<string, { id: string; status: string; closed: boolean; accreditors: { name: string; accepted: boolean; leader: boolean }[] }>();
+  const latest = new Map<string, { id: string; status: string; closed: boolean; accreditors: { name: string; accepted: boolean; leader: boolean }[]; result: string | null }>();
   for (const s of subs ?? []) {
     const k = `${s.program_id}|${s.level_id}`;
     const asg = Array.isArray(s.assignments) ? s.assignments[0] : s.assignments;
@@ -44,9 +44,17 @@ export async function getRepPrograms(): Promise<RepProgram[]> {
       .filter((a) => a.response !== "rejected")
       .map((a) => ({ name: a.profiles ? personName(a.profiles) : "—", accepted: a.response === "accepted", leader: a.is_team_leader }))
       .sort((a, b) => Number(b.leader) - Number(a.leader));
-    if (!latest.has(k)) latest.set(k, { id: s.id, status: s.status, closed: !acceptsWork(s.accreditation_cycles, today), accreditors });
+    const evaluation = asg ? (Array.isArray(asg.evaluations) ? asg.evaluations[0] : asg.evaluations) : null;
+    const result = evaluation?.released_at && evaluation.outcome ? (evaluation.outcome === "passed" ? "Passed" : "Deferred") : null;
+    if (!latest.has(k)) latest.set(k, { id: s.id, status: s.status, closed: !acceptsWork(s.accreditation_cycles, today), accreditors, result });
   }
-  const [reviews, ref] = await Promise.all([getSubmissionReviews([...latest.values()].map((s) => s.id)), getReferenceStructure()]);
+  const submissionIds = [...latest.values()].map((s) => s.id);
+  const [reviews, ref, { data: acks }] = await Promise.all([
+    getSubmissionReviews(submissionIds),
+    getReferenceStructure(),
+    submissionIds.length ? supabase.rpc("submission_report_acknowledged", { p_submissions: submissionIds }) : Promise.resolve({ data: [] as { submission_id: string; acknowledged: boolean }[] }),
+  ]);
+  const acknowledged = new Set((acks ?? []).filter((a) => a.acknowledged).map((a) => a.submission_id));
   return programs.map((p) => {
     const awarded = (awards ?? [])
       .filter((a) => a.program_id === p.id)
@@ -71,6 +79,8 @@ export async function getRepPrograms(): Promise<RepProgram[]> {
           status: s?.status ?? null,
           closed: s?.closed ?? !live,
           accreditors: s?.accreditors ?? [],
+          reportAcknowledged: s ? acknowledged.has(s.id) : false,
+          result: s?.result ?? null,
           review: s
             ? (reviews.find((r) => r.submissionId === s.id) ?? null)
             : emptyReview(ref, { id: l.id, code: l.code, name: l.name, required_choices: ref.levels.find((x) => x.id === l.id)?.required_choices ?? null }, {

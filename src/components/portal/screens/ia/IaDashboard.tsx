@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Card, { CardHead } from "../../kit/Card";
+import FilterSelects, { optionsOf } from "../../kit/FilterSelects";
+import SearchBox from "../../kit/SearchBox";
 import Scope from "../../kit/Scope";
 import StatTile, { StatGrid } from "../../kit/StatTile";
 import UpcomingEvents from "../../kit/UpcomingEvents";
@@ -21,12 +23,22 @@ export default function IaDashboard({
   today: string;
 }) {
   const [q, setQ] = useState("");
+  const [lvl, setLvl] = useState("all");
+  const [campus, setCampus] = useState("all");
+  const [stat, setStat] = useState("all");
   const signed = (a: IaAssignment) => a.report?.status === "submitted" || a.report?.status === "acknowledged";
   const sub = assignments.filter(signed).length;
   const prog = assignments.filter((a) => !signed(a) && iaStats(a).started).length;
   const ns = assignments.length - sub - prog;
   const levels = [...new Set(assignments.map((a) => a.levelName))];
-  const shown = assignments.filter((a) => !q || `${a.program} ${a.short} ${a.college}`.toLowerCase().includes(q.toLowerCase()));
+  const stateOf = (a: IaAssignment) => (signed(a) ? "submitted" : iaStats(a).started ? "progress" : "new");
+  const shown = assignments.filter(
+    (a) =>
+      (!q || `${a.program} ${a.short} ${a.college}`.toLowerCase().includes(q.toLowerCase())) &&
+      (lvl === "all" || a.levelName === lvl) &&
+      (campus === "all" || a.campus === campus) &&
+      (stat === "all" || stateOf(a) === stat),
+  );
   const colleges = [...new Set(shown.map((a) => a.college))];
 
   const nx = nextDeadline(events, today);
@@ -53,7 +65,27 @@ export default function IaDashboard({
       <Card>
         <CardHead
           title="Assigned Programs"
-          right={<input className="search" placeholder="Search programs…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search programs" />}
+          right={
+            <div className="ftools">
+              <SearchBox value={q} onChange={setQ} placeholder="Search programs" />
+              <FilterSelects
+                filters={[
+                  { label: "Level", value: lvl, onChange: setLvl, options: optionsOf(assignments.map((a) => a.levelName)) },
+                  { label: "Campus", value: campus, onChange: setCampus, options: optionsOf(assignments.map((a) => a.campus)) },
+                  {
+                    label: "Status",
+                    value: stat,
+                    onChange: setStat,
+                    options: [
+                      { value: "new", label: "Not started" },
+                      { value: "progress", label: "In progress" },
+                      { value: "submitted", label: "Submitted" },
+                    ],
+                  },
+                ]}
+              />
+            </div>
+          }
         />
         {colleges.map((c) => {
           const list = shown.filter((a) => a.college === c);

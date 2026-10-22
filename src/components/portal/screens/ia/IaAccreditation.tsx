@@ -19,7 +19,7 @@ import DocViewer from "../../kit/DocViewer";
 import ProgramCard from "./ProgramCard";
 import { Indicators, RatingGuide, ReviewFullScreen, useRatings } from "./IaReview";
 import { ReviewDocModal, useReviewActions } from "../../kit/ReviewDoc";
-import { countSlots, includedAreas, ratedCount, type Slot } from "@/lib/review-model";
+import { areaComplete, countSlots, includedAreas, ratedCount, type Slot } from "@/lib/review-model";
 import { iaStats, type IaAssignment } from "@/lib/ia-model";
 import { areaTag, shortDate } from "@/lib/program-names";
 import { sendAreasToLeader } from "@/lib/review-actions";
@@ -287,13 +287,13 @@ function ReqCard({ a, signed, meId }: { a: IaAssignment; signed: boolean; meId: 
         </div>
       </div>
       <div className="sech">
-        {areaTitle} <small>One compiled PDF per area · review the document, then rate the indicators</small>
+        {areaTitle} <small>One compiled PDF per area · review the document, rate the indicators, then add one overall comment</small>
       </div>
       <div className="box">
         {areas.map((x) => {
           const own = a.mine.includes(x.refId);
           const n = ratedCount(a.ratings[x.refId]);
-          const evaluated = x.state === "approved" && n === 3;
+          const evaluated = x.state === "approved" && areaComplete(a.ratings[x.refId], a.comments[x.refId]);
           const tag = own ? <span className="own me">Yours</span> : <span className="own">{mate} · {mateRole(a)}</span>;
           return (
             <DocRow
@@ -307,7 +307,7 @@ function ReqCard({ a, signed, meId }: { a: IaAssignment; signed: boolean; meId: 
                 ) : (
                   <>
                     {x.file} · {x.size} · {x.date}
-                    {x.version > 1 ? ` · v${x.version}` : ""} · <span style={{ color: n === 3 ? "#1d7a35" : "inherit" }}>Completed {n}/3</span>
+                    {x.version > 1 ? ` · v${x.version}` : ""} · <span style={{ color: evaluated ? "#1d7a35" : "inherit" }}>{evaluated ? "Evaluated" : n === 3 ? "Rated 3/3 · comment needed" : `Rated ${n}/3`}</span>
                   </>
                 )
               }
@@ -370,7 +370,7 @@ function ReqCard({ a, signed, meId }: { a: IaAssignment; signed: boolean; meId: 
           }
         >
           <div style={{ fontSize: 13, lineHeight: 1.6 }}>
-            {a.mate?.name} (Team Leader) will include your ratings and remarks in the overall evaluation report. Your areas become <b>view only</b> unless the Team Leader returns them to you.
+            {a.mate?.name} (Team Leader) will include your ratings and comments in the overall evaluation report. Your areas become <b>view only</b> unless the Team Leader returns them to you.
           </div>
         </Modal>
       )}
@@ -389,14 +389,14 @@ function AreaView({ a, slot, crumbs, signed: reportSigned, meId }: { a: IaAssign
   const next = areas[i + 1];
   const areaNo = slot.ordinal;
   const up = slot.state !== "missing" && slot.state !== "draft";
-  const { ratings, set } = useRatings(a);
+  const { ratings, comments, set, setComment } = useRatings(a);
   const { decide, pending } = useReviewActions();
   const [retModal, setRetModal] = useState(false);
   const [full, setFull] = useState(false);
   const own = a.mine.includes(slot.refId);
   const sent = sentLocked(a);
   const signed = reportSigned || !own || sent;
-  const incomplete = !signed && slot.state === "approved" && ratedCount(ratings[slot.refId]) < 3;
+  const incomplete = !signed && slot.state === "approved" && !areaComplete(ratings[slot.refId], comments[slot.refId]);
   const mate = a.mate?.short ?? mateRole(a);
   return (
     <>
@@ -423,7 +423,7 @@ function AreaView({ a, slot, crumbs, signed: reportSigned, meId }: { a: IaAssign
           <div className="lvnote">
             👁{" "}
             <div>
-              <b>View only.</b> This area is rated by <b>{a.mate?.name ?? mate}</b> ({mateRole(a)}). You can see the document, their decision, ratings and remarks.
+              <b>View only.</b> This area is rated by <b>{a.mate?.name ?? mate}</b> ({mateRole(a)}). You can see the document, their decision, ratings and comment.
             </div>
           </div>
         )}
@@ -503,7 +503,7 @@ function AreaView({ a, slot, crumbs, signed: reportSigned, meId }: { a: IaAssign
               </div>
             )}
             <div className="scl">Scale: 1 = Poor · 5 = Excellent</div>
-            <Indicators areaNo={areaNo} areaId={slot.refId} ratings={ratings} set={set} disabled={!up || signed} readOnly={signed || !up} placeholder={own ? undefined : "No remarks"} />
+            <Indicators areaNo={areaNo} areaId={slot.refId} ratings={ratings} comment={comments[slot.refId] ?? ""} set={set} setComment={setComment} disabled={!up || signed} readOnly={signed || !up} placeholder={own ? undefined : "No comment"} />
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6, gap: 10, flexWrap: "wrap" }}>
               <span />
               <span style={{ display: "flex", gap: 8 }}>
@@ -537,7 +537,7 @@ function AreaView({ a, slot, crumbs, signed: reportSigned, meId }: { a: IaAssign
           onFull={() => setFull(true)}
         />
       )}
-      {full && <ReviewFullScreen a={a} slot={slot} kind="area" groupLabel="Accreditation Requirements" areaNo={areaNo} locked={signed} ratings={ratings} set={set} onClose={() => setFull(false)} />}
+      {full && <ReviewFullScreen a={a} slot={slot} kind="area" groupLabel="Accreditation Requirements" areaNo={areaNo} locked={signed} ratings={ratings} comments={comments} set={set} setComment={setComment} onClose={() => setFull(false)} />}
     </>
   );
 }

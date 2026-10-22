@@ -53,10 +53,12 @@ export type SubmissionReview = {
   chosen: string[];
 };
 
-export type Counts = { req: number; ap: number; pe: number; re: number; miss: number; dr: number; up: number; pct: number };
+/** `pct` is the accepted share (approved ÷ required) — the one number every screen shows as a percentage.
+ *  `upPct` is the uploaded share, kept only where something is gated on uploads (e.g. accreditors may start once enough is in). */
+export type Counts = { req: number; ap: number; pe: number; re: number; miss: number; dr: number; up: number; pct: number; upPct: number };
 
 export function countSlots(slots: Slot[], extraRequired = 0): Counts {
-  const c: Counts = { req: slots.length + extraRequired, ap: 0, pe: 0, re: 0, miss: extraRequired, dr: 0, up: 0, pct: 0 };
+  const c: Counts = { req: slots.length + extraRequired, ap: 0, pe: 0, re: 0, miss: extraRequired, dr: 0, up: 0, pct: 0, upPct: 0 };
   for (const s of slots) {
     if (s.state === "approved") c.ap++;
     else if (s.state === "pending") c.pe++;
@@ -67,13 +69,14 @@ export function countSlots(slots: Slot[], extraRequired = 0): Counts {
     } else c.miss++;
   }
   c.up = c.ap + c.pe;
-  c.pct = c.req ? Math.round((c.up / c.req) * 100) : 0;
+  c.pct = c.req ? Math.round((c.ap / c.req) * 100) : 0;
+  c.upPct = c.req ? Math.round((c.up / c.req) * 100) : 0;
   return c;
 }
 
-/** Share approved only — what QAC and accreditors call "done". */
+/** Share approved only — what QAC and accreditors call "done". Same as `c.pct`. */
 export function approvedPct(c: Counts) {
-  return c.req ? Math.round((c.ap / c.req) * 100) : 0;
+  return c.pct;
 }
 
 export const allPhaseSlots = (r: SubmissionReview) => r.phases.flatMap((p) => p.docs);
@@ -90,8 +93,10 @@ export function missingChoices(r: SubmissionReview) {
 }
 
 
-export type IndicatorRating = { rating: number | null; remark: string };
+export type IndicatorRating = { rating: number | null };
 export type AreaRatings = Record<string, Record<number, IndicatorRating>>;
+/** One overall comment per area (not one per indicator). */
+export type AreaComments = Record<string, string>;
 
 export const INDICATORS = [
   "Documents are complete and up to date",
@@ -99,9 +104,15 @@ export const INDICATORS = [
   "Implementation is shown (photos, reports, minutes)",
 ];
 
+/** How many of the three indicators have a rating. */
 export function ratedCount(r: Record<number, IndicatorRating> | undefined) {
   if (!r) return 0;
-  return [1, 2, 3].filter((i) => r[i]?.rating && r[i].remark.trim()).length;
+  return [1, 2, 3].filter((i) => r[i]?.rating).length;
+}
+
+/** An area is fully evaluated when all three indicators are rated and it has its overall comment. */
+export function areaComplete(r: Record<number, IndicatorRating> | undefined, comment: string | undefined) {
+  return ratedCount(r) === 3 && Boolean(comment?.trim());
 }
 
 export function areaMean(r: Record<number, IndicatorRating> | undefined) {

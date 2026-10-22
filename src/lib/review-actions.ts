@@ -46,13 +46,7 @@ export async function approveDocuments(documentIds: string[]): Promise<ActionRes
   return { ok: true };
 }
 
-export async function saveAreaRating(input: {
-  assignmentId: string;
-  areaId: string;
-  indicator: number;
-  rating: number | null;
-  remark: string;
-}): Promise<ActionResult> {
+export async function saveAreaRating(input: { assignmentId: string; areaId: string; indicator: number; rating: number | null }): Promise<ActionResult> {
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "Not signed in." };
   const supabase = await createClient();
@@ -62,7 +56,23 @@ export async function saveAreaRating(input: {
     requirement_area_id: input.areaId,
     indicator: input.indicator,
     rating: input.rating,
-    remark: input.remark || null,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/portal/evaluation");
+  return { ok: true };
+}
+
+/** The one overall comment of an area. */
+export async function saveAreaComment(input: { assignmentId: string; areaId: string; remark: string }): Promise<ActionResult> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("area_comments").upsert({
+    assignment_id: input.assignmentId,
+    accreditor_id: user.id,
+    requirement_area_id: input.areaId,
+    remark: input.remark.trim(),
     updated_at: new Date().toISOString(),
   });
   if (error) return { ok: false, error: error.message };

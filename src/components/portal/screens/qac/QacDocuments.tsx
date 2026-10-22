@@ -7,6 +7,7 @@ import Card, { CardHead } from "../../kit/Card";
 import DocViewer from "../../kit/DocViewer";
 import FileDrop from "../../kit/FileDrop";
 import FilterPills from "../../kit/FilterPills";
+import FilterSelects, { optionsOf } from "../../kit/FilterSelects";
 import FolderPath from "../../kit/FolderPath";
 import FolderTable from "../../kit/FolderTable";
 import FullScreenViewer from "../../kit/FullScreenViewer";
@@ -72,12 +73,16 @@ export default function QacDocuments({ data, initialTab, verify }: { data: QacDo
 function Templates({ data }: { data: QacDocumentsData }) {
   const [lv, setLv] = useState<TplGroupKey>("areas");
   const [q, setQ] = useState("");
+  const [tExt, setTExt] = useState("all");
+  const [tStat, setTStat] = useState("all");
   const text = useContentMatches(["template"], q);
   const [modal, setModal] = useState<null | { k: "up"; row?: TplRow } | { k: "hist" | "hide" | "view"; row: TplRow }>(null);
   const { busy, run } = useAct();
   const g = data.groups.find((x) => x.key === lv)!;
   const ql = q.toLowerCase();
-  const rows = g.rows.filter((t) => !ql || (t.id !== null && text.ids.has(t.id)) || `${t.name}${t.file ?? ""}`.toLowerCase().includes(ql));
+  const rows = g.rows
+    .filter((t) => !ql || (t.id !== null && text.ids.has(t.id)) || `${t.name}${t.file ?? ""}`.toLowerCase().includes(ql))
+    .filter((t) => (tExt === "all" || t.ext === tExt) && (tStat === "all" || (tStat === "live") === t.published));
   return (
     <>
       <div className="rtool r2">
@@ -95,7 +100,15 @@ function Templates({ data }: { data: QacDocumentsData }) {
           }))}
         />
         <div className="rbtns">
-          <SearchBox variant="r-sm" value={q} onChange={setQ} placeholder="Search toolkit" />
+          <div className="ftools">
+            <SearchBox variant="r-sm" value={q} onChange={setQ} placeholder="Search toolkit" />
+            <FilterSelects
+              filters={[
+                { label: "File type", value: tExt, onChange: setTExt, options: [{ value: "docx", label: "Word (.docx)" }, { value: "pdf", label: "PDF" }] },
+                { label: "Status", all: "Any status", value: tStat, onChange: setTStat, options: [{ value: "live", label: "Published" }, { value: "hidden", label: "Hidden" }] },
+              ]}
+            />
+          </div>
           <Btn onClick={() => setModal({ k: "up" })}>＋ Add toolkit file</Btn>
         </div>
       </div>
@@ -137,15 +150,16 @@ function Templates({ data }: { data: QacDocumentsData }) {
                   <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                     {t.id ? (
                       <>
-                        {t.ext === "pdf" ? (
-                          <Btn variant="gh" sm onClick={() => setModal({ k: "view", row: t })}>
-                            View
-                          </Btn>
-                        ) : (
-                          <Btn variant="gh" sm href={dl("template", t.id, true)} download>
-                            ⬇ Download
-                          </Btn>
-                        )}{" "}
+                        <Btn variant="gh" sm onClick={() => setModal({ k: "view", row: t })}>
+                          View
+                        </Btn>{" "}
+                        {t.ext !== "pdf" && (
+                          <>
+                            <Btn variant="gh" sm href={dl("template", t.id, true)} download>
+                              ⬇ Download
+                            </Btn>{" "}
+                          </>
+                        )}
                         <Btn variant="o" sm onClick={() => setModal({ k: "up", row: t })}>
                           ⬆ Replace
                         </Btn>{" "}
@@ -341,6 +355,9 @@ function TemplateHistory({ row, onClose }: { row: TplRow; onClose: () => void })
 
 function Common({ docs, folders, deleted, colleges }: { docs: CommonDoc[]; folders: CommonFolder[]; deleted: CommonDoc[]; colleges: [string, string][] }) {
   const [q, setQ] = useState("");
+  const [cCat, setCCat] = useState("all");
+  const [cVis, setCVis] = useState("all");
+  const [cExt, setCExt] = useState("all");
   const text = useContentMatches(["common"], q);
   const [folder, setFolder] = useState<string | null>(null);
   const [modal, setModal] = useState<
@@ -349,7 +366,14 @@ function Common({ docs, folders, deleted, colleges }: { docs: CommonDoc[]; folde
   const { busy, run } = useAct();
   const ql = q.toLowerCase();
   const open = folders.find((f) => f.id === folder) ?? null;
-  const L = docs.filter((d) => (ql ? text.ids.has(d.id) || `${d.title}${d.category}`.toLowerCase().includes(ql) : d.folderId === (open?.id ?? null)));
+  const searching = Boolean(ql) || cCat !== "all" || cVis !== "all" || cExt !== "all";
+  const L = docs.filter(
+    (d) =>
+      (searching ? !ql || text.ids.has(d.id) || `${d.title}${d.category}`.toLowerCase().includes(ql) : d.folderId === (open?.id ?? null)) &&
+      (cCat === "all" || d.category === cCat) &&
+      (cVis === "all" || d.visibleTo === cVis) &&
+      (cExt === "all" || d.ext === cExt),
+  );
   return (
     <>
       <div className="rtool r2">
@@ -357,15 +381,24 @@ function Common({ docs, folders, deleted, colleges }: { docs: CommonDoc[]; folde
           Unlocked for a program rep only after the QA Center verifies their NDA.
         </div>
         <div className="rbtns">
-          <SearchBox variant="r-sm" value={q} onChange={setQ} placeholder="Search documents" />
+          <div className="ftools">
+            <SearchBox variant="r-sm" value={q} onChange={setQ} placeholder="Search documents" />
+            <FilterSelects
+              filters={[
+                { label: "Category", value: cCat, onChange: setCCat, options: optionsOf(docs.map((d) => d.category)) },
+                { label: "Visible to", all: "All audiences", value: cVis, onChange: setCVis, options: optionsOf(docs.map((d) => d.visibleTo)) },
+                { label: "File type", value: cExt, onChange: setCExt, options: [{ value: "pdf", label: "PDF" }, { value: "docx", label: "Word (.docx)" }] },
+              ]}
+            />
+          </div>
           <Btn variant="o" onClick={() => setModal({ k: "folder", parent: open?.id ?? null })}>
             ＋ New folder
           </Btn>
           <Btn onClick={() => setModal({ k: "up" })}>⬆ Upload document</Btn>
         </div>
       </div>
-      {open && !ql && <FolderPath root="Common Documents" trail={trailOf(folders, open.id)} onGo={setFolder} />}
-      {!ql && childrenOf(folders, open?.id ?? null).length > 0 && (
+      {open && !searching && <FolderPath root="Common Documents" trail={trailOf(folders, open.id)} onGo={setFolder} />}
+      {!searching && childrenOf(folders, open?.id ?? null).length > 0 && (
         <FolderTable
           rows={childrenOf(folders, open?.id ?? null).map((f) => ({
             key: f.id,
@@ -434,8 +467,8 @@ function Common({ docs, folders, deleted, colleges }: { docs: CommonDoc[]; folde
           </table>
         </div>
       ) : (
-        (ql || !childrenOf(folders, open?.id ?? null).length) && (
-          <div className="empty">{ql ? (text.pending ? "Searching inside files…" : "No documents match.") : open ? "This folder is empty." : "No common documents uploaded yet."}</div>
+        (searching || !childrenOf(folders, open?.id ?? null).length) && (
+          <div className="empty">{searching ? (text.pending ? "Searching inside files…" : "No documents match.") : open ? "This folder is empty." : "No common documents uploaded yet."}</div>
         )
       )}
       <div className="sub" style={{ fontSize: 11.5, marginTop: 10 }}>

@@ -75,7 +75,7 @@ export default function IaSubmit({
     improvements: areas
       .map((x) => ({
         roman: roman(x.ordinal),
-        remarks: [1, 2, 3].map((i) => a.ratings[x.refId]?.[i]?.remark?.trim()).filter((v): v is string => Boolean(v)),
+        remarks: [a.comments[x.refId]?.trim()].filter((v): v is string => Boolean(v)),
       }))
       .filter((x) => x.remarks.length),
     findings: overall,

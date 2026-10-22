@@ -237,6 +237,7 @@
 .qp .docxview-host .docx-wrapper>section.docx{margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.18)}
 .qp .docxview-err{padding:40px 20px;text-align:center;color:#666;font-size:13px}
 .qp .fsp .docxview{position:static;flex:1;min-height:100%}
+.qp .docxview-host mark.docxhit{background:var(--gold-soft);color:inherit;box-shadow:0 0 0 1px var(--gold);border-radius:2px}
 
 .qp .fswm{position:absolute;inset:0;overflow:hidden;pointer-events:none}
 .qp .prw.d{grid-template-columns:minmax(0,2.2fr) 110px minmax(0,1.5fr) 150px 170px 34px 16px}

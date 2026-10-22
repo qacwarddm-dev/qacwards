@@ -8,46 +8,55 @@ import Modal from "../../kit/Modal";
 import { ReviewChip } from "../../kit/Pill";
 import { useToast } from "../../kit/ToastProvider";
 import { ReviewDecision } from "../../kit/ReviewDoc";
-import { INDICATORS, ratedCount, type AreaRatings, type IndicatorRating, type Slot } from "@/lib/review-model";
+import { INDICATORS, areaComplete, ratedCount, type AreaComments, type AreaRatings, type Slot } from "@/lib/review-model";
 import type { IaAssignment } from "@/lib/ia-model";
-import { saveAreaRating } from "@/lib/review-actions";
+import { saveAreaComment, saveAreaRating } from "@/lib/review-actions";
 
-/** Local, optimistic copy of this accreditor's ratings; each change is saved as it happens. */
+/** Local, optimistic copy of this accreditor's ratings and area comments; each change is saved as it happens. */
 export function useRatings(a: IaAssignment) {
   const [ratings, setRatings] = useState<AreaRatings>(a.ratings);
-  const [seen, setSeen] = useState(a.ratings);
-  if (seen !== a.ratings) {
-    setSeen(a.ratings);
+  const [comments, setComments] = useState<AreaComments>(a.comments);
+  const [seen, setSeen] = useState({ r: a.ratings, c: a.comments });
+  if (seen.r !== a.ratings || seen.c !== a.comments) {
+    setSeen({ r: a.ratings, c: a.comments });
     setRatings(a.ratings);
+    setComments(a.comments);
   }
   const toast = useToast();
   const router = useRouter();
-  function set(areaId: string, indicator: number, patch: Partial<IndicatorRating>, persist = true) {
-    const cur = ratings[areaId]?.[indicator] ?? { rating: null, remark: "" };
-    const next = { ...cur, ...patch };
-    setRatings((r) => ({ ...r, [areaId]: { ...(r[areaId] ?? {}), [indicator]: next } }));
-    if (!persist) return;
-    saveAreaRating({ assignmentId: a.id, areaId, indicator, rating: next.rating, remark: next.remark }).then((res) => {
-      if (!res.ok) toast.say(res.error, true);
-      else router.refresh();
-    });
+  const done = (res: { ok: boolean; error?: string }) => {
+    if (!res.ok) toast.say(res.error ?? "Could not save.", true);
+    else router.refresh();
+  };
+  function set(areaId: string, indicator: number, rating: number | null) {
+    setRatings((r) => ({ ...r, [areaId]: { ...(r[areaId] ?? {}), [indicator]: { rating } } }));
+    saveAreaRating({ assignmentId: a.id, areaId, indicator, rating }).then(done);
   }
-  return { ratings, set };
+  /** `persist` is false while typing; the text is saved when the box loses focus. */
+  function setComment(areaId: string, remark: string, persist = true) {
+    setComments((c) => ({ ...c, [areaId]: remark }));
+    if (persist) saveAreaComment({ assignmentId: a.id, areaId, remark }).then(done);
+  }
+  return { ratings, comments, set, setComment };
 }
 
 export function Indicators({
   areaNo,
   areaId,
   ratings,
+  comment,
   set,
+  setComment,
   disabled,
   readOnly,
-  placeholder = "Remarks for the report (required)",
+  placeholder = "Overall comment for this area (required)",
 }: {
   areaNo: number;
   areaId: string;
   ratings: AreaRatings;
+  comment: string;
   set: ReturnType<typeof useRatings>["set"];
+  setComment: ReturnType<typeof useRatings>["setComment"];
   disabled: boolean;
   readOnly: boolean;
   placeholder?: string;
@@ -67,22 +76,29 @@ export function Indicators({
               </span>
               <div className="rate">
                 {[1, 2, 3, 4, 5].map((n) => (
-                  <button key={n} type="button" disabled={disabled} className={cur?.rating === n ? "on" : ""} onClick={() => set(areaId, j + 1, { rating: n })}>
+                  <button key={n} type="button" disabled={disabled} className={cur?.rating === n ? "on" : ""} onClick={() => set(areaId, j + 1, n)}>
                     {n}
                   </button>
                 ))}
               </div>
             </div>
-            <textarea
-              readOnly={readOnly}
-              placeholder={placeholder}
-              value={cur?.remark ?? ""}
-              onChange={(e) => set(areaId, j + 1, { remark: e.target.value }, false)}
-              onBlur={(e) => !readOnly && set(areaId, j + 1, { remark: e.target.value })}
-            />
           </div>
         );
       })}
+      <div className="ind">
+        <div className="top">
+          <span>
+            <b>Area {areaNo}</b> overall comment
+          </span>
+        </div>
+        <textarea
+          readOnly={readOnly}
+          placeholder={placeholder}
+          value={comment}
+          onChange={(e) => setComment(areaId, e.target.value, false)}
+          onBlur={(e) => !readOnly && setComment(areaId, e.target.value)}
+        />
+      </div>
     </>
   );
 }
@@ -95,7 +111,9 @@ export function ReviewFullScreen({
   areaNo,
   locked,
   ratings,
+  comments,
   set,
+  setComment,
   onClose,
 }: {
   a: IaAssignment;
@@ -105,7 +123,9 @@ export function ReviewFullScreen({
   areaNo?: number;
   locked: boolean;
   ratings: AreaRatings;
+  comments: AreaComments;
   set: ReturnType<typeof useRatings>["set"];
+  setComment: ReturnType<typeof useRatings>["setComment"];
   onClose: () => void;
 }) {
   const panel = (
@@ -115,8 +135,8 @@ export function ReviewFullScreen({
       <ReviewDecision slot={slot} locked={locked} />
       {kind === "area" && (
         <>
-          <Indicators areaNo={areaNo ?? 1} areaId={slot.refId} ratings={ratings} set={set} disabled={locked} readOnly={locked} />
-          <div style={{ fontSize: 11, color: "var(--muted)" }}>Completed {ratedCount(ratings[slot.refId])}/3 · each needs a rating and a remark · saved automatically</div>
+          <Indicators areaNo={areaNo ?? 1} areaId={slot.refId} ratings={ratings} comment={comments[slot.refId] ?? ""} set={set} setComment={setComment} disabled={locked} readOnly={locked} />
+          <div style={{ fontSize: 11, color: "var(--muted)" }}>Rated {ratedCount(ratings[slot.refId])}/3 · {areaComplete(ratings[slot.refId], comments[slot.refId]) ? "overall comment added" : "overall comment needed"} · saved automatically</div>
         </>
       )}
     </>

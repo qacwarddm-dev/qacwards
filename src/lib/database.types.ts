@@ -334,6 +334,30 @@ export type Database = {
           },
         ]
       }
+      area_comments: {
+        Row: {
+          accreditor_id: string
+          assignment_id: string
+          remark: string
+          requirement_area_id: string
+          updated_at: string
+        }
+        Insert: {
+          accreditor_id: string
+          assignment_id: string
+          remark?: string
+          requirement_area_id: string
+          updated_at?: string
+        }
+        Update: {
+          accreditor_id?: string
+          assignment_id?: string
+          remark?: string
+          requirement_area_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       area_ratings: {
         Row: {
           accreditor_id: string
@@ -2971,6 +2995,10 @@ export type Database = {
       return_submission: {
         Args: { p_assignment: string; p_note: string }
         Returns: undefined
+      }
+      submission_report_acknowledged: {
+        Args: { p_submissions: string[] }
+        Returns: { acknowledged: boolean; submission_id: string }[]
       }
       search_documents: {
         Args: { p_limit?: number; p_query: string }

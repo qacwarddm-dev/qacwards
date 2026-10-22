@@ -1,13 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
+import { ttlCached } from "@/lib/ttl-cache";
 import { areaTag, fileSize, manilaTime, personName, programShort, shortDate } from "@/lib/program-names";
 import { DEFAULTS, type SettingKey, type TeamAreas } from "@/lib/settings-model";
 import { getQacOverview, phaseCounts } from "@/lib/qac-portal";
 
 type Supa = Awaited<ReturnType<typeof createClient>>;
 
+/** Site settings are readable by everyone and identical for all, so each key is kept for 30 seconds (and dropped when an admin saves). */
 export async function getSetting<K extends SettingKey>(supabase: Supa, key: K): Promise<(typeof DEFAULTS)[K]> {
-  const { data } = await supabase.from("site_settings").select("value").eq("key", key).maybeSingle();
-  return { ...DEFAULTS[key], ...((data?.value as object | null) ?? {}) } as (typeof DEFAULTS)[K];
+  const value = await ttlCached(`setting:${key}`, 30_000, async () => {
+    const { data } = await supabase.from("site_settings").select("value").eq("key", key).maybeSingle();
+    return (data?.value as object | null) ?? null;
+  });
+  return { ...DEFAULTS[key], ...(value ?? {}) } as (typeof DEFAULTS)[K];
 }
 
 const DONE = ["evaluated", "score_returned", "declined"];

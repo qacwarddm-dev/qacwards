@@ -8,12 +8,14 @@ import Btn from "../../kit/Btn";
 import Empty from "../../kit/Empty";
 import FileGrid from "../../kit/FileGrid";
 import FileViewModal from "../../kit/FileViewModal";
+import FilterSelects, { optionsOf } from "../../kit/FilterSelects";
 import FullScreenViewer from "../../kit/FullScreenViewer";
 import FolderIcon from "../../kit/FolderIcon";
 import FolderPath from "../../kit/FolderPath";
 import FolderTable from "../../kit/FolderTable";
 import Icon from "../../kit/Icon";
 import Pill from "../../kit/Pill";
+import SearchBox from "../../kit/SearchBox";
 import SegTabs from "../../kit/SegTabs";
 import { MiniRing } from "../../kit/Spinner";
 import StepsReminder from "../../kit/StepsReminder";
@@ -553,6 +555,8 @@ function Common({ data }: { data: RepDocumentsData }) {
 
 function Reports({ data, me }: { data: RepDocumentsData; me: string }) {
   const [q, setQ] = useState("");
+  const [fYear, setFYear] = useState("all");
+  const [fFolder, setFFolder] = useState("all");
   const text = useContentMatches(["repository"], q);
   const [folderMode, setFolderMode] = useState<"grid" | "list">("grid");
   const [fileMode, setFileMode] = useState<"grid" | "list">("list");
@@ -565,19 +569,23 @@ function Reports({ data, me }: { data: RepDocumentsData; me: string }) {
   const folders = useMemo(() => {
     let L = data.folders.map((f) => ({ ...f, last: f.files[0]?.iso ?? "" }));
     if (ql) L = L.filter((f) => f.name.toLowerCase().includes(ql) || f.files.some((x) => text.ids.has(x.id) || `${x.name} ${x.iso.slice(0, 4)}`.toLowerCase().includes(ql)));
+    if (fFolder !== "all") L = L.filter((f) => f.id === fFolder);
+    if (fYear !== "all") L = L.filter((f) => f.files.some((x) => x.iso.slice(0, 4) === fYear));
     L.sort((a, b) => (sort === "name" ? a.name.localeCompare(b.name) : a.last.localeCompare(b.last)));
     if (dir === "desc") L.reverse();
     return L;
-  }, [data.folders, ql, sort, dir, text.ids]);
+  }, [data.folders, ql, sort, dir, text.ids, fFolder, fYear]);
   const cur = data.folders.find((f) => f.id === folder);
   const fv = cur ? fileMode : folderMode;
   const setFv = cur ? setFileMode : setFolderMode;
   const files = useMemo(() => {
-    const L = (cur?.files ?? []).filter((x) => !ql || text.ids.has(x.id) || `${x.name} ${x.iso.slice(0, 4)}`.toLowerCase().includes(ql));
+    const L = (cur?.files ?? [])
+      .filter((x) => !ql || text.ids.has(x.id) || `${x.name} ${x.iso.slice(0, 4)}`.toLowerCase().includes(ql))
+      .filter((x) => fYear === "all" || x.iso.slice(0, 4) === fYear);
     L.sort((a, b) => (sort === "name" ? a.name.localeCompare(b.name) : a.iso.localeCompare(b.iso)));
     if (dir === "desc") L.reverse();
     return L;
-  }, [cur, ql, sort, dir, text.ids]);
+  }, [cur, ql, sort, dir, text.ids, fYear]);
 
   return (
     <>
@@ -585,9 +593,14 @@ function Reports({ data, me }: { data: RepDocumentsData; me: string }) {
         Click a folder to view the document.
       </div>
       <div className="rtool">
-        <div className="rsearch">
-          <Icon name="search" size={16} stroke={2} color="#666" />
-          <input placeholder="Search by report name or year" value={q} onChange={(e) => setQ(e.target.value)} />
+        <div className="ftools">
+          <SearchBox value={q} onChange={setQ} placeholder="Search by report name or year" />
+          <FilterSelects
+            filters={[
+              ...(cur ? [] : [{ label: "Folder", value: fFolder, onChange: setFFolder, options: data.folders.map((f) => ({ value: f.id, label: f.name })) }]),
+              { label: "Year", value: fYear, onChange: setFYear, options: optionsOf(data.folders.flatMap((f) => f.files.map((x) => x.iso.slice(0, 4)))).reverse() },
+            ]}
+          />
         </div>
         <div className="rbtns">
           <button type="button" className={`vbtn${fv === "list" ? " on" : ""}`} title="List view" aria-label="List view" onClick={() => setFv("list")}>
@@ -666,7 +679,7 @@ function Reports({ data, me }: { data: RepDocumentsData; me: string }) {
           )}
         </>
       ) : !folders.length ? (
-        <Empty>{text.pending ? "Searching inside files…" : `No folders match “${q}”.`}</Empty>
+        <Empty>{text.pending ? "Searching inside files…" : q ? `No folders match “${q}”.` : "No folders match these filters."}</Empty>
       ) : fv === "grid" ? (
         <div className="fgrid">
           {folders.map((f) => (

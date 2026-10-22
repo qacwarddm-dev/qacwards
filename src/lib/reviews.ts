@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { ttlCached } from "@/lib/ttl-cache";
 import {
   LEVEL_SHORT,
   areaLabel,
@@ -17,6 +18,7 @@ import {
   missingChoices,
   INDICATORS,
   ratedCount,
+  areaComplete,
   areaMean,
   describeMean,
   type DocState,
@@ -28,6 +30,7 @@ import {
   type Counts,
   type IndicatorRating,
   type AreaRatings,
+  type AreaComments,
 } from "@/lib/review-model";
 export {
   countSlots,
@@ -37,6 +40,7 @@ export {
   missingChoices,
   INDICATORS,
   ratedCount,
+  areaComplete,
   areaMean,
   describeMean,
   type DocState,
@@ -48,6 +52,7 @@ export {
   type Counts,
   type IndicatorRating,
   type AreaRatings,
+  type AreaComments,
 };
 
 type DocRow = {
@@ -183,7 +188,10 @@ export function buildSlot(
 
 type Ref = { id: string; name: string; ordinal: number; is_optional: boolean };
 
-export async function getReferenceStructure() {
+/** The levels, areas and phases are readable by every signed-in user and change rarely, so they are kept for five minutes. */
+export const getReferenceStructure = () => ttlCached("ref:structure", 5 * 60_000, loadReferenceStructure);
+
+async function loadReferenceStructure() {
   const supabase = await createClient();
   const [{ data: phases }, { data: areas }, { data: levels }] = await Promise.all([
     supabase.from("phases").select("id, ordinal, name, phase_documents(id, ordinal, name, is_optional)").order("ordinal"),
@@ -299,18 +307,22 @@ export function emptyReview(
 
 // ----------------------------------------------------------- ratings
 
-/** Every area's ratings, taken from the accreditor who owns the area. Ratings made before roles
- *  existed sit with whoever filled them in, so they stand in until the owner has rated. */
-export async function getTeamRatings(assignmentId: string, ownerOf: (areaId: string) => string | null): Promise<AreaRatings> {
+/** Every area's ratings and overall comment, taken from the accreditor who owns the area. Rows made before
+ *  roles existed sit with whoever filled them in, so they stand in until the owner has filled the area in. */
+export async function getTeamRatings(assignmentId: string, ownerOf: (areaId: string) => string | null): Promise<{ ratings: AreaRatings; comments: AreaComments }> {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("area_ratings")
-    .select("requirement_area_id, accreditor_id, indicator, rating, remark")
-    .eq("assignment_id", assignmentId);
-  const out: AreaRatings = {};
-  const rows = [...(data ?? [])].sort((a, b) => Number(ownerOf(a.requirement_area_id) === a.accreditor_id) - Number(ownerOf(b.requirement_area_id) === b.accreditor_id));
-  for (const r of rows) (out[r.requirement_area_id] ??= {})[r.indicator] = { rating: r.rating, remark: r.remark ?? "" };
-  return out;
+  const [{ data }, { data: notes }] = await Promise.all([
+    supabase.from("area_ratings").select("requirement_area_id, accreditor_id, indicator, rating").eq("assignment_id", assignmentId),
+    supabase.from("area_comments").select("requirement_area_id, accreditor_id, remark").eq("assignment_id", assignmentId),
+  ]);
+  const ownerLast = (areaId: string, accreditorId: string) => Number(ownerOf(areaId) === accreditorId);
+  const ratings: AreaRatings = {};
+  const rows = [...(data ?? [])].sort((a, b) => ownerLast(a.requirement_area_id, a.accreditor_id) - ownerLast(b.requirement_area_id, b.accreditor_id));
+  for (const r of rows) (ratings[r.requirement_area_id] ??= {})[r.indicator] = { rating: r.rating };
+  const comments: AreaComments = {};
+  const byOwner = [...(notes ?? [])].sort((a, b) => ownerLast(a.requirement_area_id, a.accreditor_id) - ownerLast(b.requirement_area_id, b.accreditor_id));
+  for (const n of byOwner) if (n.remark.trim() || !comments[n.requirement_area_id]) comments[n.requirement_area_id] = n.remark;
+  return { ratings, comments };
 }
 
 

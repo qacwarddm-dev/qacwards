@@ -3,6 +3,7 @@
 import { useState } from "react";
 import useNav from "../kit/nav";
 import Btn from "../kit/Btn";
+import FilterSelects, { optionsOf } from "../kit/FilterSelects";
 import Scope from "../kit/Scope";
 import SearchBox from "../kit/SearchBox";
 import { useToast } from "../kit/ToastProvider";
@@ -36,7 +37,7 @@ const REP_FAQ: Faq[] = [
   ["Upload", "Why was my file rejected?", "The system only accepts PDF files up to 25 MB. Word files and PDFs that are corrupt or password-protected are rejected. Documents don’t have to use the PUP toolkit, so your program’s own version is fine."],
   ["Upload", "Can I save and finish later?", <>Yes. A file is saved automatically as soon as you choose it, and other representatives of your program can see it. It is not submitted until you click Upload.</>],
   ["Feedback", "What does “Needs revision” mean?", <>An internal accreditor asked for changes. Open <b>Feedback → From Accreditors</b> to read the comment, then <b>Resubmit</b> the revised file.</>],
-  ["Readiness", "How is the readiness % computed?", "Documents uploaded and not returned (approved + for review) divided by all required documents for that level."],
+  ["Progress", "How is the progress % computed?", "Only work the accreditors have accepted counts, so an upload alone does not move it. Your program’s percentage is four stages worth 25% each: accreditors assigned and accepted, documents accepted, the Team Leader’s overall report acknowledged by QAC, and the visit result. The bars on the document pages show approved documents out of those required."],
   ["Evaluations", "Where are the evaluation forms?", <>After each visit they pop up on your Dashboard. You can also find them anytime under <b>Feedback → Your evaluations</b>.</>],
   ["Common Documents", "Why is Common Documents locked?", "Upload your signed and notarized NDA first. The QA Center verifies it within 1–2 working days."],
   ["Account", "How do I change my name or department?", "These come from your QAC account. Contact the QA Center to correct them."],
@@ -78,10 +79,11 @@ export function IaHelp() {
 
 export function RepHelp({ email }: { email: string }) {
   const [q, setQ] = useState("");
+  const [topic, setTopic] = useState("all");
   const toast = useToast();
   const words = q.toLowerCase().split(/\s+/).filter(Boolean);
   const text = (n: React.ReactNode): string => (typeof n === "string" ? n : Array.isArray(n) ? n.map(text).join(" ") : n && typeof n === "object" && "props" in n ? text((n as { props: { children?: React.ReactNode } }).props.children) : "");
-  const list = REP_FAQ.filter((f) => words.every((w) => `${f[0]} ${f[1]} ${text(f[2])}`.toLowerCase().includes(w)));
+  const list = REP_FAQ.filter((f) => (topic === "all" || f[0] === topic) && words.every((w) => `${f[0]} ${f[1]} ${text(f[2])}`.toLowerCase().includes(w)));
   return (
     <>
       <div className="card">
@@ -89,7 +91,10 @@ export function RepHelp({ email }: { email: string }) {
         <div className="sub" style={{ marginBottom: 16 }}>
           How to use QAC-WARDS as a Program Representative
         </div>
-        <SearchBox variant="pill" value={q} onChange={setQ} placeholder="Search help, e.g. “rejected”" style={{ maxWidth: 480, marginBottom: 20 }} />
+        <div className="ftools" style={{ marginBottom: 20 }}>
+          <SearchBox variant="pill" value={q} onChange={setQ} placeholder="Search help, e.g. “rejected”" style={{ maxWidth: 480 }} />
+          <FilterSelects filters={[{ label: "Topic", value: topic, onChange: setTopic, options: optionsOf(REP_FAQ.map((f) => f[0])) }]} />
+        </div>
         <Steps steps={REP_STEPS} />
         <h3 style={{ fontSize: 14, margin: "22px 0 10px" }}>Frequently asked questions</h3>
         {list.length ? (

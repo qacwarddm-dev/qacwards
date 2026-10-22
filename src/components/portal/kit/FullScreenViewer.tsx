@@ -22,6 +22,8 @@ export default function FullScreenViewer({
   note = "View only · program files can’t be downloaded or printed from here",
   downloadHref,
   viewer,
+  startPage,
+  highlight,
   onClose,
 }: {
   docId?: string | null;
@@ -35,11 +37,15 @@ export default function FullScreenViewer({
   note?: string;
   downloadHref?: string;
   viewer?: string;
+  /** Open a PDF on this page (e.g. the page a search hit is on). */
+  startPage?: number | null;
+  /** Words to mark inside a Word file. */
+  highlight?: string[];
   onClose: () => void;
 }) {
   const { url: fetched, error } = useDocUrl(directUrl ? null : (docId ?? null));
   const url = directUrl ?? fetched;
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(startPage && startPage > 0 ? startPage : 1);
   const [zoom, setZoom] = useState(100);
   const [showPanel, setShowPanel] = useState(() => typeof window !== "undefined" && window.innerWidth > 820);
   const layer = useClientValue(getLayer, null);
@@ -128,7 +134,7 @@ export default function FullScreenViewer({
       <div className="fsb">
         <div className="fsp" style={{ padding: 0, alignItems: "stretch", position: "relative" }}>
           {url && docx ? (
-            <DocxFrame src={url} zoom={zoom} />
+            <DocxFrame src={url} zoom={zoom} highlight={highlight} />
           ) : url ? (
             <PdfFrame src={pdfSrc(url, page, zoom === 100 ? undefined : zoom)} title={file} style={{ flex: 1, minHeight: "100%" }} />
           ) : (

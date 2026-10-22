@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { PortalRole, PortalUser } from "@/components/portal/portal-nav";
 import { ROLE_LABELS } from "@/lib/role-labels";
 import { BUCKETS, signedUrl } from "@/lib/storage";
+import { ttlCached } from "@/lib/ttl-cache";
 
 /**
  * The identity seam. Everything that needs to know who is signed in goes through
@@ -78,8 +79,10 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   // the same as the profile screen's own photo card.
   let avatar = AVATAR_FALLBACK;
   if (profile.avatar_path) {
-    const signed = await signedUrl(supabase, BUCKETS.avatars, profile.avatar_path);
-    if (signed.data) avatar = signed.data;
+    // Signing is a Storage round trip on every page; the URL lives a minute, so one is reused for 40 seconds.
+    const path = profile.avatar_path;
+    const url = await ttlCached(`avatar:${path}`, 40_000, async () => (await signedUrl(supabase, BUCKETS.avatars, path)).data);
+    if (url) avatar = url;
   }
 
   return {

@@ -6,6 +6,7 @@ import ActLink from "../../../kit/ActLink";
 import Btn from "../../../kit/Btn";
 import Card, { CardHead } from "../../../kit/Card";
 import FilterPills from "../../../kit/FilterPills";
+import FilterSelects, { optionsOf } from "../../../kit/FilterSelects";
 import Modal from "../../../kit/Modal";
 import Pill from "../../../kit/Pill";
 import RoleChip, { roleLabel } from "../../../kit/RoleChip";
@@ -443,12 +444,20 @@ export function RepsTab({ data, sel }: { data: RepsData; sel: string | null }) {
   const router = useNav();
   const cur = data.reps.find((r) => r.id === sel) ?? data.reps[0];
   const [q, setQ] = useState("");
+  const [pCol, setPCol] = useState("all");
+  const [pCamp, setPCamp] = useState("all");
   const [rm, setRm] = useState<{ id: string; name: string; campus: string } | null>(null);
   const { busy, run } = useAct();
   const own = cur ? (data.map[cur.id] ?? []) : [];
   const none = data.programs.filter((p) => !p.rep).length;
   const ql = q.toLowerCase().trim();
-  const sug = ql ? data.programs.filter((p) => `${p.name} ${p.campus} ${p.college}`.toLowerCase().includes(ql) && !own.some((o) => o.id === p.id)).slice(0, 6) : [];
+  const narrowed = pCol !== "all" || pCamp !== "all";
+  const sug =
+    ql || narrowed
+      ? data.programs
+          .filter((p) => (!ql || `${p.name} ${p.campus} ${p.college}`.toLowerCase().includes(ql)) && (pCol === "all" || p.college === pCol) && (pCamp === "all" || p.campus === pCamp) && !own.some((o) => o.id === p.id))
+          .slice(0, 6)
+      : [];
   return (
     <Card>
       <CardHead title="Program Representatives" sub="Which programs each representative can upload for" />
@@ -484,8 +493,16 @@ export function RepsTab({ data, sel }: { data: RepsData; sel: string | null }) {
           <div>
             <h3 style={{ fontSize: 15, marginBottom: 10 }}>{cur.name}</h3>
             <div className="addp">
-              <SearchBox value={q} onChange={setQ} placeholder="Add a program: search by program or campus" />
-              {ql && (
+              <div className="ftools">
+                <SearchBox value={q} onChange={setQ} placeholder="Add a program: search by program or campus" />
+                <FilterSelects
+                  filters={[
+                    { label: "College", value: pCol, onChange: setPCol, options: optionsOf(data.programs.map((p) => p.college)) },
+                    { label: "Campus", value: pCamp, onChange: setPCamp, options: optionsOf(data.programs.map((p) => p.campus)) },
+                  ]}
+                />
+              </div>
+              {(ql || narrowed) && (
                 <div className="sug">
                   {sug.length ? (
                     sug.map((p) => (

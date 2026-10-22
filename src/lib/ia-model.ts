@@ -3,7 +3,8 @@ import {
   areaMean,
   countSlots,
   includedAreas,
-  ratedCount,
+  areaComplete,
+  type AreaComments,
   type AreaRatings,
   type SubmissionReview,
 } from "@/lib/review-model";
@@ -60,6 +61,8 @@ export type IaAssignment = {
   review: SubmissionReview | null;
   /** Ratings of every area, taken from whichever accreditor owns it. */
   ratings: AreaRatings;
+  /** The one overall comment of every area, from the same owner. */
+  comments: AreaComments;
   /** The one overall report, signed by the Team Leader. */
   report: ReportState | null;
   awardedCodes: string[];
@@ -89,7 +92,7 @@ export function iaStats(a: IaAssignment) {
   const areas = includedAreas(r);
   const mine = areas.filter((s) => a.mine.includes(s.refId));
   const theirs = areas.filter((s) => !a.mine.includes(s.refId));
-  const evaluated = (s: (typeof areas)[number]) => s.state === "approved" && ratedCount(a.ratings[s.refId]) === 3;
+  const evaluated = (s: (typeof areas)[number]) => s.state === "approved" && areaComplete(a.ratings[s.refId], a.comments[s.refId]);
   const all = countSlots(areas);
   const own = countSlots(mine);
   const evalN = mine.filter(evaluated).length;
@@ -97,9 +100,9 @@ export function iaStats(a: IaAssignment) {
   const mineDone = evalN === mine.length;
   const allDone = mineDone && mateN === theirs.length;
   const mateReady = !a.mate || (a.mate.response === "accepted" && Boolean(a.mateSentAt));
-  const started = mine.some((s) => s.state === "approved" || s.state === "returned") || mine.some((s) => Object.keys(a.ratings[s.refId] ?? {}).length > 0);
+  const started = mine.some((s) => s.state === "approved" || s.state === "returned") || mine.some((s) => Object.keys(a.ratings[s.refId] ?? {}).length > 0 || Boolean(a.comments[s.refId]?.trim()));
   return {
-    docsPct: all.pct,
+    docsPct: all.upPct,
     evalN,
     evalPct: mine.length ? Math.round((evalN / mine.length) * 100) : 0,
     pending: own.pe,

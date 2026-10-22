@@ -67,6 +67,7 @@ export async function getIaAssignments(viewerId: string): Promise<IaAssignment[]
       const areaIds = review?.areas.map((x) => x.refId) ?? [];
       const mineIds = leader ? areaIds.filter((id) => a.leader_area_ids.includes(id) === (role === "leader")) : areaIds;
       const ownerOf = (areaId: string) => (leader ? ((a.leader_area_ids.includes(areaId) ? leader.profile_id : assistant?.profile_id) ?? null) : null);
+      const team = myResponse === "accepted" ? await getTeamRatings(a.id, ownerOf) : { ratings: {}, comments: {} };
       return {
         id: a.id,
         status: a.status,
@@ -105,7 +106,8 @@ export async function getIaAssignments(viewerId: string): Promise<IaAssignment[]
         mySentAt: me?.areas_sent_at ?? null,
         mateSentAt: role === "leader" ? (assistant?.areas_sent_at ?? null) : null,
         review,
-        ratings: myResponse === "accepted" ? await getTeamRatings(a.id, ownerOf) : {},
+        ratings: team.ratings,
+        comments: team.comments,
         report: toReport((reports ?? []).find((r) => r.assignment_id === a.id && r.accreditor_id === leader?.profile_id)),
         awardedCodes: (awards ?? [])
           .filter((w) => w.program_id === p?.id)

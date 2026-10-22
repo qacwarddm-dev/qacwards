@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
+import { bustCache } from "@/lib/ttl-cache";
 import { BUCKETS, removeFile, uploadFile } from "@/lib/storage";
 import { DEFAULTS, type SettingKey } from "@/lib/settings-model";
 import { sendMail } from "@/lib/email";
@@ -87,6 +88,7 @@ export async function saveSetting<K extends SettingKey>(key: K, value: (typeof D
   const supabase = await createClient();
   const { error } = await supabase.from("site_settings").upsert({ key, value: value as never, updated_by: user.id, updated_at: new Date().toISOString() });
   if (error) return { ok: false, error: error.message };
+  bustCache("setting:");
   refresh();
   return { ok: true };
 }

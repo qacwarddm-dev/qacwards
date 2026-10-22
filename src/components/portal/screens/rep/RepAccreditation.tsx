@@ -21,9 +21,8 @@ import SumRows from "../../kit/SumRows";
 import { useToast } from "../../kit/ToastProvider";
 import UploadFlow, { TemplatePreview, type TemplateFile, type UploadMode } from "../../kit/UploadFlow";
 import { allPhaseSlots, countSlots, includedAreas, missingChoices, type Counts, type PhaseGroup, type Slot } from "@/lib/review-model";
-import { isLocked, levelCounts, levelStatus, currentLevel, type RepLevel, type RepProgram } from "@/lib/rep-model";
-import { areaLabel, programMid, programShort } from "@/lib/program-names";
-import { computeProgress, type ProgressInput } from "@/lib/progress-model";
+import { isLocked, levelCounts, levelPercent, levelStatus, currentLevel, repProgressInput, type RepLevel, type RepProgram } from "@/lib/rep-model";
+import { programMid, programShort } from "@/lib/program-names";
 import { setLevelChoices, submitForEvaluation } from "@/lib/submission-actions";
 
 export type RepView = { p?: string; l?: string; st?: "pre" | "req"; g?: number; hl?: string };
@@ -39,20 +38,6 @@ function href(v: RepView) {
   if (v.hl) q.set("hl", v.hl);
   const s = q.toString();
   return `/portal/submission${s ? `?${s}` : ""}`;
-}
-
-/** What the rep's progress tracker counts for a level: accreditor acceptance and accepted areas. */
-function repProgressInput(program: RepProgram, level: RepLevel): ProgressInput {
-  const r = level.review;
-  const areas = (r ? includedAreas(r) : []).map((a) => ({ name: areaLabel(a.name), state: a.state, remark: a.returnNote ?? undefined }));
-  for (let i = 0; i < (r ? missingChoices(r) : 0); i++) areas.push({ name: "Chosen area (not picked yet)", state: "missing" as const, remark: undefined });
-  const done = program.awarded.includes(level.code);
-  return {
-    accreditors: level.accreditors.map((a) => ({ name: a.name, accepted: a.accepted, report: "none" as const, leader: a.leader })),
-    areas,
-    completed: done,
-    result: done ? "Passed" : null,
-  };
 }
 
 type Ctx = {
@@ -97,7 +82,7 @@ export default function RepAccreditation({
         <div className="plist">
           {programs.map((p) => {
             const cl = currentLevel(p);
-            const s = levelCounts(cl);
+            const pct = levelPercent(p, cl);
             const ls = levelStatus(p, cl, visits[cl.levelId]);
             return (
               <Link key={p.id} className="pr" href={href({ p: p.id })}>
@@ -107,8 +92,8 @@ export default function RepAccreditation({
                     Current: {cl.name} · <Pill tone={ls.tone}>{ls.t}</Pill> · {ls.sub}
                   </small>
                 </div>
-                <Bar pct={s.pct} color="var(--gold)" />
-                <b style={{ textAlign: "right" }}>{s.pct}%</b>
+                <Bar pct={pct} color="var(--gold)" />
+                <b style={{ textAlign: "right" }}>{pct}%</b>
                 <span style={{ color: "#aaa", fontSize: 18 }}>›</span>
               </Link>
             );
@@ -166,7 +151,7 @@ export default function RepAccreditation({
             <LevelRings
               items={program.levels.map((l) => {
                 const isCurrent = l.levelId === current.levelId;
-                const pct = isCurrent ? computeProgress(repProgressInput(program, l)).percent : levelCounts(l).pct;
+                const pct = levelPercent(program, l);
                 const ls = levelStatus(program, l, visits[l.levelId]);
                 const lk = isLocked(program, l);
                 return {
@@ -372,7 +357,7 @@ function PreCard({ ctx }: { ctx: Ctx }) {
             return {
               key: g.id,
               name: g.name.replace(" – ", " (") + ")",
-              dim: c.pct === 0 && !c.re,
+              dim: c.up === 0 && !c.re,
               pct: c.pct,
               barColor: c.ap === c.req ? "#4caf6a" : "var(--gold)",
               badges: c.re ? <em>{c.re} to revise</em> : null,
@@ -457,7 +442,7 @@ function LevelCard({ ctx, visitDone }: { ctx: Ctx; visitDone?: string }) {
             <Bar pct={s.pct} color={s.pct === 100 ? "var(--green)" : "var(--gold)"} height={10} />
             <b>{s.pct}%</b>
           </div>
-          <small>Uploaded (accepted is shown in Accreditation Progress)</small>
+          <small>Approved by accreditors (accreditation progress is shown below)</small>
         </div>
       </div>
       {ctx.locked && <LockNote level={level.name} sub={ls.sub} closed={level.closed} />}
@@ -466,11 +451,11 @@ function LevelCard({ ctx, visitDone }: { ctx: Ctx; visitDone?: string }) {
         value="req"
         onChange={(k) => router.push(href({ p, l, st: k }))}
         stages={[
-          { key: "pre", title: STN.pre, sub: `${sp.ap + sp.pe} of ${sp.req} uploaded${sp.re ? ` · ${sp.re} to revise` : ""}`, pct: sp.pct, done: sp.miss === 0 && sp.req > 0 },
+          { key: "pre", title: STN.pre, sub: `${sp.ap} of ${sp.req} approved${sp.re ? ` · ${sp.re} to revise` : ""}`, pct: sp.pct, done: sp.miss === 0 && sp.req > 0 },
           {
             key: "req",
             title: STN.req,
-            sub: rOpen ? `${sr.ap + sr.pe} of ${sr.req} uploaded${sr.re ? ` · ${sr.re} to revise` : ""}` : "Nothing uploaded yet",
+            sub: rOpen ? `${sr.ap} of ${sr.req} approved${sr.re ? ` · ${sr.re} to revise` : ""}` : "Nothing uploaded yet",
             pct: sr.pct,
             disabled: !rOpen,
           },
@@ -643,7 +628,7 @@ function PhaseView({ ctx, g, onTemplate }: { ctx: Ctx; g: PhaseGroup; onTemplate
         <div>
           <h2>{g.name}</h2>
           <div className="sub">
-            {programMid(ctx.program.name)} · {ctx.level.name} · Pre-Accreditation Phases · {c.ap + c.pe} of {c.req} uploaded
+            {programMid(ctx.program.name)} · {ctx.level.name} · Pre-Accreditation Phases · {c.ap} of {c.req} approved
             {c.re > 0 && (
               <>
                 {" "}
