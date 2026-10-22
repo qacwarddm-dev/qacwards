@@ -33,7 +33,11 @@ const fail = (m) => {
 };
 
 function run(cmd, args, opts = {}) {
-  const r = spawnSync(cmd, args, { cwd: ROOT, shell: WIN, encoding: "utf8", maxBuffer: 1 << 28, ...opts });
+  // On Windows the shell splits an unquoted path at its first space, so "C:\Program Files\nodejs\node.exe"
+  // would run as "C:\Program".
+  const shell = opts.shell ?? WIN;
+  const bin = shell && args.length && /\s/.test(cmd) && !cmd.startsWith('"') ? `"${cmd}"` : cmd;
+  const r = spawnSync(bin, args, { cwd: ROOT, shell: WIN, encoding: "utf8", maxBuffer: 1 << 28, ...opts });
   return r;
 }
 
