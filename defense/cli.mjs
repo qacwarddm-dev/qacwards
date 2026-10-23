@@ -200,8 +200,8 @@ function repairDemoPasswords() {
       `where email in ('accreditor2@pup.edu.ph','accreditor3@pup.edu.ph','accreditor4@pup.edu.ph') ` +
       `and encrypted_password = extensions.crypt('', encrypted_password) returning email`,
   );
-  const fixed = (r.stdout ?? "").trim();
-  if (r.status === 0 && fixed) say(`Repaired the demo password for: ${fixed.split(/\s+/).join(", ")}`);
+  const fixed = (r.stdout ?? "").split(/\s+/).filter((x) => x.includes("@"));
+  if (r.status === 0 && fixed.length) say(`Repaired the demo password for: ${fixed.join(", ")}`);
 }
 
 function needsBuild(stamp) {
@@ -209,11 +209,24 @@ function needsBuild(stamp) {
   return !existsSync(join(ROOT, ".next", "BUILD_ID")) || !existsSync(f) || readFileSync(f, "utf8") !== stamp;
 }
 
+function codeVersion() {
+  const r = spawnSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" });
+  return r.status === 0 ? r.stdout.trim() : "";
+}
+
 function build(stamp, force) {
-  if (!force && !needsBuild(stamp)) return;
+  if (!force && !needsBuild(stamp)) return false;
   say("Building the app (first start takes a few minutes)");
   must(process.execPath, ["node_modules/next/dist/bin/next", "build"]);
   writeFileSync(join(ROOT, ".next", ".defense-build"), stamp);
+  return true;
+}
+
+function stopApp() {
+  const pidFile = join(RUN, "next.pid");
+  if (!existsSync(pidFile)) return;
+  killTree(Number(readFileSync(pidFile, "utf8")));
+  rmSync(pidFile, { force: true });
 }
 
 function portOpen(port) {
@@ -303,7 +316,10 @@ async function start(flags) {
   writeEnv(sb, lan ? `http://${lan}:${PORT}` : APP_URL);
   seedIfEmpty();
   repairDemoPasswords();
-  build(`${sb.API_URL}|${sb.ANON_KEY}`, flags.includes("--rebuild"));
+  if (build(`${sb.API_URL}|${sb.ANON_KEY}|${codeVersion()}`, flags.includes("--rebuild"))) {
+    stopApp();
+    await new Promise((r) => setTimeout(r, 2000));
+  }
   await startApp(lan ? "0.0.0.0" : "127.0.0.1");
   banner();
   if (lan) console.log(`\nLAN MODE: other devices on this network open  http://${lan}:${PORT}\nAnyone on the network can reach it. Use a private network, and restart without --lan afterwards.\n`);

@@ -78,14 +78,18 @@ first if you want a safety copy.
 If the folder is a git clone (it has a `.git` folder):
 
 ```
+defense\stop.bat                      (or sh defense/stop.sh)
 git pull
 defense\start.bat --rebuild           (or sh defense/start.sh --rebuild)
 ```
 
+Stop first: an older start script keeps a running app instead of replacing it.
+From this version on, `start` rebuilds and restarts the app by itself when the
+code changed, so plain `git pull` then `start` is enough. New database
+migrations are applied automatically on start, without a reset.
+
 If you received a zip instead, extract the new zip into a new folder and run the
-same `start` command there. `--rebuild` is needed whenever the code changed,
-otherwise the old build keeps running. New database migrations are applied
-automatically on start, without a reset.
+same `start` command there.
 
 ## What still needs internet
 
