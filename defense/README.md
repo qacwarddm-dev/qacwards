@@ -70,6 +70,23 @@ Restore asks for confirmation, takes a safety backup of the current state first,
 then replaces the data. Take a backup before the defense and after you have set
 up your demo scenario, so you can return to that exact state.
 
+## Updating to a newer version (needs internet)
+
+Your data is kept: it lives in Docker, not in the project folder. Take a backup
+first if you want a safety copy.
+
+If the folder is a git clone (it has a `.git` folder):
+
+```
+git pull
+defense\start.bat --rebuild           (or sh defense/start.sh --rebuild)
+```
+
+If you received a zip instead, extract the new zip into a new folder and run the
+same `start` command there. `--rebuild` is needed whenever the code changed,
+otherwise the old build keeps running. New database migrations are applied
+automatically on start, without a reset.
+
 ## What still needs internet
 
 - Nothing needed during the defense.
